@@ -21,13 +21,13 @@ src/gita/
   db.py                  SQLite schema
   pipeline.py            understand -> retrieve -> ground -> answer
   ingest/                vedicscriptures fetch + cache + rights filter
-  retrieval/             IAST normalisation, BM25, corpus construction, RRF
+  retrieval/             IAST normalisation, BM25, corpus construction, RRF, dense (Ollama)
   enrich/                the bridge layer (Batch API)
   answer/                context assembly, prompts, generation, citation validator
   api/                   FastAPI surface
 scripts/                 CLIs and test suites
 eval/questions.json      labelled questions for recall measurement
-data/gita.sqlite3        the store (22 MB, populated)
+data/gita.sqlite3        the store (~30 MB, populated: corpus + enrichment + embeddings)
 ```
 
 ## Setup
@@ -129,8 +129,14 @@ does not search verse text — it searches an English description of the human
 situations each verse speaks to. A question about resenting a stranger online
 shares no vocabulary with a verse about *dvandva-moha*.
 
-Measured baseline without it, over 106 questions: **recall@8 of 5 full, 25
-partial, 76 complete misses.**
+Measured baseline without it, over 106 questions: recall@8 of 5 full, 25
+partial, 76 complete misses.
+
+**Status: generated.** All 692 non-demo verses were enriched with Haiku 4.5 via
+the Batch API (9 verses keep hand-written demo notes). Actual measured cost —
+not the estimate — was **$1.10** for the full batch. With enrichment alone,
+recall@8 moves to **7 full, 41 partial, 58 miss**; with enrichment plus dense
+retrieval (below), **17-18 full, ~44 partial, ~45 miss**.
 
 ```bash
 python -m gita.enrich.run --dry-run     # renders prompts, estimates cost, free
@@ -139,6 +145,7 @@ python scripts/demo_enrichment.py       # hand-written notes for 9 verses, $0
 python -m gita.enrich.run --submit --limit 20 --model claude-haiku-4-5 --yes
 python -m gita.enrich.run --status
 python -m gita.enrich.run --collect
+sqlite3 data/gita.sqlite3 "SELECT model, COUNT(*) FROM enrichment GROUP BY model;"
 ```
 
 `demo_enrichment.py` writes notes by hand for nine verses and re-measures: on
@@ -148,22 +155,65 @@ verses were chosen because the eval expects them.
 
 Runs on the Message Batches API: 701 requests, no latency requirement, 50% off,
 and the system prompt caches across every request. Cost depends entirely on
-model tier, because output — mostly thinking tokens — is the whole bill:
+model tier, because output — mostly thinking tokens — is the whole bill. The
+table below is the pre-flight *estimate*, which assumes 1200 thinking
+tokens/verse; the real Haiku run used almost none (~255 output tokens/verse
+measured), so the estimate overstates Haiku's actual cost by roughly 3-4x —
+run the 20-verse calibration and read `usage.output_tokens` rather than
+trusting the table for anything but ballpark ordering:
 
-| Model | Config | Full run |
-|---|---|---|
-| Haiku 4.5 | no thinking (its default) | **~$1.75** |
-| Sonnet 5 | effort=low | ~$7.35 |
-| Opus 5 | default | ~$19.26 |
-| Opus 5 | effort=high | ~$35.04 |
-
-These are character-heuristic estimates with an assumed thinking-token count,
-not measurements. Run the 20-verse calibration first — it costs 5¢ on Haiku and
-replaces the guess with real `usage.output_tokens`.
+| Model | Config | Estimated | Actually measured |
+|---|---|---|---|
+| Haiku 4.5 | no thinking (its default) | ~$3.70 | **$1.10** |
+| Sonnet 5 | effort=low | ~$7.35 | not run |
+| Opus 5 | default | ~$19.26 | not run |
+| Opus 5 | effort=high | ~$35.04 | not run |
 
 Three commands, not one, deliberately: a batch can take up to 24 hours, and a
 blocking script that died mid-wait would orphan a paid job. The batch id is
 written to SQLite before anything else happens.
+
+## Dense retrieval (hybrid)
+
+BM25 is lexical: it needs shared vocabulary between the question and the
+enrichment text. `reciprocal_rank_fusion` in `retrieval/bm25.py` fuses it with
+a dense (embedding-similarity) ranking, closing some of the gap BM25 alone
+cannot. Anthropic has no embeddings endpoint, and paying a hosted embeddings
+API per query is hard to justify for 701 short documents, so this runs
+entirely locally against [Ollama](https://ollama.com):
+
+```bash
+brew install --cask ollama            # or download from ollama.com
+open -a Ollama
+ollama pull nomic-embed-text
+python scripts/build_embeddings.py    # embeds all 701 verses, free, ~1 minute
+```
+
+Then opt in with `--hybrid`:
+
+```bash
+python scripts/search.py --eval --hybrid
+python scripts/ask.py --hybrid "why do I resent people I've never met"
+```
+
+Or leave it on by default for the API server — `src/gita/api/app.py` already
+constructs the pipeline with `use_dense=True`. If Ollama isn't running or no
+embeddings are cached, retrieval degrades silently to BM25 alone rather than
+failing the request; `GET /health` reports `dense_index.active` so you can
+tell which mode is actually in effect.
+
+The text embedded for dense retrieval is deliberately narrower than what BM25
+indexes (`corpus.dense_text` vs. `corpus.searchable_text`): a single pooled
+embedding vector over a long, heterogeneous document — enrichment prose plus
+literal translations plus word-by-word Sanskrit glosses — dilutes the
+semantic signal. BM25 doesn't have this problem, since each term scores
+independently.
+
+`nomic-embed-text` (768-dim) outperformed the larger `mxbai-embed-large`
+(1024-dim) in testing here — the latter needs an instruction-prefix convention
+this codebase doesn't apply, and untuned it scored worse (4/106 full vs.
+17/106). Don't switch models without re-running `--eval --hybrid` to confirm
+the swap actually helps.
 
 ## Asking
 
@@ -216,6 +266,14 @@ python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
 python scripts/test_validator.py  # 15 citation-validator cases
 python scripts/test_pipeline.py   # 22 end-to-end checks against a stub client
 python scripts/test_api.py        # 21 HTTP contract checks
+python scripts/test_api_ui.py     # confirms the desktop UI's app.js calls the routes it needs
+```
+
+Run all seven in sequence:
+
+```bash
+for s in verify_store test_validator test_pipeline test_api test_api_ui \
+         test_prefixes validate_eval; do python scripts/$s.py; done
 ```
 
 `test_pipeline.py` stubs the Anthropic client, so the reject-and-regenerate
@@ -229,13 +287,15 @@ need one; ingestion, retrieval, `--preview`, and all four test suites do not.
 
 ## State
 
-Done: corpus, rights policy, retrieval, enrichment pipeline, answer generation,
-citation validation, HTTP API, four test suites, eval harness.
+Done: corpus, rights policy, retrieval (BM25 + dense hybrid via local Ollama),
+enrichment pipeline (generated, all 692 non-demo verses), answer generation,
+citation validation, HTTP API, seven test suites, eval harness, code licence
+([MIT](LICENSE) — covers the code only; the corpus text has its own per-source
+basis in [NOTICE.md](NOTICE.md)).
 
-Not done: enrichment not yet generated (needs a key — this is the next step and
-the one that moves the 5% baseline). Hindi and Gujarati not yet ingested —
-Gandhi's *Anasaktiyoga* for Gujarati, derived Hindi. Dense retrieval is designed
-for (`reciprocal_rank_fusion` is written and unused) but not wired.
+Not done: Hindi and Gujarati not yet ingested — Gandhi's *Anasaktiyoga* for
+Gujarati, derived Hindi (see CONTINUE.md §6 for why the obvious sources don't
+work).
 
 ## Known issues
 
@@ -243,6 +303,16 @@ for (`reciprocal_rank_fusion` is written and unused) but not wired.
   rendered as question marks, occasional broken words. Translations are clean;
   this affects only the commentary field.
 - Cost estimates use character-class heuristics for token counts, and assume a
-  thinking-token volume. Calibrate against a real batch before trusting them.
-- The eval set is 20 questions. It should be ~100 before recall numbers carry
-  real weight.
+  thinking-token volume high enough to be misleading for Haiku specifically —
+  see the enrichment section above. Calibrate against a real batch before
+  trusting them for any given model.
+- The eval set is 106 questions with 2 expected verses each. Full recall@8 is
+  still low in absolute terms (17-18/106, ~16%) even with hybrid retrieval —
+  many questions legitimately have more than 2 defensible citations across the
+  Gita, so some of the "misses" are an artifact of a tight hand-labelled
+  answer key rather than a retrieval failure; this hasn't been audited
+  question-by-question to separate the two.
+- Dense retrieval adds a soft runtime dependency on a local Ollama server.
+  When it's down or embeddings haven't been built, the app degrades silently
+  to BM25 alone — `GET /health`'s `dense_index.active` field tells you which
+  mode is in effect, but nothing surfaces a warning at query time.

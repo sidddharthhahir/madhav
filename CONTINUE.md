@@ -35,118 +35,80 @@ for s in verify_store test_validator test_pipeline test_api test_api_ui \
          test_prefixes validate_eval; do python scripts/$s.py; done
 ```
 
-127 assertions total, all passing as of commit `9cb10f8`.
+127 assertions total, all passing as of commit `9cb10f8`. As of this update: same
+seven suites, now 7 test files including `test_api_ui.py` explicitly (it was
+already there, just not called out) — still all passing after everything below.
 
 ---
 
 ## 2. Where the project actually stands
 
-**Built and tested:** corpus with a per-field rights policy, BM25 retrieval with
-IAST folding, enrichment pipeline (Batch API), two-stage answer generation,
-citation validation with reject-and-regenerate, FastAPI, desktop UI on live
-data, 106-question eval set, seven test suites.
+**Built, tested, and now actually exercised against the real API:** corpus with
+a per-field rights policy, BM25 + dense hybrid retrieval (local Ollama,
+`nomic-embed-text`, fused via `reciprocal_rank_fusion`) with IAST folding,
+enrichment pipeline (Batch API, **run — 692 verses enriched on Haiku 4.5**),
+two-stage answer generation, citation validation with reject-and-regenerate,
+FastAPI (dense-retrieval-backed by default), desktop UI on live data,
+106-question eval set, seven test suites.
 
-**The one thing blocking a working product:** enrichment is not generated.
-Retrieval sits at **recall@8 of 5/106 full, 25 partial, 76 miss**.
+**Retrieval, measured:**
 
-**Also missing:** Hindi and Gujarati (0/701 each), PNG/PDF export, code licence.
+| Configuration | full | partial | miss |
+|---|---|---|---|
+| BM25 only, no enrichment (original baseline) | 5/106 | 25 | 76 |
+| BM25 + Haiku enrichment | 7/106 | 41 | 58 |
+| BM25 + enrichment + dense (hybrid, current) | **17-18/106** | **~44** | **~45** |
 
-### Nothing here has ever called the Anthropic API
+Hybrid roughly tripled full recall over enrichment alone, but 17% full recall
+is still low in absolute terms. Some of the remaining misses may be an
+artifact of the eval set only labelling 2 expected verses per question when
+the Gita legitimately supports more — that hasn't been audited question by
+question, so don't assume every miss is a real retrieval failure without
+checking.
 
-Worth stating plainly, because every figure in this repo is a local computation
-or hand-written test data:
+**Still missing:** Hindi and Gujarati (0/701 each), code licence.
 
-- the 5/106 baseline — real, measured by BM25 locally
-- the cost table ($1.75 to $35) — character heuristics with an *assumed*
-  thinking-token count, not measurements
-- the 1-of-11 to 7-of-11 enrichment demo — hand-written notes, and circular by
-  construction since the verses were chosen because the eval expects them
-- the citation validator — only ever exercised against a stub client
+### The API has now actually been called — costs so far
 
-That last point is why step 3 is a 3-cent test, not the enrichment batch.
+- Sanity check (`ask.py`, real generation): **$0.026** — `attempts: 1`,
+  `validation: OK`. The citation validator's regex handles real model output
+  fine, no widening needed.
+- 20-verse Haiku calibration batch: **$0.026** (measured from
+  `usage.input_tokens`/`usage.output_tokens`, not the estimator).
+- Full 672-verse Haiku enrichment batch: **$1.10** (measured, same way).
+- **Total: ~$1.15.** The cost table below is still an estimate for models that
+  were never run — Haiku's own estimate was off by ~3.4x (assumed thinking
+  tokens that Haiku mostly didn't use), so don't trust the table for anything
+  but rough ordering between models.
 
 ---
 
-## 3. Next actions, in this order
+## 3. What's actually left
 
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."      # add to ~/.zshrc to persist
-```
+### a. Hindi and Gujarati
 
-### a. Prove the answer path works — about 3 cents
+Both are **derived** from the public-domain Sanskrit and English already in the
+corpus — see §6 for why Gita Press and Gandhi are not options. Fold into the
+same batch pattern as enrichment; no extra source ingestion needed. Not
+started. Budget: unknown until a dry-run estimate exists for this task — it's
+translation, not paraphrase, so don't assume Haiku-enrichment pricing carries
+over.
 
-```bash
-python scripts/ask.py "why do I resent people I have never met online"
-```
+### b. Push recall further, or accept the current ceiling
 
-Do this **first**. It is the only thing that has never touched the real API, and
-it exercises structured-output conformance, context assembly, generation, and
-the citation validator in one shot.
+`nomic-embed-text` was tried against `mxbai-embed-large` (larger, 1024-dim) —
+mxbai did *worse* untuned (4/106 vs 17/106), because it needs an
+instruction-prefix convention (`"Represent this sentence for searching
+relevant passages: "` on queries) this codebase doesn't apply. Before trying
+another model, apply that convention properly rather than assuming bigger is
+better. The other lever is re-tuning the enrichment `situations` prompt in
+`src/gita/enrich/prompt.py` — enrichment quality was validated qualitatively
+(the notes read as concrete and modern) but never audited against *why*
+specific expected verses are missed.
 
-The risk it is checking for: if real model output phrases citations in a way the
-validator's regex misses, every answer fails validation and burns three attempts
-retrying. Cheaper to learn that on one question than after a batch.
+### c. Code licence — resolved
 
-Expected: an answer with `[BG x.y]` citations, `attempts: 1`, and
-`validation: OK`. If you see `citation_validation_failed`, the regex in
-`src/gita/answer/validate.py` needs widening — the answer text is in the failure
-detail.
-
-### b. Calibrate enrichment cost — about 5 cents
-
-```bash
-python -m gita.enrich.run --dry-run                                    # free
-python -m gita.enrich.run --submit --limit 20 --model claude-haiku-4-5 --yes
-python -m gita.enrich.run --status                                     # poll
-python -m gita.enrich.run --collect
-```
-
-Batches can take up to 24 hours, though 20 requests usually land in minutes. The
-batch id is written to SQLite before anything else, so nothing is orphaned if
-the shell dies.
-
-`--collect` reports `written`, `trimmed`, `invalid`, `errored`, `unparsable`.
-Then read the notes it produced:
-
-```bash
-sqlite3 data/gita.sqlite3 \
-  "SELECT verse_id, summary FROM enrichment WHERE prompt_hash <> 'demo' LIMIT 3;"
-```
-
-**This is the decision point.** If Haiku's notes name concrete modern
-situations in plain language, run the full batch on Haiku for ~$1.75. If they
-are vague or generic, spend 54 cents on the same 20 verses with
-`--model claude-opus-5` and compare before committing to ~$19.
-
-### c. Full enrichment run
-
-```bash
-python -m gita.enrich.run --submit --model <whichever won> --yes
-python -m gita.enrich.run --status
-python -m gita.enrich.run --collect
-```
-
-### d. Measure — this is the number that matters
-
-```bash
-python scripts/search.py --eval
-```
-
-Baseline to beat: **5/106 full, 25 partial**. If this does not move
-substantially, enrichment quality is the problem, not the architecture — reread
-the prompt in `src/gita/enrich/prompt.py`, particularly the `situations` field,
-which is what carries retrieval.
-
-If it improves but not enough, the next lever is dense retrieval.
-`reciprocal_rank_fusion` in `src/gita/retrieval/bm25.py` is written and unused,
-waiting for a second ranker. Note Anthropic has no embeddings endpoint, so that
-means Voyage, OpenAI, or a local model.
-
-### e. Then Hindi and Gujarati
-
-Both are now **derived** from the public-domain Sanskrit and English already in
-the corpus — see §6 for why Gita Press and Gandhi are not options. Fold into the
-same batch pattern; no extra source ingestion needed.
+MIT. See §5.
 
 ---
 
@@ -157,26 +119,45 @@ Each of these cost real debugging time.
 | Trap | Detail |
 |---|---|
 | **XML comments cannot contain `--`** | SVG is XML. A double hyphen inside a comment is a hard parse error and the file renders *nothing*, silently, while still serving HTTP 200. Broke `logo.svg` once. |
-| **SQLite cannot cross threads** | FastAPI dispatches sync endpoints to a worker threadpool. A connection opened at startup fails on first request. Fixed by loading everything into memory at construction; `check_same_thread=False` is only a backstop. |
+| **SQLite cannot cross threads** | FastAPI dispatches sync endpoints to a worker threadpool. A connection opened at startup fails on first request. Fixed by loading everything into memory at construction; `check_same_thread=False` is only a backstop. This backstop still let a real segfault through later — see the fuller entry below. |
 | **SDK auth error fires at request time** | The Anthropic SDK raises a bare `TypeError` when building request headers, *not* when constructing the client. Wrapping only the constructor leaves a raw traceback escaping. Both sites are wrapped in `answer/generate.py`. |
 | **Checkpoint WAL before committing the database** | Otherwise the commit captures a half-written file. `PRAGMA wal_checkpoint(TRUNCATE)` first. |
 | **Never commit `data/cache/`** | 34 MB of unfiltered upstream payloads including Prabhupāda's translation. Public repo. `.gitignore` explains why; do not "helpfully" re-add it. |
 | **Corporate TLS proxies break Python but not PowerShell** | On the Windows machine, `urllib` could not reach archive.org (self-signed cert in chain) while `Invoke-WebRequest` could, because they use different trust stores. If a download fails on Mac with `CERTIFICATE_VERIFY_FAILED`, this is why. |
 | **`.dc.html` is not standalone** | `frontend/Madhav.dc.html` needs `support.js` beside it to render `{{ }}` bindings. It is a design reference, not the app. The real UI is `frontend/web/`. |
 | **Windows 260-char path limit** | Irrelevant on Mac, but it is why a project-local venv exists rather than a global install: the Anthropic SDK ships filenames long enough to break the Store Python's `site-packages`. |
+| **Batch API `custom_id` rejects dots** | Verse ids are `BG.1.1`-style; the Batch API requires `^[a-zA-Z0-9_-]{1,64}$`. Submitting the enrichment batch with the raw verse id as `custom_id` fails outright with a 400. Fixed by encoding `.`→`_` on submit and decoding on collect (`_to_custom_id`/`_from_custom_id` in `enrich/generate.py`) — verse ids never contain underscores, so this round-trips losslessly. Never hit this until the first real batch submission, because nothing had called the Batch API before. |
+| **A single pooled embedding dilutes with long, heterogeneous input** | Feeding BM25's full `searchable_text` (enrichment + translations + word-by-word Sanskrit glosses) into the embedding model produced a much weaker semantic signal than feeding it just the enrichment fields. BM25 doesn't have this problem — each term scores independently — but a dense vector is one pooled representation of the whole input, and the Sanskrit glosses (`अद्वेष्टा nonhater? सर्वभूतानाम्...`) are noise for that purpose. Fixed with a separate `corpus.dense_text()` that embeds enrichment only. |
+| **SQLite reads need the same lock as writes, not just writes** | `Pipeline` already knew inserts had to be serialised under a threaded FastAPI server (`check_same_thread=False` is a backstop, not a real guarantee) — but `chapters()`, `history()`, and `saved()` were plain reads on the same shared connection, left unlocked on the assumption that "writes are the only runtime SQLite access." They aren't: those three reads fire concurrently on every page load. Two threads calling `execute()` on the same connection at once doesn't raise a Python exception — it segfaults the whole process (confirmed via macOS crash report: `SIGSEGV` inside `sqlite3VdbeExec`, called from a FastAPI threadpool worker). Fixed by putting every `self.conn` access, reads included, through the same lock. If you add a new method that touches `self.conn`, it needs the lock too — there is no read/write distinction that makes a bare read safe here. |
+| **Background shell jobs (`&`/`nohup`/`disown`) don't reliably survive their tool call** | Starting `uvicorn ... &` then `disown`ing it inside a single shell invocation looked like it worked (server answered requests) but the process vanished minutes later with no shutdown log line — the wrapping tool call's process group appears to get torn down regardless of `disown`. Long-running dev servers need to be started via whatever the harness's actual "run in background" primitive is, not shell-level backgrounding tricks. |
 
 ---
 
 ## 5. Decisions still open
 
-**Code licence.** None chosen. `NOTICE.md` covers the corpus only and grants
-nothing over the code. MIT if others should build on it; omit entirely to keep
-it closed. Worth settling before the repo gets attention.
+**Code licence — resolved.** MIT, in [LICENSE](LICENSE). Covers the code only
+— `NOTICE.md` still governs the corpus text under its own per-source basis;
+the LICENSE file says so explicitly to avoid the MIT grant being misread as
+covering third-party translations nobody here holds copyright over.
 
-**Enrichment model.** Haiku 4.5 (~$1.75) or Opus 5 (~$19). Step 3b answers this
-with output rather than opinion. The task is paraphrase and brainstorm, not
-reasoning, which is the argument for Haiku — but enrichment quality permanently
-caps retrieval quality, which is the argument for Opus.
+**Enrichment model — resolved.** Haiku 4.5 was used for the full run. The
+20-verse calibration read as concrete and modern in plain language, and actual
+cost ($1.10 for 672 verses) came in well under even the optimistic estimate,
+so Opus was never tried. If recall needs to go materially higher later,
+re-enriching a sample with Opus and comparing `--eval --hybrid` before/after is
+still the fallback option — nothing about the Haiku run forecloses it.
+
+**Whether to commit the updated `data/gita.sqlite3`.** It grew from 22MB to
+~30MB (enrichment text + 701 embedding vectors). Not yet committed as of this
+writing — a deliberate choice to leave to whoever's driving, since it's a
+meaningful binary diff and worth a conscious decision rather than a reflexive
+`git add -A`.
+
+**Whether dense retrieval should be a hard dependency or stay optional.**
+Currently it's opt-in-by-default in the API server (`use_dense=True`) but
+degrades silently to BM25 if Ollama isn't running. That's the right call for a
+single-user desktop app; it may not be if this is ever deployed somewhere
+Ollama isn't guaranteed to be present.
 
 ---
 
@@ -219,6 +200,11 @@ python scripts/search.py "fear of dying" -k 8
 python scripts/search.py --explain BG.3.37 "desire becomes anger"
 python scripts/search.py --health
 
+# hybrid (BM25 + dense) -- needs Ollama running with nomic-embed-text pulled
+python scripts/build_embeddings.py             # one-time, embeds all 701 verses, free
+python scripts/search.py --eval --hybrid       # the number that matters
+python scripts/ask.py --hybrid "..."           # real generation, costs a few cents
+
 # demonstrate what enrichment does, no API calls
 python scripts/demo_enrichment.py
 python scripts/demo_enrichment.py --revert
@@ -229,4 +215,8 @@ python scripts/cost_audit.py
 # rebuild the corpus from upstream if ever needed
 python -m gita.ingest.run
 python scripts/verify_store.py
+
+# check what's actually enriched/embedded, and by which model
+sqlite3 data/gita.sqlite3 "SELECT model, COUNT(*) FROM enrichment GROUP BY model;"
+sqlite3 data/gita.sqlite3 "SELECT model, dim, COUNT(*) FROM embeddings GROUP BY model, dim;"
 ```
