@@ -1,0 +1,94 @@
+# Sources and rights
+
+This documents where the text in `data/gita.sqlite3` comes from and why each
+part is considered usable. The machine-readable policy lives in
+[`src/gita/sources.py`](src/gita/sources.py) and is enforced at ingest; this
+file is the human-readable version of the same reasoning.
+
+**Jurisdiction.** These determinations apply India's copyright term of the
+author's life plus 60 years, counted from the start of the year following death.
+That is the relevant jurisdiction for these authors and publishers. Other
+countries differ — the United States in particular turns on publication date and
+renewal rather than the author's death. This is a considered reading, not legal
+advice. Have counsel confirm it before commercial use.
+
+## Where the data comes from
+
+The corpus is built from the [vedicscriptures Bhagavad Gita
+dataset](https://github.com/vedicscriptures/bhagavad-gita) (MIT licensed,
+static JSON). The MIT licence covers that repository's code and compilation —
+**not** the copyright in each translation it bundles, which is why the
+per-field policy below exists.
+
+Recension: **Gita Press, 701 verses**, with chapter 13 having 35 verses.
+
+## Included
+
+| Content | Attribution | Basis |
+|---|---|---|
+| Sanskrit verse text (Devanagari) | — | Ancient; public domain |
+| IAST transliteration | — | Mechanical transliteration of public-domain text |
+| English translation | Shri Purohit Swami (d. 1941), published 1935 | Public domain in India since 2002 |
+| English translation and commentary | Swami Sivananda (d. 1963) | Public domain in India since 2024 |
+| Sanskrit commentaries (13) | Śaṅkarācārya, Rāmānuja, Madhvācārya, Abhinavagupta, Vallabhācārya, Śrīdhara Svāmī, Madhusūdana Sarasvatī, Jayatīrtha, Ānandagiri, Dhanapati, Vedāntadeśika Veṅkaṭanātha, Puruṣottama, Nīlakaṇṭha | All pre-1900; public domain |
+
+## Excluded
+
+These are present in the upstream dataset and are deliberately filtered out at
+ingest. None reaches the database.
+
+| Attribution | Died | In copyright until |
+|---|---|---|
+| A.C. Bhaktivedanta Swami Prabhupāda (BBT) | 1977 | 2038 |
+| Swami Ramsukhdas (Gita Press) | 2005 | 2066 |
+| Swami Chinmayananda | 1993 | 2054 |
+| Swami Gambirananda | 1988 | 2049 |
+| Swami Adidevananda | 1983 | 2044 |
+| Swami Tejomayananda | living | — |
+| Dr. S. Sankaranarayan | unknown | Excluded as unknown provenance |
+
+Unknown provenance is treated as unusable rather than as permission. A new
+commentator appearing upstream is excluded by default until reviewed —
+`src/gita/sources.py` fails the ingest loudly rather than sweeping it in.
+
+## The policy is per-field, not per-translator
+
+For Śaṅkarācārya, Rāmānuja and Abhinavagupta the upstream record pairs an
+ancient Sanskrit commentary with a modern English or Hindi rendering of it by an
+uncredited 20th-century translator. The Sanskrit original is ingested; the
+modern rendering beside it is dropped. The commentary is 8th–12th century, the
+translation of it is not.
+
+## The raw cache is not distributed
+
+`data/cache/` holds the unfiltered upstream payloads, including every excluded
+translation above. It is kept locally so exclusions can be re-audited without
+re-crawling, and is excluded from version control by `.gitignore`. Only the
+filtered database is committed or redistributed.
+
+Verify at any time:
+
+```bash
+python scripts/verify_store.py
+```
+
+That re-derives every assertion from the database rather than trusting the
+ingester's own reporting, and fails if any excluded source is present.
+
+## Not yet in the corpus
+
+Hindi and Gujarati. Every Hindi translation in the upstream dataset is one of
+the excluded entries above, and Hindi Wikisource has no Gita.
+
+Gita Press's Jayadayal Goyandka (d. 1965) entered the public domain in India on
+1 January 2026 and would be the natural choice, but exists only as archive.org
+OCR over two-column page scans whose columns are read out of order — five
+editions were tested and the best aligned 1 of 18 chapters. See
+[`src/gita/ingest/gitapress.py`](src/gita/ingest/gitapress.py).
+
+## Code licence
+
+**Not yet chosen.** The application code in `src/`, `scripts/` and `frontend/web/`
+is the project author's to license; nothing here grants a licence over it. The
+rights position above concerns the corpus only, and is independent of whatever
+licence the code carries.

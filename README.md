@@ -1,4 +1,4 @@
-# Gita Wisdom — Backend
+# Madhav
 
 Cited retrieval over the Bhagavad Gita. You ask a question about your own life;
 you get an answer grounded in specific verses, and every citation is verified
@@ -68,7 +68,7 @@ using the committed copy:
 
 ```bash
 python -m gita.ingest.run       # re-fetches all 701 verses, a few minutes
-python scripts/verify_store.py  # 12 integrity checks
+python scripts/verify_store.py  # 11 integrity checks
 ```
 
 ## Corpus
@@ -101,7 +101,8 @@ without re-crawling; only the SQLite store is filtered, which is what makes it
 redistributable.
 
 These are India life+60 determinations and a defensible reading, not legal
-advice. Have counsel confirm before shipping commercially.
+advice. Have counsel confirm before shipping commercially. Full attribution
+and the per-source basis: [NOTICE.md](NOTICE.md).
 
 ## Retrieval
 
@@ -124,20 +125,37 @@ does not search verse text — it searches an English description of the human
 situations each verse speaks to. A question about resenting a stranger online
 shares no vocabulary with a verse about *dvandva-moha*.
 
-Measured baseline without it: **recall@8 of 1/20 full, 16/20 complete misses.**
+Measured baseline without it, over 106 questions: **recall@8 of 5 full, 25
+partial, 76 complete misses.**
 
 ```bash
 python -m gita.enrich.run --dry-run     # renders prompts, estimates cost, free
 python scripts/cost_audit.py            # low/expected/high bounds
-python -m gita.enrich.run --submit --limit 20 --yes   # calibration, ~$0.54
+python scripts/demo_enrichment.py       # hand-written notes for 9 verses, $0
+python -m gita.enrich.run --submit --limit 20 --model claude-haiku-4-5 --yes
 python -m gita.enrich.run --status
 python -m gita.enrich.run --collect
 ```
 
+`demo_enrichment.py` writes notes by hand for nine verses and re-measures: on
+those questions retrieval goes from 1 of 11 expected verses to 7 of 11, with no
+API calls. It demonstrates the mechanism; it is not a measurement, since the
+verses were chosen because the eval expects them.
+
 Runs on the Message Batches API: 701 requests, no latency requirement, 50% off,
-and the system prompt caches across every request. Expect **~$19** on Opus 5
-(range $11–$35 — the spread is thinking tokens, which bill at the output rate).
-Calibrate with 20 verses before committing.
+and the system prompt caches across every request. Cost depends entirely on
+model tier, because output — mostly thinking tokens — is the whole bill:
+
+| Model | Config | Full run |
+|---|---|---|
+| Haiku 4.5 | no thinking (its default) | **~$1.75** |
+| Sonnet 5 | effort=low | ~$7.35 |
+| Opus 5 | default | ~$19.26 |
+| Opus 5 | effort=high | ~$35.04 |
+
+These are character-heuristic estimates with an assumed thinking-token count,
+not measurements. Run the 20-verse calibration first — it costs 5¢ on Haiku and
+replaces the guess with real `usage.output_tokens`.
 
 Three commands, not one, deliberately: a batch can take up to 24 hours, and a
 blocking script that died mid-wait would orphan a paid job. The batch id is
@@ -170,7 +188,7 @@ the text** rather than serving unverified output.
 ## HTTP API
 
 ```bash
-.venv/Scripts/uvicorn --app-dir src gita.api.app:app --reload
+uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on Windows
 ```
 
 | Route | Needs a key | Purpose |
@@ -188,7 +206,9 @@ the text** rather than serving unverified output.
 ## Tests
 
 ```bash
-python scripts/verify_store.py    # 12 corpus integrity checks
+python scripts/verify_store.py    # 11 corpus integrity checks
+python scripts/validate_eval.py   # eval-set sanity (verses exist, no over-used verse)
+python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
 python scripts/test_validator.py  # 15 citation-validator cases
 python scripts/test_pipeline.py   # 22 end-to-end checks against a stub client
 python scripts/test_api.py        # 21 HTTP contract checks
