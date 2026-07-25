@@ -99,6 +99,7 @@ async function ask({ retrieveOnly }) {
   state.busy = true;
   $("answer").innerHTML = "";
   $("provenance").innerHTML = "";
+  hideHistoryBanner();
   setInspectorStages(retrieveOnly);
 
   try {
@@ -359,9 +360,10 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index]");
+  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq]");
   if (!t) return;
 
+  if (t.dataset.newq !== undefined) return startNewQuestion();
   if (t.dataset.index !== undefined) return runPaletteRow(state.paletteRows[+t.dataset.index]);
   if (t.dataset.unpin) {
     state.pinned = state.pinned.filter((p) => p.verse_id !== t.dataset.unpin);
@@ -652,11 +654,14 @@ $("btnCopy").addEventListener("click", copyMarkdown);
 $("btnExportPng").addEventListener("click", exportPng);
 $("btnExportPdf").addEventListener("click", exportPdf);
 $("btnInspector").addEventListener("click", toggleInspector);
-$("btnNew").addEventListener("click", () => {
+function startNewQuestion() {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
   state.retrieved = []; state.citations = []; state.answerText = "";
+  hideHistoryBanner();
   $("q").focus();
-});
+}
+
+$("btnNew").addEventListener("click", startNewQuestion);
 
 // ---------------------------------------------------------------- utils
 
@@ -666,16 +671,20 @@ function escapeHtml(s) {
 }
 // ---------------------------------------------------------------- boot
 
-// Shared by both the initial-load restore and clicking a past question in
-// the sidebar. The verses/provenance panel isn't persisted in history, so it
-// stays empty either way -- only the question and answer text return, not
-// the full retrieval breakdown from the original request.
+// Renders a saved answer from clicking a history row -- deliberately NOT
+// called on page load. Restoring the last conversation automatically on
+// every refresh made a one-off past answer look like it was still "live",
+// as if the page had kept a conversation going rather than just remembering
+// what was last asked. A refresh now always starts clean, matching "New
+// question"; a past answer only appears when explicitly asked for, and the
+// banner below marks it clearly as a saved answer, not a continuing chat.
 function renderHistoryEntry(entry) {
   $("q").value = entry.question;
   state.retrieved = [];
   state.citations = entry.citations || [];
   state.answerText = entry.answer || "";
   $("provenance").innerHTML = "";
+  showHistoryBanner();
   if (entry.answer) {
     renderAnswer(entry.answer);
   } else {
@@ -683,16 +692,19 @@ function renderHistoryEntry(entry) {
   }
 }
 
-// A reload used to lose the on-screen conversation even though the question
-// had already been answered -- the history table existed but nothing ever
-// wrote to it, so there was nothing to restore. Now that /ask logs each
-// result, the most recent successful answer can come back on load.
-async function restoreLastAnswer() {
-  const [last] = await api("/history?limit=1");
-  if (last && last.answer) renderHistoryEntry(last);
+function showHistoryBanner() {
+  $("historyBanner").innerHTML =
+    `<span class="hdot"></span> Viewing a saved answer from history
+     <button type="button" data-newq>Ask something new</button>`;
+  $("historyBanner").classList.add("show");
+}
+
+function hideHistoryBanner() {
+  $("historyBanner").classList.remove("show");
+  $("historyBanner").innerHTML = "";
 }
 
 (async function boot() {
-  await Promise.all([loadHealth(), loadSidebar(), restoreLastAnswer()]);
+  await Promise.all([loadHealth(), loadSidebar()]);
   $("q").focus();
 })();

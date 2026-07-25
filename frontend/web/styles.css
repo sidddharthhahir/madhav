@@ -224,6 +224,25 @@ textarea#q::placeholder { color: var(--gw-muted); }
   border-radius: 9px; font-size: 13px; color: var(--gw-text-3); line-height: 1.55;
 }
 
+/* Marks a restored past answer as distinct from a live, in-progress one --
+   without this, clicking a history row and getting the same answer text back
+   in the same pane is indistinguishable from an ongoing conversation. */
+.historybanner {
+  display: none; align-items: center; gap: 8px; margin-top: 18px;
+  padding: 8px 12px; border-radius: 8px; font-size: 12.5px;
+  background: var(--gw-card-alt); border: 1px solid var(--gw-border);
+  color: var(--gw-muted);
+}
+.historybanner.show { display: flex; }
+.historybanner .hdot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--gw-accent); flex: none;
+}
+.historybanner button {
+  margin-left: auto; background: none; border: none; color: var(--gw-accent);
+  font-size: 12.5px; cursor: pointer; padding: 0;
+}
+.historybanner button:hover { color: var(--gw-accent-hover); }
+
 /* ---------------- inspector ---------------- */
 
 .inspector {
