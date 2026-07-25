@@ -20,6 +20,8 @@
       Find a verse <span class="kbd">⌘K</span>
     </button>
     <button class="btn ghost" id="btnCopy">Copy answer</button>
+    <button class="btn ghost noprint" id="btnExportPng" title="Save this answer as a PNG image">Export PNG</button>
+    <button class="btn ghost noprint" id="btnExportPdf" title="Save this answer as a PDF (via your browser's print dialog)">Export PDF</button>
     <button class="btn ghost" id="btnInspector" title="Show or hide the verse panel (⌘\)">
       Hide verse panel
     </button>
@@ -51,8 +53,11 @@
           <span class="kbd">⇧↩</span> Just show me the verses
         </div>
         <div id="notice"></div>
+        <div class="printonly" id="printQuestion"></div>
         <div class="answer measure" id="answer"></div>
+        <div class="printonly" id="printCited"></div>
         <div class="provenance" id="provenance"></div>
+        <div class="printonly printfooter">Madhav — the Gita, answered and cited</div>
       </div>
     </main>
 

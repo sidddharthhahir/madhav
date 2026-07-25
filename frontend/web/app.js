@@ -448,8 +448,200 @@ async function copyMarkdown() {
   }
 }
 
+// ---------------------------------------------------------------- export
+
+function citedList() {
+  return state.citations.map((c) => c.replace("BG.", "BG ")).join(", ");
+}
+
+// PDF export is the browser's own print-to-PDF, not a hand-rolled writer --
+// it already handles pagination and font rendering correctly for every
+// answer language this app produces (English, Hindi, Gujarati), which
+// nothing built here would match without embedding real font files.
+function exportPdf() {
+  if (!state.answerText) return;
+  const q = $("q").value.trim();
+  $("printQuestion").textContent = q;
+  $("printCited").textContent = state.citations.length ? `Cited: ${citedList()}` : "";
+  const prevTitle = document.title;
+  document.title = (q || "Madhav answer").slice(0, 80);
+  window.print();
+  document.title = prevTitle;
+}
+
+// PNG export is a plain <canvas> renderer, not a DOM-rasterisation library:
+// the foreignObject-based SVG trick that would let real HTML/CSS be
+// rasterised is unreliable across browsers for this (tainted canvas,
+// inconsistent font handling), and this answer format -- paragraphs plus
+// inline citation pills -- is simple enough to lay out by hand instead of
+// pulling in an html2canvas-sized dependency for it.
+const CITATION_RE = /\[?\bBG\.?\s*(\d{1,2})[.:](\d{1,3})\b\]?/g;
+
+function wrapTokens(text) {
+  const tokens = [];
+  let last = 0, m;
+  CITATION_RE.lastIndex = 0;
+  while ((m = CITATION_RE.exec(text))) {
+    if (m.index > last) {
+      tokens.push(...text.slice(last, m.index).split(/\s+/).filter(Boolean)
+        .map((w) => ({ type: "word", text: w })));
+    }
+    tokens.push({ type: "pill", text: `BG ${m[1]}.${m[2]}` });
+    last = CITATION_RE.lastIndex;
+  }
+  if (last < text.length) {
+    tokens.push(...text.slice(last).split(/\s+/).filter(Boolean)
+      .map((w) => ({ type: "word", text: w })));
+  }
+  return tokens;
+}
+
+function layoutParagraph(ctx, text, maxWidth, spaceWidth, pillPadX) {
+  const lines = [];
+  let current = [];
+  let width = 0;
+  for (const tok of wrapTokens(text)) {
+    const tokWidth = tok.type === "pill"
+      ? ctx.measureText(tok.text).width + pillPadX * 2
+      : ctx.measureText(tok.text).width;
+    const addWidth = current.length ? spaceWidth + tokWidth : tokWidth;
+    if (current.length && width + addWidth > maxWidth) {
+      lines.push(current);
+      current = [tok];
+      width = tokWidth;
+    } else {
+      current.push(tok);
+      width += addWidth;
+    }
+  }
+  if (current.length) lines.push(current);
+  return lines;
+}
+
+function wrapPlainText(ctx, text, maxWidth) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = "";
+  for (const w of words) {
+    const candidate = current ? `${current} ${w}` : w;
+    if (current && ctx.measureText(candidate).width > maxWidth) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.length ? lines : [""];
+}
+
+function exportPng() {
+  if (!state.answerText) return;
+  const btn = $("btnExportPng");
+  const prevLabel = btn.textContent;
+  btn.textContent = "Rendering…";
+
+  const W = 960, PAD_X = 64, PAD_TOP = 56, PAD_BOTTOM = 48;
+  const contentWidth = W - PAD_X * 2;
+  const LINE_H = 30, TITLE_LINE_H = 30, PARA_GAP = 14, PILL_PAD_X = 8;
+  const BODY_FONT = "17px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
+  const TITLE_FONT = "600 22px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
+  const FOOT_FONT = "12px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
+
+  const measure = document.createElement("canvas").getContext("2d");
+  measure.font = BODY_FONT;
+  const spaceWidth = measure.measureText(" ").width;
+
+  const question = $("q").value.trim();
+  const paragraphs = state.answerText.split(/\n{2,}/).filter(Boolean);
+  const paraLines = paragraphs.map((p) =>
+    layoutParagraph(measure, p, contentWidth, spaceWidth, PILL_PAD_X));
+
+  measure.font = TITLE_FONT;
+  const titleLines = wrapPlainText(measure, question, contentWidth);
+  const citedText = state.citations.length ? `Cited: ${citedList()}` : "";
+
+  let totalHeight = PAD_TOP + titleLines.length * TITLE_LINE_H + 20;
+  for (const lines of paraLines) totalHeight += lines.length * LINE_H + PARA_GAP;
+  if (citedText) totalHeight += 30;
+  totalHeight += 64 + PAD_BOTTOM; // divider + footer
+
+  const scale = 2; // crisp on retina displays
+  const canvas = document.createElement("canvas");
+  canvas.width = W * scale;
+  canvas.height = totalHeight * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, W, totalHeight);
+
+  let y = PAD_TOP;
+  ctx.fillStyle = "#111";
+  ctx.font = TITLE_FONT;
+  for (const line of titleLines) { ctx.fillText(line, PAD_X, y + 18); y += TITLE_LINE_H; }
+  y += 20;
+
+  ctx.font = BODY_FONT;
+  for (const lines of paraLines) {
+    for (const line of lines) {
+      let x = PAD_X;
+      for (const tok of line) {
+        if (tok.type === "word") {
+          ctx.fillStyle = "#222";
+          ctx.fillText(tok.text, x, y);
+          x += ctx.measureText(tok.text).width + spaceWidth;
+        } else {
+          const w = ctx.measureText(tok.text).width + PILL_PAD_X * 2;
+          ctx.fillStyle = "#f2ece0";
+          ctx.beginPath();
+          ctx.roundRect(x, y - 15, w, 22, 5);
+          ctx.fill();
+          ctx.strokeStyle = "#c9a35a";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = "#8a6320";
+          ctx.fillText(tok.text, x + PILL_PAD_X, y - 1);
+          x += w + spaceWidth;
+        }
+      }
+      y += LINE_H;
+    }
+    y += PARA_GAP;
+  }
+
+  if (citedText) {
+    ctx.font = FOOT_FONT;
+    ctx.fillStyle = "#666";
+    ctx.fillText(citedText, PAD_X, y + 4);
+    y += 30;
+  }
+
+  y += 20;
+  ctx.strokeStyle = "#ddd";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_X, y);
+  ctx.lineTo(W - PAD_X, y);
+  ctx.stroke();
+  y += 24;
+  ctx.font = FOOT_FONT;
+  ctx.fillStyle = "#888";
+  ctx.fillText("Madhav — the Gita, answered and cited", PAD_X, y);
+
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = `madhav-${(question || "answer").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "answer"}.png`;
+  a.click();
+
+  btn.textContent = prevLabel;
+}
+
 $("btnPalette").addEventListener("click", openPalette);
 $("btnCopy").addEventListener("click", copyMarkdown);
+$("btnExportPng").addEventListener("click", exportPng);
+$("btnExportPdf").addEventListener("click", exportPdf);
 $("btnInspector").addEventListener("click", toggleInspector);
 $("btnNew").addEventListener("click", () => {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
