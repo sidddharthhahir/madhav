@@ -679,12 +679,17 @@ function escapeHtml(s) {
 // question"; a past answer only appears when explicitly asked for, and the
 // banner below marks it clearly as a saved answer, not a continuing chat.
 function renderHistoryEntry(entry) {
-  $("q").value = entry.question;
+  // The question box stays empty, not pre-filled with the old question --
+  // dropping it into the live, editable input made a past answer look like
+  // it could be continued or edited, the same "ongoing chat" feeling the
+  // banner alone didn't fully fix. The historical question is shown as
+  // read-only text instead, inside the banner itself.
+  $("q").value = "";
   state.retrieved = [];
   state.citations = entry.citations || [];
   state.answerText = entry.answer || "";
   $("provenance").innerHTML = "";
-  showHistoryBanner();
+  showHistoryBanner(entry.question);
   if (entry.answer) {
     renderAnswer(entry.answer);
   } else {
@@ -692,10 +697,11 @@ function renderHistoryEntry(entry) {
   }
 }
 
-function showHistoryBanner() {
-  $("historyBanner").innerHTML =
-    `<span class="hdot"></span> Viewing a saved answer from history
-     <button type="button" data-newq>Ask something new</button>`;
+function showHistoryBanner(question) {
+  $("historyBanner").innerHTML = `
+    <div class="hb-meta"><span class="hdot"></span> Viewing a saved answer from history
+      <button type="button" data-newq>Ask something new</button></div>
+    <div class="hb-question">${escapeHtml(question)}</div>`;
   $("historyBanner").classList.add("show");
 }
 

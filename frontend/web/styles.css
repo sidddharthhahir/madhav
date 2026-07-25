@@ -226,14 +226,19 @@ textarea#q::placeholder { color: var(--gw-muted); }
 
 /* Marks a restored past answer as distinct from a live, in-progress one --
    without this, clicking a history row and getting the same answer text back
-   in the same pane is indistinguishable from an ongoing conversation. */
+   in the same pane (with the old question sitting in the editable box, as it
+   used to) is indistinguishable from an ongoing, editable conversation. The
+   question itself is shown here as read-only text, never written into #q. */
 .historybanner {
-  display: none; align-items: center; gap: 8px; margin-top: 18px;
-  padding: 8px 12px; border-radius: 8px; font-size: 12.5px;
+  display: none; flex-direction: column; gap: 8px; margin-top: 18px;
+  padding: 10px 14px; border-radius: 8px;
   background: var(--gw-card-alt); border: 1px solid var(--gw-border);
-  color: var(--gw-muted);
 }
 .historybanner.show { display: flex; }
+.historybanner .hb-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--gw-muted);
+}
 .historybanner .hdot {
   width: 6px; height: 6px; border-radius: 50%; background: var(--gw-accent); flex: none;
 }
@@ -242,6 +247,9 @@ textarea#q::placeholder { color: var(--gw-muted); }
   font-size: 12.5px; cursor: pointer; padding: 0;
 }
 .historybanner button:hover { color: var(--gw-accent-hover); }
+.historybanner .hb-question {
+  font-size: 14px; color: var(--gw-text-2); font-style: italic;
+}
 
 /* ---------------- inspector ---------------- */
 
