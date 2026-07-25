@@ -418,7 +418,16 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (meta && e.key.toLowerCase() === "k") { e.preventDefault(); return openPalette(); }
-  if (meta && e.key === "Enter") { e.preventDefault(); return ask({ retrieveOnly: false }); }
+  // Plain Enter submits, like a normal chat input, as long as the question
+  // box is focused (elsewhere on the page Enter shouldn't hijack anything).
+  // Shift+Enter keeps its own meaning -- a free preview of just the
+  // retrieved verses, no answer generated -- rather than doubling as
+  // "insert a newline", since asking short personal questions rarely needs
+  // manual line breaks and losing the free preview shortcut would remove
+  // the only no-cost way to sanity-check retrieval before spending anything.
+  if (e.key === "Enter" && !e.shiftKey && document.activeElement === $("q")) {
+    e.preventDefault(); return ask({ retrieveOnly: false });
+  }
   if (e.shiftKey && e.key === "Enter" && document.activeElement === $("q")) {
     e.preventDefault(); return ask({ retrieveOnly: true });
   }

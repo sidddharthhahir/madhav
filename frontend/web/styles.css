@@ -176,8 +176,6 @@ textarea#q {
   padding: 12px 14px; font-family: inherit; font-size: 15px; line-height: 1.55;
 }
 textarea#q::placeholder { color: var(--gw-muted); }
-
-.hint { font-size: 12px; color: var(--gw-muted); margin-top: 10px; }
 .answer {
   font-size: 15.5px; line-height: 1.68; color: var(--gw-text-2);
   max-width: 68ch; margin-top: 26px; white-space: pre-wrap;
@@ -344,7 +342,7 @@ textarea#q::placeholder { color: var(--gw-muted); }
 .printonly { display: none; }
 
 @media print {
-  .titlebar, .sidebar, .inspector, .hint, #notice, .provenance, #q,
+  .titlebar, .sidebar, .inspector, #notice, .provenance, #q,
   .asklabel, .noprint { display: none !important; }
 
   html, body, #app, .body, .centre, .centre-inner, .answer {
