@@ -28,17 +28,48 @@ data/gita.sqlite3        the store (22 MB, populated)
 
 ## Setup
 
-Ingestion, retrieval and the citation validator are **stdlib-only** — they run
-with nothing installed. Answer generation and the HTTP API need the venv:
+### macOS / Linux
 
 ```bash
-python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
+git clone https://github.com/sidddharthhahir/madhav.git
+cd madhav
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn --app-dir src gita.api.app:app --reload
+```
+
+Open <http://127.0.0.1:8000>. **No ingest step needed** — the corpus
+(`data/gita.sqlite3`, 701 verses) is committed, so a fresh clone has the full
+text immediately with no network access required.
+
+The virtualenv is deliberately *not* committed: it holds platform-specific
+binaries and Windows-layout paths (`.venv/Scripts/` rather than `.venv/bin/`),
+so a committed one would be broken on macOS rather than helpful.
+
+### Windows
+
+```powershell
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\uvicorn --app-dir src gita.api.app:app --reload
 ```
 
 On Windows the Anthropic SDK ships filenames long enough to hit the 260-char
 path limit under the Microsoft Store Python's `site-packages`. A project-local
-venv keeps paths short; installing globally there will fail mid-write and leave
-a broken package.
+venv keeps paths short; installing globally there fails mid-write and leaves a
+broken package.
+
+### Rebuilding the corpus (optional)
+
+Ingestion, retrieval and the citation validator are **stdlib-only** and need
+nothing installed. To rebuild the database from the upstream API instead of
+using the committed copy:
+
+```bash
+python -m gita.ingest.run       # re-fetches all 701 verses, a few minutes
+python scripts/verify_store.py  # 12 integrity checks
+```
 
 ## Corpus
 

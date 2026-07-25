@@ -13,9 +13,14 @@
 # ---------------------------------------------------------------------------
 data/cache/
 
-# Generated store. Rights-cleared, but a 22 MB binary that churns on every
-# enrichment run, so it is rebuilt rather than versioned.
-data/*.sqlite3
+# The corpus IS committed (data/gita.sqlite3, ~22 MB), so a fresh clone on any
+# machine works immediately with no ingest run and no network. It is verified
+# rights-clean by scripts/verify_store.py -- every row is permitted by the
+# policy in src/gita/sources.py.
+#
+# Checkpoint the WAL before committing an updated copy, or the commit captures
+# an incomplete file:
+#   python -c "import sqlite3;c=sqlite3.connect('data/gita.sqlite3');c.execute('PRAGMA wal_checkpoint(TRUNCATE)')"
 data/*.sqlite3-wal
 data/*.sqlite3-shm
 
