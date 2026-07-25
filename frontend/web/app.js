@@ -14,6 +14,7 @@ const state = {
   paletteRows: [],
   paletteIndex: 0,
   savedIds: new Set(),
+  historyById: new Map(),
 };
 
 async function api(path, opts) {
@@ -35,6 +36,7 @@ async function loadSidebar() {
   ]);
 
   state.savedIds = new Set(saved.map((s) => s.verse_id));
+  state.historyById = new Map(history.map((h) => [h.id, h]));
 
   $("chapters").innerHTML = chapters.map((c) => `
     <button class="row" data-chapter="${c.chapter}">
@@ -43,9 +45,15 @@ async function loadSidebar() {
       <span class="count">${c.verse_count}</span>
     </button>`).join("");
 
+  // data-history-id, not data-question: clicking a past question restores its
+  // saved answer instantly from what's already in `history` (free), rather
+  // than only refilling the box and requiring a fresh, paid /ask call for an
+  // answer that was already generated once.
   $("history").innerHTML = history.length
     ? history.map((h) => `
-        <button class="row" data-question="${escapeAttr(h.question)}">
+        <button class="row" data-history-id="${h.id}" title="${
+          h.answer ? "Click to view this answer again — free, no new request"
+                    : "Click to ask this question again"}">
           <span class="dot" style="background:${
             h.status === "ok" ? "var(--gw-accent)" : "var(--gw-muted)"}"></span>
           <span class="label">${escapeHtml(h.question)}</span>
@@ -351,7 +359,7 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-verse],[data-chapter],[data-question],[data-save],[data-unpin],[data-nav],[data-index]");
+  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index]");
   if (!t) return;
 
   if (t.dataset.index !== undefined) return runPaletteRow(state.paletteRows[+t.dataset.index]);
@@ -377,7 +385,12 @@ document.addEventListener("click", async (e) => {
     if (next >= 1) showVerse(`BG.${c}.${next}`);
     return;
   }
-  if (t.dataset.question) { $("q").value = t.dataset.question; return $("q").focus(); }
+  if (t.dataset.historyId !== undefined) {
+    const entry = state.historyById.get(Number(t.dataset.historyId));
+    if (!entry) return;
+    renderHistoryEntry(entry);
+    return $("q").focus();
+  }
   if (t.dataset.chapter) {
     const verses = await api(`/chapters/${t.dataset.chapter}`);
     if (verses.length) showVerse(verses[0].verse_id);
@@ -450,24 +463,32 @@ function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-function escapeAttr(s) { return escapeHtml(s).replace(/\n/g, " "); }
-
 // ---------------------------------------------------------------- boot
+
+// Shared by both the initial-load restore and clicking a past question in
+// the sidebar. The verses/provenance panel isn't persisted in history, so it
+// stays empty either way -- only the question and answer text return, not
+// the full retrieval breakdown from the original request.
+function renderHistoryEntry(entry) {
+  $("q").value = entry.question;
+  state.retrieved = [];
+  state.citations = entry.citations || [];
+  state.answerText = entry.answer || "";
+  $("provenance").innerHTML = "";
+  if (entry.answer) {
+    renderAnswer(entry.answer);
+  } else {
+    $("answer").innerHTML = "";
+  }
+}
 
 // A reload used to lose the on-screen conversation even though the question
 // had already been answered -- the history table existed but nothing ever
 // wrote to it, so there was nothing to restore. Now that /ask logs each
-// result, the most recent successful answer can come back on load. The
-// verses-panel (state.retrieved) isn't persisted in history, so it stays
-// empty on a restored answer -- only the question and answer text return,
-// not the full provenance breakdown from the original request.
+// result, the most recent successful answer can come back on load.
 async function restoreLastAnswer() {
   const [last] = await api("/history?limit=1");
-  if (!last || !last.answer) return;
-  $("q").value = last.question;
-  state.citations = last.citations || [];
-  state.answerText = last.answer;
-  renderAnswer(last.answer);
+  if (last && last.answer) renderHistoryEntry(last);
 }
 
 (async function boot() {

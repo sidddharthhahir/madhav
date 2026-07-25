@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from gita.api.app import app  # noqa: E402
+from gita.api.app import _state, app  # noqa: E402
 
 failures = 0
 
@@ -80,6 +80,19 @@ def main() -> int:
         finally:
             if had:
                 os.environ["ANTHROPIC_API_KEY"] = had
+            # /ask now logs every attempt via record_history() (see the fix
+            # for the dead history feature) -- this test runs against the
+            # real committed corpus via TestClient(app), not a fixture, so it
+            # has to remove the row it just created rather than leaving a
+            # "why am I so angry" / no_credentials entry in data/gita.sqlite3
+            # every time this suite runs.
+            pipeline = _state.get("pipeline")
+            if pipeline is not None:
+                pipeline.conn.execute(
+                    "DELETE FROM history WHERE question=? AND status='no_credentials'",
+                    ("why am I so angry",),
+                )
+                pipeline.conn.commit()
 
         print("\nPOST /ask input validation")
         r = client.post("/ask", json={"question": ""})
