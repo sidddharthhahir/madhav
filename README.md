@@ -72,15 +72,16 @@ using the committed copy:
 
 ```bash
 python -m gita.ingest.run       # re-fetches all 701 verses, a few minutes
-python scripts/verify_store.py  # 11 integrity checks
+python scripts/verify_store.py  # 13 integrity checks
 ```
 
 ## Corpus
 
 701 verses (Gita Press recension — chapter 13 has **35** verses, not 34).
 Sanskrit and IAST transliteration, two complete English translations
-(Purohit Swami, Sivananda), Sivananda's English commentary on all 701, and 14
-ancient Sanskrit commentaries. 11,216 texts.
+(Purohit Swami, Sivananda), Sivananda's English commentary on all 701, 14
+ancient Sanskrit commentaries, and Hindi + Gujarati translations for all 701
+(machine-derived — see "Hindi and Gujarati" below). 12,618 texts.
 
 ```bash
 python -m gita.ingest.run          # full corpus; cached, so re-runs are free
@@ -215,6 +216,30 @@ this codebase doesn't apply, and untuned it scored worse (4/106 full vs.
 17/106). Don't switch models without re-running `--eval --hybrid` to confirm
 the swap actually helps.
 
+## Hindi and Gujarati
+
+**Status: generated.** All 701 verses have Hindi and Gujarati translations
+under `src/gita/sources.py`'s `derived` policy — machine-translated from the
+Sanskrit original plus the two already-permitted English translations
+(Purohit Swami, Sivananda), not adapted from any existing Hindi or Gujarati
+edition. Neither Gita Press (Goyandka) nor Gandhi's *Anasaktiyoga* were usable
+sources — both are two-column/scanned-page OCR with verse markers that don't
+align to actual verse order; see CONTINUE.md §6 for what was tried.
+
+```bash
+python -m gita.translate.run --dry-run                                  # free
+python -m gita.translate.run --submit --limit 20 --model claude-haiku-4-5 --yes
+python -m gita.translate.run --status
+python -m gita.translate.run --collect
+python -m gita.translate.run --submit --model claude-haiku-4-5 --yes    # full run
+```
+
+Same shape as enrichment deliberately: both languages come out of a single
+request per verse (not two), and the cost estimator carries the same warning
+enrichment's did after being measured wrong — the pre-flight estimate for the
+full 701-verse batch was $1.24; actual measured cost (from real
+`usage.output_tokens`, not the estimator) was **$0.65**.
+
 ## Asking
 
 ```bash
@@ -260,7 +285,7 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 ## Tests
 
 ```bash
-python scripts/verify_store.py    # 11 corpus integrity checks
+python scripts/verify_store.py    # 13 corpus integrity checks
 python scripts/validate_eval.py   # eval-set sanity (verses exist, no over-used verse)
 python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
 python scripts/test_validator.py  # 15 citation-validator cases
@@ -288,14 +313,17 @@ need one; ingestion, retrieval, `--preview`, and all four test suites do not.
 ## State
 
 Done: corpus, rights policy, retrieval (BM25 + dense hybrid via local Ollama),
-enrichment pipeline (generated, all 692 non-demo verses), answer generation,
+enrichment pipeline (generated, all 692 non-demo verses), Hindi and Gujarati
+translations (all 701 verses, machine-translated from the Sanskrit + English
+already in the corpus — not from Gita Press or Gandhi's *Anasaktiyoga*, see
+CONTINUE.md §6 for why those don't work mechanically), answer generation,
 citation validation, HTTP API, seven test suites, eval harness, code licence
 ([MIT](LICENSE) — covers the code only; the corpus text has its own per-source
 basis in [NOTICE.md](NOTICE.md)).
 
-Not done: Hindi and Gujarati not yet ingested — Gandhi's *Anasaktiyoga* for
-Gujarati, derived Hindi (see CONTINUE.md §6 for why the obvious sources don't
-work).
+Not done: nothing left from the original scope. The main open lever is
+retrieval quality — recall@8 is still only 17-18/106 full even with hybrid
+retrieval, see Known issues below.
 
 ## Known issues
 

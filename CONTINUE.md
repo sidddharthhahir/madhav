@@ -25,7 +25,7 @@ verses, or run retrieval.
 Confirm the corpus survived the trip:
 
 ```bash
-python scripts/verify_store.py     # expect 11 PASS, exit 0
+python scripts/verify_store.py     # expect 13 PASS, exit 0
 ```
 
 Run everything:
@@ -35,9 +35,11 @@ for s in verify_store test_validator test_pipeline test_api test_api_ui \
          test_prefixes validate_eval; do python scripts/$s.py; done
 ```
 
-127 assertions total, all passing as of commit `9cb10f8`. As of this update: same
-seven suites, now 7 test files including `test_api_ui.py` explicitly (it was
-already there, just not called out) — still all passing after everything below.
+127 assertions total, all passing as of commit `9cb10f8`. As of this update:
+129 (verify_store.py gained 2 real checks — Hindi and Gujarati coverage went
+from informational "expected 0" lines to actual pass/fail assertions once
+those languages were populated) across the same seven suites, all still
+passing.
 
 ---
 
@@ -66,33 +68,49 @@ the Gita legitimately supports more — that hasn't been audited question by
 question, so don't assume every miss is a real retrieval failure without
 checking.
 
-**Still missing:** Hindi and Gujarati (0/701 each), code licence.
+**Nothing left from the original scope.** Hindi and Gujarati are now generated
+too (see below) and the code licence is resolved (§5).
 
 ### The API has now actually been called — costs so far
 
 - Sanity check (`ask.py`, real generation): **$0.026** — `attempts: 1`,
   `validation: OK`. The citation validator's regex handles real model output
   fine, no widening needed.
-- 20-verse Haiku calibration batch: **$0.026** (measured from
+- 20-verse Haiku enrichment calibration batch: **$0.026** (measured from
   `usage.input_tokens`/`usage.output_tokens`, not the estimator).
 - Full 672-verse Haiku enrichment batch: **$1.10** (measured, same way).
-- **Total: ~$1.15.** The cost table below is still an estimate for models that
-  were never run — Haiku's own estimate was off by ~3.4x (assumed thinking
-  tokens that Haiku mostly didn't use), so don't trust the table for anything
-  but rough ordering between models.
+- 20-verse Hindi/Gujarati calibration batch: **$0.017**.
+- Full 681-verse Hindi/Gujarati batch: **$0.63**.
+- **Total: ~$1.80.** Every cost table in this repo is an estimate for models
+  that were never run, or a pre-flight number superseded once the real batch
+  ran — Haiku enrichment's estimate was off by ~3.4x, translation's by ~1.9x,
+  always in the same direction (over, not under). Don't trust an unmeasured
+  estimate here for anything but rough ordering between models; always
+  calibrate on a small batch first.
 
 ---
 
 ## 3. What's actually left
 
-### a. Hindi and Gujarati
+### a. Hindi and Gujarati — resolved
 
-Both are **derived** from the public-domain Sanskrit and English already in the
-corpus — see §6 for why Gita Press and Gandhi are not options. Fold into the
-same batch pattern as enrichment; no extra source ingestion needed. Not
-started. Budget: unknown until a dry-run estimate exists for this task — it's
-translation, not paraphrase, so don't assume Haiku-enrichment pricing carries
-over.
+Generated: all 701 verses, both languages, from `src/gita/translate`. Real
+cost $0.65 against a $1.24 estimate. Read a few before trusting them blindly:
+
+```bash
+sqlite3 data/gita.sqlite3 \
+  "SELECT verse_id, body FROM texts WHERE lang='hi' AND source_key='derived' LIMIT 5;"
+```
+
+One thing this surfaced that wasn't anticipated: `src/gita/sources.py`'s
+rights-policy schema was built entirely around the upstream vedicscriptures
+dataset's field codes (`et`/`ht`/`sc`/...) and had no field code for Gujarati
+at all, and no entry for content generated here rather than sourced upstream.
+`scripts/verify_store.py`'s policy check correctly flagged the new rows as
+unreviewed rather than silently permitting them -- that's the check working as
+designed, not a bug to route around. Fixed by adding an explicit `derived`
+policy entry and a `gt` field code, not by weakening the check. See the trap
+entry below if this comes up again for a third derived-content type.
 
 ### b. Push recall further, or accept the current ceiling
 
@@ -130,6 +148,7 @@ Each of these cost real debugging time.
 | **A single pooled embedding dilutes with long, heterogeneous input** | Feeding BM25's full `searchable_text` (enrichment + translations + word-by-word Sanskrit glosses) into the embedding model produced a much weaker semantic signal than feeding it just the enrichment fields. BM25 doesn't have this problem — each term scores independently — but a dense vector is one pooled representation of the whole input, and the Sanskrit glosses (`अद्वेष्टा nonhater? सर्वभूतानाम्...`) are noise for that purpose. Fixed with a separate `corpus.dense_text()` that embeds enrichment only. |
 | **SQLite reads need the same lock as writes, not just writes** | `Pipeline` already knew inserts had to be serialised under a threaded FastAPI server (`check_same_thread=False` is a backstop, not a real guarantee) — but `chapters()`, `history()`, and `saved()` were plain reads on the same shared connection, left unlocked on the assumption that "writes are the only runtime SQLite access." They aren't: those three reads fire concurrently on every page load. Two threads calling `execute()` on the same connection at once doesn't raise a Python exception — it segfaults the whole process (confirmed via macOS crash report: `SIGSEGV` inside `sqlite3VdbeExec`, called from a FastAPI threadpool worker). Fixed by putting every `self.conn` access, reads included, through the same lock. If you add a new method that touches `self.conn`, it needs the lock too — there is no read/write distinction that makes a bare read safe here. |
 | **Background shell jobs (`&`/`nohup`/`disown`) don't reliably survive their tool call** | Starting `uvicorn ... &` then `disown`ing it inside a single shell invocation looked like it worked (server answered requests) but the process vanished minutes later with no shutdown log line — the wrapping tool call's process group appears to get torn down regardless of `disown`. Long-running dev servers need to be started via whatever the harness's actual "run in background" primitive is, not shell-level backgrounding tricks. |
+| **The rights-policy schema has no concept of "generated here," only "sourced from upstream"** | `sources.py`'s field codes (`et`/`ht`/`sc`/...) and `FIELD_LANG` map were built entirely around the upstream vedicscriptures dataset. Writing Hindi/Gujarati translations into `texts` with `source_key='derived'` made `verify_store.py`'s policy check fail: no field code existed for Gujarati at all, and no policy entry existed for `derived`. This is the check working correctly, not a bug -- `sources.py` says explicitly "unknown source keys return False... must be reviewed and added explicitly rather than silently swept in." Fixed by adding a real `_DERIVED` policy entry and a `gt` field code, with a note explaining why it's permitted (translated from Sanskrit + already-cleared English, not adapted from any third-party Hindi/Gujarati edition). Don't be tempted to special-case `derived` past the check instead of teaching the check about it -- the whole point of the check is that new sources get reviewed, not exempted. |
 
 ---
 

@@ -31,6 +31,8 @@ Recension: **Gita Press, 701 verses**, with chapter 13 having 35 verses.
 | English translation | Shri Purohit Swami (d. 1941), published 1935 | Public domain in India since 2002 |
 | English translation and commentary | Swami Sivananda (d. 1963) | Public domain in India since 2024 |
 | Sanskrit commentaries (13) | Śaṅkarācārya, Rāmānuja, Madhvācārya, Abhinavagupta, Vallabhācārya, Śrīdhara Svāmī, Madhusūdana Sarasvatī, Jayatīrtha, Ānandagiri, Dhanapati, Vedāntadeśika Veṅkaṭanātha, Puruṣottama, Nīlakaṇṭha | All pre-1900; public domain |
+| Hindi translation | Claude (`claude-haiku-4-5`), derived | Machine translation from the Sanskrit original plus the Purohit Swami and Sivananda English translations above, both already permitted. Not adapted from any existing Hindi edition — see "Hindi and Gujarati" below for why the obvious sources don't work. |
+| Gujarati translation | Claude (`claude-haiku-4-5`), derived | Same basis as the Hindi translation. |
 
 ## Excluded
 
@@ -75,20 +77,33 @@ python scripts/verify_store.py
 That re-derives every assertion from the database rather than trusting the
 ingester's own reporting, and fails if any excluded source is present.
 
-## Not yet in the corpus
+## Hindi and Gujarati
 
-Hindi and Gujarati. Every Hindi translation in the upstream dataset is one of
-the excluded entries above, and Hindi Wikisource has no Gita.
+Every Hindi translation in the upstream vedicscriptures dataset is one of the
+excluded entries above, and Hindi Wikisource has no Gita, so neither language
+could be *sourced* — both are *derived* instead: translated directly by Claude
+from the Sanskrit original plus the already-permitted English translations
+(see [`src/gita/translate/`](src/gita/translate/)), not adapted from any
+existing Hindi or Gujarati edition. This sidesteps the rights question
+entirely rather than resolving it in our favour — there's no third-party
+translation being relied on.
 
-Gita Press's Jayadayal Goyandka (d. 1965) entered the public domain in India on
-1 January 2026 and would be the natural choice, but exists only as archive.org
-OCR over two-column page scans whose columns are read out of order — five
-editions were tested and the best aligned 1 of 18 chapters. See
-[`src/gita/ingest/gitapress.py`](src/gita/ingest/gitapress.py).
+The obvious existing sources were considered and don't work mechanically, not
+just rights-wise. Gita Press's Jayadayal Goyandka (d. 1965) entered the public
+domain in India on 1 January 2026 and would otherwise be the natural choice,
+but exists only as archive.org OCR over two-column page scans whose columns
+are read out of order — five editions were tested and the best aligned 1 of 18
+chapters. See [`src/gita/ingest/gitapress.py`](src/gita/ingest/gitapress.py).
+Gandhi's *Anasaktiyoga* for Gujarati is also a page scan and was never tested,
+but likely has the same problem.
+
+`src/gita/sources.py`'s `derived` policy entry documents this basis in code,
+enforced the same way every other source is: `scripts/verify_store.py` fails
+if a `texts` row exists that policy doesn't explicitly permit.
 
 ## Code licence
 
-**Not yet chosen.** The application code in `src/`, `scripts/` and `frontend/web/`
-is the project author's to license; nothing here grants a licence over it. The
-rights position above concerns the corpus only, and is independent of whatever
-licence the code carries.
+[MIT](LICENSE), covering the application code in `src/`, `scripts/` and
+`frontend/web/` only. It does not extend to the corpus text — the rights
+position above is independent of whatever licence the code carries, and the
+LICENSE file says so explicitly.
