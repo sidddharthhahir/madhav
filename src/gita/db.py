@@ -104,6 +104,20 @@ CREATE TABLE IF NOT EXISTS enrich_batches (
     stats        TEXT                    -- JSON
 );
 
+-- Same pattern as enrich_batches, for the Hindi/Gujarati translation batch.
+-- Kept as a separate table rather than reusing enrich_batches so the two
+-- one-time jobs don't share a resume/status namespace.
+CREATE TABLE IF NOT EXISTS translate_batches (
+    batch_id     TEXT PRIMARY KEY,
+    model        TEXT NOT NULL,
+    prompt_hash  TEXT NOT NULL,
+    verse_ids    TEXT NOT NULL,          -- JSON array
+    submitted_at TEXT NOT NULL,
+    collected_at TEXT,
+    status       TEXT NOT NULL,          -- 'submitted' | 'collected' | 'failed'
+    stats        TEXT                    -- JSON
+);
+
 -- Provenance and reproducibility for every ingest run.
 CREATE TABLE IF NOT EXISTS ingest_runs (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
