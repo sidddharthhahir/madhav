@@ -1,0 +1,126 @@
+"""Query the retrieval index from the command line.
+
+    python scripts/search.py "why do people hate strangers online"
+    python scripts/search.py --health
+    python scripts/search.py --explain BG.3.37 "desire turns into anger"
+    python scripts/search.py --eval
+
+Prints verse ids, scores and matched terms rather than verse text -- the point
+is to inspect what retrieval selected, and dumping translations makes that
+harder to read, not easier.
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from gita.retrieval import corpus, normalize  # noqa: E402
+
+EVAL_PATH = ROOT / "eval" / "questions.json"
+
+
+def cmd_health(index, records) -> int:
+    health = corpus.index_health(records)
+    print("Index health")
+    for key, value in health.items():
+        print("  %-20s %s" % (key, value))
+    print("  %-20s %d" % ("bm25 documents", len(index)))
+    print("  %-20s %d" % ("vocabulary", index.vocabulary_size))
+    if health["mode"] == "fallback":
+        print("\n  NOTE: retrieving over raw translations only. Life-situation "
+              "questions\n        will underperform until the enrichment layer is built.")
+    return 0
+
+
+def cmd_search(index, query: str, k: int) -> int:
+    print("query      : %s" % query)
+    print("normalised : %s" % " ".join(normalize.tokenize(query)))
+    hits = index.search(query, k=k)
+    if not hits:
+        print("\nno matches (every query term is out of vocabulary)")
+        return 0
+    print("\n%-4s %-10s %8s  %s" % ("#", "verse", "score", "matched terms"))
+    for hit in hits:
+        terms = index.explain(query, hit.doc_id)[:5]
+        rendered = ", ".join("%s=%.2f" % (t, s) for t, s in terms)
+        flag = "" if hit.meta.get("enriched") else " *"
+        print("%-4d %-10s %8.3f  %s%s" % (hit.rank, hit.doc_id, hit.score, rendered, flag))
+    if any(not h.meta.get("enriched") for h in hits):
+        print("\n* scored from translation/commentary text only (not yet enriched)")
+    return 0
+
+
+def cmd_explain(index, doc_id: str, query: str) -> int:
+    print("explain %s for: %s" % (doc_id, query))
+    contributions = index.explain(query, doc_id)
+    if not contributions:
+        print("  no query term occurs in this document")
+        return 0
+    total = sum(s for _, s in contributions)
+    for term, score in contributions:
+        print("  %-18s %7.3f  (%4.1f%%)" % (term, score, 100 * score / total))
+    print("  %-18s %7.3f" % ("TOTAL", total))
+    return 0
+
+
+def cmd_eval(index, k: int) -> int:
+    """Recall@k against the hand-labelled question set."""
+    if not EVAL_PATH.exists():
+        print("no eval set at %s" % EVAL_PATH)
+        return 1
+    cases = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
+    hit_count = 0
+    partial = 0
+    print("Recall@%d over %d questions\n" % (k, len(cases)))
+    for case in cases:
+        expected = set(case["expected"])
+        got = {h.doc_id for h in index.search(case["question"], k=k)}
+        found = expected & got
+        if found == expected:
+            status, hit_count = "FULL", hit_count + 1
+        elif found:
+            status, partial = "PART", partial + 1
+        else:
+            status = "MISS"
+        print("  [%s] %s" % (status, case["question"][:66]))
+        if found != expected:
+            print("         expected %s  found %s"
+                  % (sorted(expected), sorted(found) or "none"))
+    n = len(cases)
+    print("\n  full %d/%d (%.0f%%)   partial %d   miss %d"
+          % (hit_count, n, 100 * hit_count / n, partial, n - hit_count - partial))
+    return 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Query the Gita retrieval index.")
+    ap.add_argument("query", nargs="*", help="the question to search for")
+    ap.add_argument("-k", type=int, default=8, help="how many hits to return")
+    ap.add_argument("--health", action="store_true", help="report index coverage")
+    ap.add_argument("--eval", action="store_true", help="run the eval set")
+    ap.add_argument("--explain", metavar="VERSE_ID",
+                    help="break down the score for one verse")
+    ap.add_argument("--db", default=None)
+    args = ap.parse_args(argv)
+
+    _, index, records = corpus.open_index(args.db)
+
+    if args.health:
+        return cmd_health(index, records)
+    if args.eval:
+        return cmd_eval(index, args.k)
+
+    query = " ".join(args.query).strip()
+    if not query:
+        ap.error("provide a query, or use --health / --eval")
+    if args.explain:
+        return cmd_explain(index, args.explain, query)
+    return cmd_search(index, query, args.k)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

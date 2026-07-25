@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Madhav — the Gita, answered and cited</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="titlebar">
+    <div class="brand">
+      <span class="logochip"><img src="/static/logo-mark.png" alt="Madhav" width="40" height="40"></span>
+      <span class="wordmark">Madhav</span>
+      <span class="tagline" id="tagline">the Gita, answered and cited</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn" id="btnPalette" aria-label="Find a verse">
+      Find a verse <span class="kbd">⌘K</span>
+    </button>
+    <button class="btn ghost" id="btnCopy">Copy answer</button>
+    <button class="btn ghost" id="btnInspector" title="Show or hide the verse panel (⌘\)">
+      Hide verse panel
+    </button>
+  </div>
+
+  <div class="body">
+
+    <aside class="sidebar">
+      <div style="padding:14px 14px 10px">
+        <button class="btn primary" id="btnNew">New question</button>
+      </div>
+      <div class="scroll">
+        <div class="grouplabel">History</div>
+        <div id="history"></div>
+        <div class="grouplabel">Saved verses</div>
+        <div id="saved"></div>
+        <div class="grouplabel">Chapters</div>
+        <div id="chapters"></div>
+      </div>
+    </aside>
+
+    <main class="centre">
+      <div class="centre-inner">
+        <div class="asklabel">Question</div>
+        <textarea id="q" rows="3" spellcheck="false"
+          placeholder="Ask about your own life, in your own words."></textarea>
+        <div class="hint">
+          <span class="kbd">⌘↩</span> Ask &nbsp;·&nbsp;
+          <span class="kbd">⇧↩</span> Just show me the verses
+        </div>
+        <div id="notice"></div>
+        <div class="answer measure" id="answer"></div>
+        <div class="provenance" id="provenance"></div>
+      </div>
+    </main>
+
+    <aside class="inspector" id="inspector">
+      <div class="insphead">
+        <span class="t">Verses</span>
+        <span class="kbd" id="pinCount" style="margin-left:auto"></span>
+      </div>
+      <div class="inspscroll" id="inspscroll">
+        <div class="empty">
+          <span style="color:var(--gw-text-3);font-size:13px">No verse open yet.</span>
+          <span>Ask a question, or click a chapter on the left. You can also press
+                ⌘K and type a verse number like 2.47.</span>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

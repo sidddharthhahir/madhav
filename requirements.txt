@@ -1,0 +1,8 @@
+# Ingestion, retrieval, and the citation validator are stdlib-only by design --
+# `python -m gita.ingest.run` and `scripts/search.py` need nothing installed.
+# These are required only for answer generation and the HTTP API.
+
+anthropic>=0.120.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0

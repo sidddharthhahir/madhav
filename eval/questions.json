@@ -1,0 +1,83 @@
+[
+  {
+    "question": "why do people hate content creators they have never met in real life",
+    "expected": ["BG.3.37", "BG.7.27", "BG.16.18"],
+    "note": "the reel's own question; 3.37 desire-becomes-anger, 7.27 delusion of dualities, 16.18 ego and pride"
+  },
+  {
+    "question": "I work hard but never get recognised, should I even bother trying anymore",
+    "expected": ["BG.2.47", "BG.2.48"]
+  },
+  {
+    "question": "why do I lose my temper over small things",
+    "expected": ["BG.2.62", "BG.2.63", "BG.3.37"]
+  },
+  {
+    "question": "I cannot stop comparing myself to people on social media",
+    "expected": ["BG.3.37", "BG.16.18"]
+  },
+  {
+    "question": "my father died and I cannot stop grieving",
+    "expected": ["BG.2.11", "BG.2.13", "BG.2.27"]
+  },
+  {
+    "question": "my mind will not stop racing when I try to sleep",
+    "expected": ["BG.6.34", "BG.6.35"]
+  },
+  {
+    "question": "how do I stop being controlled by my cravings and my phone",
+    "expected": ["BG.2.62", "BG.2.67", "BG.5.22"]
+  },
+  {
+    "question": "should I leave my job for something that sounds more impressive",
+    "expected": ["BG.3.35", "BG.18.47"]
+  },
+  {
+    "question": "I feel like I am my own worst enemy and I keep sabotaging myself",
+    "expected": ["BG.6.5", "BG.6.6"]
+  },
+  {
+    "question": "how do I stay calm when everything in my life is going wrong",
+    "expected": ["BG.2.14", "BG.2.56"]
+  },
+  {
+    "question": "I did everything right and still failed, how do I deal with that",
+    "expected": ["BG.2.47", "BG.2.48"]
+  },
+  {
+    "question": "I overeat and oversleep and cannot find any balance in my routine",
+    "expected": ["BG.6.16", "BG.6.17"]
+  },
+  {
+    "question": "someone wronged me badly and I cannot let go of the resentment",
+    "expected": ["BG.12.13", "BG.16.3"]
+  },
+  {
+    "question": "how should I treat colleagues I genuinely dislike",
+    "expected": ["BG.6.9", "BG.12.18"]
+  },
+  {
+    "question": "is it wrong that I want to be rich",
+    "expected": ["BG.16.12"]
+  },
+  {
+    "question": "people criticise me online and it completely destroys my mood",
+    "expected": ["BG.12.18", "BG.14.24"]
+  },
+  {
+    "question": "I am terrified of dying",
+    "expected": ["BG.2.20", "BG.2.27"]
+  },
+  {
+    "question": "how do I know what my actual responsibility in life is",
+    "expected": ["BG.3.35", "BG.18.47"]
+  },
+  {
+    "question": "chasing pleasure keeps leaving me feeling empty afterwards",
+    "expected": ["BG.5.22", "BG.2.70"]
+  },
+  {
+    "question": "I keep getting attached to outcomes I cannot control",
+    "expected": ["BG.2.47", "BG.2.62"]
+  }
+]

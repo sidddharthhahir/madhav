@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# Raw upstream cache -- MUST NOT be committed.
+#
+# These are the unfiltered vedicscriptures payloads. They contain every
+# translation the upstream API returns, including A.C. Bhaktivedanta Swami
+# Prabhupada's (BBT, in copyright until 2038), Chinmayananda's, and
+# Ramsukhdas's. The rights policy in src/gita/sources.py keeps all of those out
+# of the database; the cache keeps them locally only so exclusions can be
+# re-audited without re-crawling. Committing this directory would publish
+# copyrighted translations and defeat the entire point of that policy.
+#
+# Regenerate with: python -m gita.ingest.run
+# ---------------------------------------------------------------------------
+data/cache/
+
+# Generated store. Rights-cleared, but a 22 MB binary that churns on every
+# enrichment run, so it is rebuilt rather than versioned.
+data/*.sqlite3
+data/*.sqlite3-wal
+data/*.sqlite3-shm
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Design tool exports. The working copies live in frontend/ -- these zips are
+# redundant packaging of the same two files.
+*.zip
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=1440">
+<style>
+  :root {
+    color-scheme: dark light;
+    --gw-page: #0B0C0E;
+    --gw-bg: #16181C; --gw-panel: #191C1F; --gw-card: #1C1F24; --gw-card-alt: #1A1D21; --gw-input: #1B1E23;
+    --gw-sidebar: rgba(30,33,38,.82); --gw-titlebar-a: #22262C; --gw-titlebar-b: #1C1F24; --gw-titlebar-border: #2A2F36;
+    --gw-btn: #23272D; --gw-btn-hover: #2A2F36; --gw-hover: #262A31; --gw-hover-row: #1F2328; --gw-hover-soft: #1D2126;
+    --gw-sel: #2B3037; --gw-border: #262A30; --gw-border-strong: #31363D; --gw-border-soft: #24282E; --gw-rule: #2E333A;
+    --gw-text: #E8E4DC; --gw-text-2: #DAD5CC; --gw-text-3: #C5C0B8; --gw-text-4: #A5A099; --gw-muted: #948F86;
+    --gw-accent: #C89B4A; --gw-accent-fill: #C89B4A; --gw-accent-hover: #DCAE5B; --gw-on-accent: #17130B;
+    --gw-pill-bg: #221E16; --gw-pill-border: #3A3325; --gw-pill-hover: #2E2718; --gw-chip: #21252A;
+    --gw-palette: #22262C; --gw-palette-border: #343941; --gw-overlay: rgba(8,9,10,.55);
+    --gw-toast: #2B3037; --gw-toast-border: #3A4048; --gw-warn-bg: #241C13; --gw-warn-border: #4A3A2A;
+    --gw-scroll: #2E333A; --gw-shadow: rgba(0,0,0,.6);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --gw-page: #E7E4DD;
+      --gw-bg: #FCFBF8; --gw-panel: #F6F4EF; --gw-card: #FFFFFF; --gw-card-alt: #F8F6F1; --gw-input: #FFFFFF;
+      --gw-sidebar: rgba(243,241,235,.82); --gw-titlebar-a: #F4F2EC; --gw-titlebar-b: #EBE8E1; --gw-titlebar-border: #DCD7CE;
+      --gw-btn: #EFEDE7; --gw-btn-hover: #E5E2DA; --gw-hover: #EAE7E0; --gw-hover-row: #F0EDE6; --gw-hover-soft: #F0EDE6;
+      --gw-sel: #E2DED5; --gw-border: #E1DDD4; --gw-border-strong: #D5D0C6; --gw-border-soft: #E5E1D9; --gw-rule: #DCD7CE;
+      --gw-text: #1F1B18; --gw-text-2: #2C2723; --gw-text-3: #3B3630; --gw-text-4: #524D46; --gw-muted: #6B6660;
+      --gw-accent: #8A6320; --gw-accent-fill: #C89B4A; --gw-accent-hover: #B4832F; --gw-on-accent: #17130B;
+      --gw-pill-bg: #F7EFDD; --gw-pill-border: #E2D0A8; --gw-pill-hover: #F1E4C6; --gw-chip: #EDEAE2;
+      --gw-palette: #FFFFFF; --gw-palette-border: #D5D0C6; --gw-overlay: rgba(90,85,76,.32);
+      --gw-toast: #FFFFFF; --gw-toast-border: #D5D0C6; --gw-warn-bg: #FBF3E2; --gw-warn-border: #E2D0A8;
+      --gw-scroll: #D0CBC1; --gw-shadow: rgba(60,55,48,.28);
+    }
+  }
+  html, body { margin: 0; padding: 0; background: var(--gw-page); }
+  * { box-sizing: border-box; }
+  a { color: var(--gw-accent); text-decoration: none; }
+  a:hover { color: var(--gw-accent-hover); text-decoration: underline; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible,
+  [tabindex]:focus-visible, [role="button"]:focus-visible, [role="option"]:focus-visible {
+    outline: 2px solid var(--gw-accent) !important;
+    outline-offset: 2px;
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--gw-scroll); border-radius: 6px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes gw-pulse { 0%,100% { opacity: .35 } 50% { opacity: 1 } }
+  @keyframes gw-fade { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; min-width: 1120px; background: var(--gw-bg); color: var(--gw-text); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; box-shadow: 0 40px 120px var(--gw-shadow); position: relative;">
+
+  <div style="height: 52px; flex: none; display: flex; align-items: center; gap: 18px; padding: 0 16px 0 20px; background: linear-gradient(var(--gw-palette), var(--gw-card)); border-bottom: 1px solid var(--gw-btn-hover);">
+    <div style="display: flex; gap: 8px; width: 60px; flex: none;">
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57;"></div>
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E;"></div>
+      <div style="width: 12px; height: 12px; border-radius: 50%; background: #28C840;"></div>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 10px; margin-left: 12px;">
+      <span style="font-size: 13px; font-weight: 590; letter-spacing: .01em;">Madhav</span>
+      <span style="font-size: 11px; color: var(--gw-muted); font-family: ui-monospace, 'SF Mono', Menlo, monospace;">verified citations</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <button onClick="{{ openPalette }}" style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; background: var(--gw-btn); border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text-4); font-family: inherit; font-size: 12px; cursor: pointer;" style-hover="background: var(--gw-btn-hover); color: var(--gw-text);">
+        <span>Jump to verse</span>
+        <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-muted);">⌘K</span>
+      </button>
+      <div style="width: 1px; height: 20px; background: var(--gw-border-strong); margin: 0 6px;"></div>
+      <button onClick="{{ copyMarkdown }}" style="height: 28px; padding: 0 10px; background: transparent; border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text-4); font-family: inherit; font-size: 12px; cursor: pointer;" style-hover="background: var(--gw-btn); color: var(--gw-text);">Copy as Markdown</button>
+      <button style="height: 28px; padding: 0 10px; background: transparent; border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text-4); font-family: inherit; font-size: 12px; cursor: pointer;" style-hover="background: var(--gw-btn); color: var(--gw-text);">PNG @2×</button>
+      <button style="height: 28px; padding: 0 10px; background: transparent; border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text-4); font-family: inherit; font-size: 12px; cursor: pointer;" style-hover="background: var(--gw-btn); color: var(--gw-text);">PDF + apparatus</button>
+      <button onClick="{{ toggleInspector }}" title="Toggle inspector ⌘\" style="height: 28px; width: 30px; background: transparent; border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text-4); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; cursor: pointer;" style-hover="background: var(--gw-btn); color: var(--gw-text);">⌥</button>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; min-height: 0;">
+
+    <div style="width: 240px; flex: none; background: var(--gw-sidebar); backdrop-filter: saturate(180%) blur(20px); border-right: 1px solid var(--gw-border-soft); display: flex; flex-direction: column; min-height: 0;">
+      <div style="padding: 14px 14px 10px;">
+        <button onClick="{{ newQuestion }}" style="width: 100%; height: 32px; background: var(--gw-accent-fill); border: none; border-radius: 8px; color: var(--gw-on-accent); font-family: inherit; font-size: 13px; font-weight: 590; cursor: pointer" style-hover="background: var(--gw-accent-hover);">New question</button>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 4px 8px 8px;">
+        <div style="padding: 10px 6px 6px; font-size: 10px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">History</div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <div style="padding: 7px 8px; border-radius: 6px; background: var(--gw-sel); color: var(--gw-text); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;">Losing my temper with family</div>
+          <div style="padding: 7px 8px; border-radius: 6px; color: var(--gw-text-4); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;" style-hover="background: var(--gw-hover); color: var(--gw-text);">Should I leave a job I'm good at?</div>
+          <div style="padding: 7px 8px; border-radius: 6px; color: var(--gw-text-4); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;" style-hover="background: var(--gw-hover); color: var(--gw-text);">Grief that won't lift after a year</div>
+          <div style="padding: 7px 8px; border-radius: 6px; color: var(--gw-text-4); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;" style-hover="background: var(--gw-hover); color: var(--gw-text);">Doing the right thing when no one sees</div>
+        </div>
+
+        <div style="padding: 16px 6px 6px; font-size: 10px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">Saved verses</div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <div role="button" tabindex="0" onClick="{{ cite.c247 }}" style="display: flex; align-items: baseline; gap: 8px; padding: 7px 8px; border-radius: 6px; color: var(--gw-text-4); cursor: pointer;" style-hover="background: var(--gw-hover); color: var(--gw-text);">
+            <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-accent);">2.47</span>
+            <span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">the right to work, not the fruit</span>
+          </div>
+          <div role="button" tabindex="0" onClick="{{ cite.c605 }}" style="display: flex; align-items: baseline; gap: 8px; padding: 7px 8px; border-radius: 6px; color: var(--gw-text-4); cursor: pointer;" style-hover="background: var(--gw-hover); color: var(--gw-text);">
+            <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-accent);">6.05</span>
+            <span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">the self is its own friend</span>
+          </div>
+        </div>
+
+        <div style="padding: 16px 6px 6px; font-size: 10px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">Chapters</div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <sc-for list="{{ chapters }}" as="ch" hint-placeholder-count="6">
+            <div role="button" tabindex="0" onClick="{{ ch.open }}" style="display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; border-radius: 6px; color: var(--gw-text-4); cursor: pointer;" style-hover="background: var(--gw-hover); color: var(--gw-text);">
+              <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-muted); width: 18px; text-align: right;">{{ ch.n }}</span>
+              <span style="font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ ch.title }}</span>
+              <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10px; color: var(--gw-muted);">{{ ch.count }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: none; border-top: 1px solid var(--gw-border-soft); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 4px;">
+          <sc-for list="{{ langs }}" as="l" hint-placeholder-count="3">
+            <button onClick="{{ l.pick }}" style="flex: 1; height: 26px; border-radius: 6px; border: 1px solid var(--gw-border-strong); background: {{ l.bg }}; color: {{ l.fg }}; font-family: inherit; font-size: 12px; cursor: pointer;">{{ l.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          <div style="font-size: 11px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">Preview states</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <sc-for list="{{ demoStates }}" as="s" hint-placeholder-count="5">
+              <button onClick="{{ s.pick }}" style="height: 22px; padding: 0 7px; border-radius: 5px; border: 1px solid var(--gw-rule); background: {{ s.bg }}; color: {{ s.fg }}; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10px; cursor: pointer;">{{ s.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto;">
+      <div style="width: 100%; max-width: 720px; padding: 40px 56px 64px; display: flex; flex-direction: column; gap: 28px;">
+
+        <sc-if value="{{ showAsk }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 18px; padding-top: 60px;">
+            <div style="font-family: ui-serif, 'New York', Georgia, serif; font-size: 30px; line-height: 1.3; color: var(--gw-text);">What are you sitting with?</div>
+            <div style="font-size: 14px; color: var(--gw-muted); max-width: 52ch;">Ask about your own life, in your own words. The answer will be grounded in specific verses, and every citation is checked against what was actually retrieved.</div>
+            <div style="margin-top: 6px; border: 1px solid var(--gw-border-strong); border-radius: 10px; background: var(--gw-input); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;" style-focus="border-color: var(--gw-accent);">
+              <textarea ref="{{ inputRef }}" placeholder="I keep losing my temper with the people I love most…" style="width: 100%; height: 96px; resize: none; border: none; outline: none; background: transparent; color: var(--gw-text); font-family: inherit; font-size: 16px; line-height: 1.5;"></textarea>
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 11px; color: var(--gw-muted); font-family: ui-monospace, 'SF Mono', Menlo, monospace;">one question · no thread · ~10s</span>
+                <button onClick="{{ submit }}" style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; background: var(--gw-accent); border: none; border-radius: 7px; color: var(--gw-on-accent); font-family: inherit; font-size: 13px; font-weight: 590; cursor: pointer;" style-hover="background: var(--gw-accent-hover);">
+                  <span>Ask</span>
+                  <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; opacity: .6;">⌘↩</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showQuestion }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 10px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">Question</div>
+            <div style="font-family: ui-serif, 'New York', Georgia, serif; font-size: 25px; line-height: 1.35; color: var(--gw-text); max-width: 30ch;">I keep losing my temper with the people I love most. What do I do?</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showAnswer }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 20px; max-width: 68ch; animation: gw-fade .4s ease both;">
+            <div style="height: 1px; background: var(--gw-border);"></div>
+            <p style="margin: 0; font-size: 16.5px; line-height: 1.55; color: var(--gw-text-2);">The Gītā does not treat anger as a character flaw to be ashamed of. It treats it as a mechanism, and it names the part that comes first: desire. <span role="button" tabindex="0" onClick="{{ cite.c337 }}" style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 2px; margin: 0 1px; border-radius: 5px; border: 1px solid var(--gw-pill-border); background: var(--gw-pill-bg); color: var(--gw-accent); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; cursor: pointer; vertical-align: baseline;" style-hover="background: var(--gw-pill-hover); border-color: var(--gw-accent);">BG 3.37</span> calls desire and anger a single thing seen at two moments — the same heat, first reaching outward, then striking. Krishna's word for it is <em style="font-style: italic; color: var(--gw-text);">vairin</em>: the enemy stationed inside.</p>
+            <p style="margin: 0; font-size: 16.5px; line-height: 1.55; color: var(--gw-text-2);">Which reframes what you are asking. You are not trying to become a person who never feels the heat. You are trying to stop being carried by it. The instruction in <span role="button" tabindex="0" onClick="{{ cite.c247 }}" style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 2px; margin: 0 1px; border-radius: 5px; border: 1px solid var(--gw-pill-border); background: var(--gw-pill-bg); color: var(--gw-accent); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; cursor: pointer; vertical-align: baseline;" style-hover="background: var(--gw-pill-hover); border-color: var(--gw-accent);">BG 2.47</span> is usually read as a lesson about work, but it applies exactly here: act, and release the claim on how the other person responds. Most flashes of temper at home are a claim being denied — they should have listened, they should have noticed.</p>
+            <p style="margin: 0; font-size: 16.5px; line-height: 1.55; color: var(--gw-text-2);">Then <span role="button" tabindex="0" onClick="{{ cite.c605 }}" style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 2px; margin: 0 1px; border-radius: 5px; border: 1px solid var(--gw-pill-border); background: var(--gw-pill-bg); color: var(--gw-accent); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; cursor: pointer; vertical-align: baseline;" style-hover="background: var(--gw-pill-hover); border-color: var(--gw-accent);">BG 6.5</span> gives you the practical half, and it is blunt about where the work sits: the self is lifted by the self, and the self alone is the self's enemy. No one is coming to regulate this for you. In practice that is small and unspectacular — noticing the heat one beat earlier each time, and leaving the room while leaving is still a choice.</p>
+            <p style="margin: 0; font-size: 16.5px; line-height: 1.55; color: var(--gw-text-2);">One caution the text is clear about: <span role="button" tabindex="0" onClick="{{ cite.c1618 }}" style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px 2px; margin: 0 1px; border-radius: 5px; border: 1px solid var(--gw-pill-border); background: var(--gw-pill-bg); color: var(--gw-accent); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; cursor: pointer; vertical-align: baseline;" style-hover="background: var(--gw-pill-hover); border-color: var(--gw-accent);">BG 16.18</span> puts anger in company with pride and self-importance — the family of states that make other people into obstacles. If the people you love are starting to look like obstacles, that is the thing to work on, not the volume of your voice.</p>
+          </div>
+
+          <div style="max-width: 68ch; border: 1px solid var(--gw-border); border-radius: 10px; background: var(--gw-panel); overflow: hidden;">
+            <div role="button" tabindex="0" onClick="{{ toggleProvenance }}" style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;" style-hover="background: var(--gw-hover-soft);">
+              <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-accent);">{{ provArrow }}</span>
+              <span style="font-size: 13px; color: var(--gw-text);">Grounded in 8 verses</span>
+              <span style="font-size: 12px; color: var(--gw-muted);">4 cited · 8 retrieved · all citations verified</span>
+              <span style="flex: 1;"></span>
+              <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10px; color: var(--gw-muted);">BM25</span>
+            </div>
+            <sc-if value="{{ provenanceOpen }}" hint-placeholder-val="{{ true }}">
+              <div style="border-top: 1px solid var(--gw-border); padding: 4px 0 6px;">
+                <sc-for list="{{ provenance }}" as="p" hint-placeholder-count="8">
+                  <div role="button" tabindex="0" onClick="{{ p.open }}" style="display: grid; grid-template-columns: 26px 62px 1fr 58px 16px; align-items: center; gap: 10px; padding: 7px 14px; cursor: pointer;" style-hover="background: var(--gw-hover-row);">
+                    <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-muted);">{{ p.rank }}</span>
+                    <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: {{ p.refColor }};">{{ p.ref }}</span>
+                    <span style="font-size: 13px; color: var(--gw-text-4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.gist }}</span>
+                    <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-muted); text-align: right;">{{ p.score }}</span>
+                    <span style="font-size: 11px; color: {{ p.citedColor }}; text-align: center;">{{ p.citedMark }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showOffTopic }}" hint-placeholder-val="{{ false }}">
+          <div style="max-width: 56ch; display: flex; flex-direction: column; gap: 14px; padding-top: 8px;">
+            <div style="height: 1px; background: var(--gw-border);"></div>
+            <div style="font-family: ui-serif, 'New York', Georgia, serif; font-size: 26px; line-height: 1.35;">The Gītā doesn't speak to this one.</div>
+            <div style="font-size: 15px; color: var(--gw-text-4); line-height: 1.55;">It has a lot to say about duty, fear, grief, attachment and how to act when you can't see the outcome. It has nothing on interest rates. Ask it something that costs you something.</div>
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+              <button onClick="{{ newQuestion }}" style="height: 30px; padding: 0 12px; background: var(--gw-btn); border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text); font-family: inherit; font-size: 13px; cursor: pointer;" style-hover="background: var(--gw-btn-hover);">Ask something else</button>
+              <button onClick="{{ openPalette }}" style="height: 30px; padding: 0 12px; background: transparent; border: 1px solid var(--gw-border-strong); border-radius: 7px; color: var(--gw-text-4); font-family: inherit; font-size: 13px; cursor: pointer;" style-hover="color: var(--gw-text);">Browse chapters instead</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showWithheld }}" hint-placeholder-val="{{ false }}">
+          <div style="max-width: 62ch; display: flex; flex-direction: column; gap: 16px; padding-top: 8px;">
+            <div style="height: 1px; background: var(--gw-border);"></div>
+            <div style="display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--gw-warn-border); background: var(--gw-warn-bg); color: var(--gw-accent); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px;">citation_validation_failed</div>
+            <div style="font-family: ui-serif, 'New York', Georgia, serif; font-size: 26px; line-height: 1.35;">An answer was written, and then withheld.</div>
+            <div style="font-size: 15px; color: var(--gw-text-4); line-height: 1.6;">It cited <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; color: var(--gw-text);">BG 4.19</span> — a verse that was never retrieved for your question. Rather than show you a reference we can't stand behind, the answer was discarded. Every citation in this app is checked against the verses actually pulled from the corpus; this is that check firing.</div>
+            <div style="border: 1px solid var(--gw-border); border-radius: 10px; background: var(--gw-panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 10px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">What was retrieved</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <span style="padding: 3px 8px; border-radius: 5px; background: var(--gw-chip); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: var(--gw-text-4);">2.14</span>
+                <span style="padding: 3px 8px; border-radius: 5px; background: var(--gw-chip); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: var(--gw-text-4);">2.56</span>
+                <span style="padding: 3px 8px; border-radius: 5px; background: var(--gw-chip); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: var(--gw-text-4);">5.23</span>
+                <span style="padding: 3px 8px; border-radius: 5px; background: var(--gw-chip); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: var(--gw-text-4);">12.15</span>
+                <span style="padding: 3px 8px; border-radius: 5px; background: var(--gw-chip); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11.5px; color: var(--gw-text-4);">16.02</span>
+              </div>
+            </div>
+            <button onClick="{{ submit }}" style="align-self: flex-start; height: 30px; padding: 0 12px; background: var(--gw-accent); border: none; border-radius: 7px; color: var(--gw-on-accent); font-family: inherit; font-size: 13px; font-weight: 590; cursor: pointer;" style-hover="background: var(--gw-accent-hover);">Run it again</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showCrisis }}" hint-placeholder-val="{{ false }}">
+          <div style="max-width: 58ch; display: flex; flex-direction: column; gap: 18px; padding-top: 40px;">
+            <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 24px; line-height: 1.4; color: var(--gw-text);">I'm not going to answer this one with scripture.</div>
+            <div style="font-size: 16px; line-height: 1.6; color: var(--gw-text-2);">What you wrote sounds like you're in real danger right now. That deserves a person, not a verse. Please talk to someone tonight — a crisis line, a doctor, or someone who is physically near you.</div>
+            <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gw-rule); border-radius: 10px; overflow: hidden; background: var(--gw-input);">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 14px; color: var(--gw-text);">India — Tele-MANAS</span>
+                  <span style="font-size: 12.5px; color: var(--gw-muted);">24/7, 20 languages</span>
+                </div>
+                <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px; color: var(--gw-accent);">14416</span>
+              </div>
+              <div style="height: 1px; background: var(--gw-rule);"></div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 14px; color: var(--gw-text);">US &amp; Canada — Suicide &amp; Crisis Lifeline</span>
+                  <span style="font-size: 12.5px; color: var(--gw-muted);">call or text, 24/7</span>
+                </div>
+                <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px; color: var(--gw-accent);">988</span>
+              </div>
+              <div style="height: 1px; background: var(--gw-rule);"></div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 14px; color: var(--gw-text);">UK &amp; Ireland — Samaritans</span>
+                  <span style="font-size: 12.5px; color: var(--gw-muted);">free, 24/7</span>
+                </div>
+                <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px; color: var(--gw-accent);">116 123</span>
+              </div>
+              <div style="height: 1px; background: var(--gw-rule);"></div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 16px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 14px; color: var(--gw-text);">Anywhere — Befrienders Worldwide</span>
+                  <span style="font-size: 12.5px; color: var(--gw-muted);">directory of local lines</span>
+                </div>
+                <a href="https://befrienders.org" style="font-size: 13.5px;">befrienders.org</a>
+              </div>
+            </div>
+            <div style="font-size: 13.5px; color: var(--gw-muted); line-height: 1.6;">If you're not in danger and I read you wrong, say it plainly and I'll go back to the text.</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{ inspectorOpen }}" hint-placeholder-val="{{ true }}">
+      <div style="width: 400px; flex: none; background: var(--gw-panel); border-left: 1px solid var(--gw-border-soft); display: flex; flex-direction: column; min-height: 0;">
+        <div style="flex: none; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--gw-border-soft);">
+          <span style="font-size: 10px; font-weight: 640; letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);">Verse inspector</span>
+          <span style="flex: 1;"></span>
+          <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10px; color: var(--gw-muted);">{{ pinCount }} pinned · ⌘⇧P</span>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px;">
+
+          <sc-if value="{{ showLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <sc-for list="{{ stages }}" as="s" hint-placeholder-count="3">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                  <span style="width: 14px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: {{ s.color }}; animation: {{ s.anim }};">{{ s.mark }}</span>
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 13.5px; color: {{ s.color }};">{{ s.label }}</span>
+                    <span style="font-size: 11.5px; color: var(--gw-muted); font-family: ui-monospace, 'SF Mono', Menlo, monospace;">{{ s.detail }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-for list="{{ stack }}" as="v" hint-placeholder-count="1">
+            <div style="border: 1px solid var(--gw-border); border-radius: 10px; background: var(--gw-card); overflow: hidden; animation: gw-fade .3s ease both;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--gw-border);">
+                <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: var(--gw-accent);">{{ v.ref }}</span>
+                <span style="font-size: 12px; color: var(--gw-muted);">{{ v.chapterTitle }}</span>
+                <span style="flex: 1;"></span>
+                <button onClick="{{ v.prev }}" style="width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--gw-rule); background: transparent; color: var(--gw-muted); font-family: inherit; font-size: 11px; cursor: pointer;" style-hover="color: var(--gw-text); background: var(--gw-btn);">←</button>
+                <button onClick="{{ v.next }}" style="width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--gw-rule); background: transparent; color: var(--gw-muted); font-family: inherit; font-size: 11px; cursor: pointer;" style-hover="color: var(--gw-text); background: var(--gw-btn);">→</button>
+                <button onClick="{{ v.unpin }}" title="Unpin" style="width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--gw-rule); background: transparent; color: var(--gw-muted); font-family: inherit; font-size: 12px; cursor: pointer;" style-hover="color: var(--gw-text); background: var(--gw-btn);">×</button>
+              </div>
+
+              <div style="padding: 14px 14px 4px; font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', ui-serif, serif; font-size: 19px; line-height: 1.7; color: var(--gw-text);">{{ v.devanagari }}</div>
+              <div style="padding: 8px 14px 12px; font-family: ui-serif, 'New York', Georgia, serif; font-style: italic; font-size: 13.5px; line-height: 1.55; color: var(--gw-muted);">{{ v.iast }}</div>
+
+              <div style="border-top: 1px solid var(--gw-border); display: grid; grid-template-columns: 1fr 1px 1fr;">
+                <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 7px;">
+                  <span style="font-size: 11px; font-weight: 640; letter-spacing: .08em; text-transform: uppercase; color: var(--gw-muted);">Purohit Swami</span>
+                  <span style="font-family: ui-serif, 'New York', Georgia, serif; font-size: 14px; line-height: 1.55; color: var(--gw-text-2);">{{ v.purohit }}</span>
+                </div>
+                <div style="background: var(--gw-border);"></div>
+                <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 7px;">
+                  <span style="font-size: 11px; font-weight: 640; letter-spacing: .08em; text-transform: uppercase; color: var(--gw-muted);">Sivananda</span>
+                  <span style="font-family: ui-serif, 'New York', Georgia, serif; font-size: 14px; line-height: 1.55; color: var(--gw-text-2);">{{ v.sivananda }}</span>
+                </div>
+              </div>
+
+              <div style="border-top: 1px solid var(--gw-border); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; background: var(--gw-card-alt);">
+                <span style="font-size: 11px; font-weight: 640; letter-spacing: .08em; text-transform: uppercase; color: var(--gw-muted);">In plain words</span>
+                <span style="font-size: 13.5px; line-height: 1.55; color: var(--gw-text-3);">{{ v.plain }}</span>
+                <sc-if value="{{ v.showGujarati }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top: 8px; padding: 10px 12px; border: 1px dashed var(--gw-pill-border); border-radius: 8px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 10px; color: var(--gw-accent); font-family: ui-monospace, 'SF Mono', Menlo, monospace;">answer: ગુજરાતી · verse corpus: English</span>
+                    <span style="font-family: 'Kohinoor Gujarati', 'Noto Sans Gujarati', sans-serif; font-size: 14.5px; line-height: 1.7; color: var(--gw-text-2);">{{ v.gujarati }}</span>
+                    <span style="font-size: 11.5px; color: var(--gw-muted); line-height: 1.5;">Gujarati verse text isn't ingested yet — the translation above stays in English so the grounding is still checkable.</span>
+                  </div>
+                </sc-if>
+              </div>
+
+              <div role="button" tabindex="0" onClick="{{ v.toggleCommentary }}" style="border-top: 1px solid var(--gw-border); padding: 10px 14px; display: flex; align-items: center; gap: 8px; cursor: pointer;" style-hover="background: var(--gw-hover-row);">
+                <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--gw-accent);">{{ v.commentaryArrow }}</span>
+                <span style="font-size: 12.5px; color: var(--gw-text-4);">Read the commentary</span>
+              </div>
+              <sc-if value="{{ v.commentaryOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 0 14px 14px; font-family: ui-serif, 'New York', Georgia, serif; font-size: 13.5px; line-height: 1.6; color: var(--gw-text-4);">{{ v.commentary }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ stackEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 40px 12px; text-align: center; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 13px; color: var(--gw-muted);">No verse selected.</span>
+              <span style="font-size: 12px; color: var(--gw-muted); line-height: 1.5;">Click a citation pill in the answer, or press ⌘K and type a reference like 2.47.</span>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ paletteOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePalette }}" style="position: absolute; inset: 0; background: var(--gw-overlay); display: flex; align-items: flex-start; justify-content: center; padding-top: 120px;">
+      <div onClick="{{ stop }}" role="dialog" aria-modal="true" aria-label="Command palette" style="width: 560px; background: var(--gw-palette); border: 1px solid var(--gw-palette-border); border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,.55); overflow: hidden; animation: gw-fade .16s ease both;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--gw-rule);">
+          <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: var(--gw-muted);">→</span>
+          <input ref="{{ paletteRef }}" onChange="{{ onPaletteType }}" role="combobox" aria-expanded="true" aria-controls="gw-palette-list" aria-activedescendant="{{ activeId }}" aria-label="Verse reference, keyword, or command" placeholder="Verse reference, keyword, or command…" style="flex: 1; border: none; outline: none; background: transparent; color: var(--gw-text); font-family: inherit; font-size: 15px;">
+          <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10px; color: var(--gw-muted);">esc</span>
+        </div>
+        <div id="gw-palette-list" role="listbox" aria-label="Results" aria-activedescendant="{{ activeId }}" style="padding: 6px 0 8px; max-height: 320px; overflow-y: auto;">
+          <sc-for list="{{ paletteResults }}" as="r" hint-placeholder-count="5">
+            <div onClick="{{ r.run }}" id="{{ r.id }}" role="option" aria-selected="{{ r.selected }}" tabindex="0" style="display: flex; align-items: center; gap: 12px; padding: 9px 16px; cursor: pointer;" style-hover="background: var(--gw-sel);">
+              <span style="width: 52px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: {{ r.kindColor }};">{{ r.kind }}</span>
+              <span style="flex: 1; font-size: 13.5px; color: var(--gw-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r.label }}</span>
+              <span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10.5px; color: var(--gw-muted);">{{ r.hint }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="border-top: 1px solid var(--gw-rule); padding: 8px 16px; display: flex; gap: 16px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 10px; color: var(--gw-muted);">
+          <span>⌘↩ submit</span>
+          <span>⌘1/2/3 language</span>
+          <span>⌘⇧P pin</span>
+          <span>⌘⌥←→ verse</span>
+          <span>⌘⇧C copy md</span>
+          <span>⌘\ inspector</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); padding: 9px 16px; background: var(--gw-toast); border: 1px solid var(--gw-toast-border); border-radius: 8px; font-size: 13px; color: var(--gw-text); box-shadow: 0 12px 30px rgba(0,0,0,.4); animation: gw-fade .2s ease both;">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;startState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ask&quot;,&quot;answer&quot;,&quot;loading&quot;,&quot;off_topic&quot;,&quot;withheld&quot;,&quot;crisis&quot;],&quot;default&quot;:&quot;answer&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;translationLayout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;parallel&quot;,&quot;toggle&quot;],&quot;default&quot;:&quot;parallel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;provenanceExpanded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+const VERSES = {
+  '3.37': {
+    ref: 'BG 3.37', chapterTitle: 'Karma Yoga', chapter: 3, verse: 37,
+    devanagari: 'काम एष क्रोध एष रजोगुणसमुद्भवः।\nमहाशनो महापाप्मा विद्ध्येनमिह वैरिणम्॥',
+    iast: 'kāma eṣa krodha eṣa rajoguṇasamudbhavaḥ | mahāśano mahāpāpmā viddhy enam iha vairiṇam',
+    purohit: 'It is selfish desire and passion — offspring of the quality of Rajas — all-consuming and most sinful. Know this to be the enemy of man.',
+    sivananda: 'It is desire, it is anger, born of the quality of Rajas — all-devouring and most sinful. Know this as the foe here.',
+    plain: 'Desire and anger are one force at two moments. Krishna does not call it a weakness; he calls it an enemy that lives inside you and eats everything.',
+    commentary: 'The verse answers Arjuna directly: what drives a person to act against their own knowledge of the good? Not ignorance, and not fate — appetite. The two words kāma and krodha are given a single grammatical subject on purpose. Anger is what desire becomes when it meets an obstacle, so the discipline is not anger-management but attention to the wanting that precedes it. Note mahāśana, "great eater": the appetite is never satisfied by feeding, which is why the text will later prescribe restraint of the senses rather than fulfilment of them.',
+    gujarati: 'ઇચ્છા અને ક્રોધ એક જ શક્તિની બે ક્ષણો છે — તેને અંદર રહેલો શત્રુ સમજો.'
+  },
+  '2.47': {
+    ref: 'BG 2.47', chapterTitle: 'Sāṅkhya Yoga', chapter: 2, verse: 47,
+    devanagari: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।\nमा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥',
+    iast: 'karmaṇy evādhikāras te mā phaleṣu kadācana | mā karmaphalahetur bhūr mā te saṅgo \u2019stv akarmaṇi',
+    purohit: 'Let right deeds be thy motive, not the fruit which comes from them. And do not shrink from action, either.',
+    sivananda: 'Thy right is to work only, but never to its fruits. Let not the fruit of action be thy motive, nor let thy attachment be to inaction.',
+    plain: 'You are answerable for the action, not for how it lands. And the escape hatch is closed too: detachment is not withdrawal.',
+    commentary: 'Almost always quoted as work advice, but the grammar is about entitlement — adhikāra, a claim or right. You have a claim on the doing; you have none on the result. Applied to a domestic argument this is unusually practical: most flashes of temper are a denied claim, a felt right to a particular response from another person. The second half forecloses the obvious misreading — releasing the claim is not the same as disengaging. Krishna will not let Arjuna leave the field.',
+    gujarati: 'તમારો અધિકાર કર્મ પર છે, ફળ પર નહીં.'
+  },
+  '6.5': {
+    ref: 'BG 6.5', chapterTitle: 'Dhyāna Yoga', chapter: 6, verse: 5,
+    devanagari: 'उद्धरेदात्मनात्मानं नात्मानमवसादयेत्।\nआत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः॥',
+    iast: 'uddhared ātmanātmānaṁ nātmānam avasādayet | ātmaiva hy ātmano bandhur ātmaiva ripur ātmanaḥ',
+    purohit: 'Let a man raise himself by his own efforts, and let him not degrade himself; for he himself is his friend, and he himself is his enemy.',
+    sivananda: 'One should lift oneself by the Self alone; let not one lower oneself; for the Self alone is the friend of oneself, and the Self alone is the enemy of oneself.',
+    plain: 'No one is coming to regulate this for you. The same faculty that drags you down is the one that lifts you — which is the good news and the bad news at once.',
+    commentary: 'The verse repeats ātman five times in two lines, and the repetition is the argument: there is no external agent in the sentence. Friend and enemy are not two beings but two functions of one. Practically, this is why the Gītā keeps returning to small repeated discipline rather than dramatic conversion — the faculty being trained is the trainer.',
+    gujarati: 'પોતાની જ મદદથી પોતાને ઊંચે લાવો — આત્મા જ મિત્ર છે અને આત્મા જ શત્રુ.'
+  },
+  '16.18': {
+    ref: 'BG 16.18', chapterTitle: 'Daivāsura-sampad Vibhāga', chapter: 16, verse: 18,
+    devanagari: 'अहंकारं बलं दर्पं कामं क्रोधं च संश्रिताः।\nमामात्मपरदेहेषु प्रद्विषन्तोऽभ्यसूयकाः॥',
+    iast: 'ahaṁkāraṁ balaṁ darpaṁ kāmaṁ krodhaṁ ca saṁśritāḥ | mām ātmaparadeheṣu pradviṣanto \u2019bhyasūyakāḥ',
+    purohit: 'Given over to egoism, force, insolence, lust and wrath, these malignant folk hate Me, who dwell in the bodies of themselves and of others.',
+    sivananda: 'Given over to egoism, power, arrogance, lust and anger, these malicious people hate Me in their own bodies and in the bodies of others.',
+    plain: 'Anger keeps company. Where it settles in, self-importance and contempt for other people arrive with it — and the text frames that contempt as directed at what is divine in them.',
+    commentary: 'The list is a diagnosis of a disposition, not a tally of sins. What binds the five terms is that each one converts another person into an obstacle or an instrument. The last clause is the sharpest: the hatred lands on ātman in one\u2019s own body as much as in the other\u2019s. Contempt is not a stance you take toward someone else while remaining intact.',
+    gujarati: 'ક્રોધ એકલો આવતો નથી — અહંકાર અને તિરસ્કાર તેની સાથે આવે છે.'
+  },
+  '2.62': {
+    ref: 'BG 2.62', chapterTitle: 'Sāṅkhya Yoga', chapter: 2, verse: 62,
+    devanagari: 'ध्यायतो विषयान्पुंसः सङ्गस्तेषूपजायते।\nसङ्गात्सञ्जायते कामः कामात्क्रोधोऽभिजायते॥',
+    iast: 'dhyāyato viṣayān puṁsaḥ saṅgas teṣūpajāyate | saṅgāt sañjāyate kāmaḥ kāmāt krodho \u2019bhijāyate',
+    purohit: 'Thinking about sense-objects will attach you to them; attachment breeds craving, and craving breeds anger.',
+    sivananda: 'When a man thinks of objects, attachment for them arises; from attachment desire is born; from desire anger arises.',
+    plain: 'The chain, stated as a sequence: dwelling on it, attachment, craving, anger. The intervention point is earlier than you think.',
+    commentary: 'This is the mechanism 3.37 names and 2.63 completes. Because each link is a separate step, the verse implies the possibility of catching it early — attention is the first domino, not the anger.',
+    gujarati: 'વિચારથી આસક્તિ, આસક્તિથી ઇચ્છા, ઇચ્છાથી ક્રોધ.'
+  }
+};
+
+const CHAPTERS = [
+  ['Arjuna\u2019s despair', 47], ['Sāṅkhya Yoga', 72], ['Karma Yoga', 43], ['Jñāna Yoga', 42],
+  ['Karma-sannyāsa', 29], ['Dhyāna Yoga', 47], ['Jñāna-vijñāna', 30], ['Akṣara-brahma', 28],
+  ['Rāja-vidyā', 34], ['Vibhūti Yoga', 42], ['Viśvarūpa-darśana', 55], ['Bhakti Yoga', 20],
+  ['Kṣetra-kṣetrajña', 35], ['Guṇatraya-vibhāga', 34], ['Puruṣottama Yoga', 20],
+  ['Daivāsura-sampad', 24], ['Śraddhātraya', 28], ['Mokṣa-sannyāsa', 78]
+];
+
+const PROVENANCE = [
+  ['3.37', 'desire and anger, born of rajas — the enemy within', '14.82', true],
+  ['2.62', 'dwelling breeds attachment, attachment craving, craving anger', '13.05', true],
+  ['16.18', 'egoism, power, arrogance, lust, anger together', '11.94', true],
+  ['2.47', 'the right to the work, never to the fruit', '10.31', true],
+  ['6.5', 'the self is its own friend and its own enemy', '9.76', false],
+  ['5.23', 'one who withstands the urge of desire and anger', '8.40', false],
+  ['2.63', 'from anger, delusion; from delusion, loss of memory', '7.88', false],
+  ['16.2', 'non-violence, truth, absence of anger, renunciation', '6.19', false]
+];
+
+const STAGES = [
+  ['Understanding your question', 'intent · language · safety check'],
+  ['Retrieved 8 verses', 'BM25 over 700 ślokas · reranked'],
+  ['Writing the answer', 'grounding each claim in a citation'],
+  ['Verifying citations', '4 of 4 resolve to retrieved verses']
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      phase: props.startState || 'answer',
+      stage: 0,
+      lang: 'en',
+      stack: ['3.37'],
+      commentary: {},
+      provenanceOpen: props.provenanceExpanded !== false,
+      inspectorOpen: true,
+      paletteOpen: false,
+      paletteQuery: '',
+      toast: ''
+    };
+    this.inputRef = React.createRef();
+    this.paletteRef = React.createRef();
+  }
+
+  componentDidMount() {
+    this.onKey = (e) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === 'k') { e.preventDefault(); this.openPalette(); return; }
+      if (e.key === 'Escape') { this.setState({ paletteOpen: false }); return; }
+      if (!meta) return;
+      if (e.key === 'Enter') { e.preventDefault(); this.submit(); }
+      else if (e.key === '1') { e.preventDefault(); this.setLang('en'); }
+      else if (e.key === '2') { e.preventDefault(); this.setLang('hi'); }
+      else if (e.key === '3') { e.preventDefault(); this.setLang('gu'); }
+      else if (e.shiftKey && e.key.toLowerCase() === 'p') { e.preventDefault(); this.flash('Pinned to the stack'); }
+      else if (e.shiftKey && e.key.toLowerCase() === 'c') { e.preventDefault(); this.copyMarkdown(); }
+      else if (e.key === '\\') { e.preventDefault(); this.setState(s => ({ inspectorOpen: !s.inspectorOpen })); }
+      else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault(); this.step(this.state.stack[this.state.stack.length - 1], e.key === 'ArrowRight' ? 1 : -1);
+      }
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKey);
+    if (this.timers) this.timers.forEach(clearTimeout);
+  }
+
+  flash(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this.toastT);
+    this.toastT = setTimeout(() => this.setState({ toast: '' }), 1800);
+  }
+
+  setLang(lang) {
+    this.setState({ lang });
+    this.flash(lang === 'en' ? 'Answer language: English' : lang === 'hi' ? 'उत्तर की भाषा: हिंदी' : 'જવાબની ભાષા: ગુજરાતી — verses stay in English');
+  }
+
+  submit() {
+    if (this.timers) this.timers.forEach(clearTimeout);
+    this.setState({ phase: 'loading', stage: 0, paletteOpen: false });
+    this.timers = [1200, 2600, 4200, 5400].map((ms, i) =>
+      setTimeout(() => this.setState({ stage: i + 1, phase: i === 3 ? 'answer' : 'loading' }), ms));
+  }
+
+  pin(ref) {
+    this.setState(s => ({
+      stack: s.stack.indexOf(ref) >= 0 ? s.stack : [ref].concat(s.stack).slice(0, 4),
+      inspectorOpen: true, paletteOpen: false
+    }));
+  }
+
+  step(ref, dir) {
+    const v = VERSES[ref]; if (!v) return;
+    const target = v.chapter + '.' + (v.verse + dir);
+    if (VERSES[target]) {
+      this.setState(s => ({ stack: s.stack.map(r => r === ref ? target : r) }));
+    } else {
+      this.flash('BG ' + target + ' — not in the preview corpus');
+    }
+  }
+
+  copyMarkdown() {
+    const md = '> I keep losing my temper with the people I love most.\n\nAnswer grounded in [BG 3.37], [BG 2.47], [BG 6.5], [BG 16.18].';
+    if (navigator.clipboard) navigator.clipboard.writeText(md).catch(() => {});
+    this.flash('Answer copied as Markdown, citations intact');
+  }
+
+  openPalette() {
+    this.setState({ paletteOpen: true }, () => {
+      if (this.paletteRef.current) this.paletteRef.current.focus();
+    });
+  }
+
+  paletteRows() {
+    const q = (this.state.paletteQuery || '').trim().toLowerCase();
+    const rows = [];
+    const bare = q.match(/^(?:bg\s*)?(\d{1,2})[.:](\d{1,3})$/);
+    if (bare) {
+      const ref = Number(bare[1]) + '.' + Number(bare[2]);
+      rows.push({ kind: 'verse', kindColor: 'var(--gw-accent)', label: 'Jump to Bhagavad Gītā ' + ref, hint: 'return', run: () => this.pin(ref) });
+    }
+    Object.keys(VERSES).forEach(ref => {
+      const v = VERSES[ref];
+      const hay = (ref + ' ' + v.plain + ' ' + v.chapterTitle).toLowerCase();
+      if (!q || hay.indexOf(q) >= 0) {
+        rows.push({ kind: ref, kindColor: 'var(--gw-accent)', label: v.plain.slice(0, 62), hint: v.chapterTitle, run: () => this.pin(ref) });
+      }
+    });
+    rows.push({ kind: 'lang', kindColor: 'var(--gw-muted)', label: 'Answer in हिंदी', hint: '⌘2', run: () => { this.setLang('hi'); this.setState({ paletteOpen: false }); } });
+    rows.push({ kind: 'lang', kindColor: 'var(--gw-muted)', label: 'Answer in ગુજરાતી', hint: '⌘3', run: () => { this.setLang('gu'); this.setState({ paletteOpen: false }); } });
+    rows.push({ kind: 'export', kindColor: 'var(--gw-muted)', label: 'Copy answer as Markdown', hint: '⌘⇧C', run: () => { this.copyMarkdown(); this.setState({ paletteOpen: false }); } });
+    return rows.slice(0, 7).map((r, i) => Object.assign({}, r, { id: 'gw-opt-' + i, selected: i === 0 ? 'true' : 'false' }));
+  }
+
+  renderVals() {
+    const st = this.state;
+    const parallel = this.props.translationLayout !== 'toggle';
+    return {
+      showAsk: st.phase === 'ask',
+      showQuestion: st.phase !== 'ask' && st.phase !== 'crisis',
+      showAnswer: st.phase === 'answer',
+      showOffTopic: st.phase === 'off_topic',
+      showWithheld: st.phase === 'withheld',
+      showCrisis: st.phase === 'crisis',
+      showLoading: st.phase === 'loading',
+      inspectorOpen: st.inspectorOpen,
+      provenanceOpen: st.provenanceOpen,
+      provArrow: st.provenanceOpen ? '▾' : '▸',
+      paletteOpen: st.paletteOpen,
+      toast: st.toast,
+      toastVisible: !!st.toast,
+      pinCount: st.stack.length,
+      stackEmpty: st.stack.length === 0 && st.phase !== 'loading',
+      inputRef: this.inputRef,
+      paletteRef: this.paletteRef,
+      parallel,
+
+      submit: () => this.submit(),
+      newQuestion: () => this.setState({ phase: 'ask', stack: [] }),
+      openPalette: () => this.openPalette(),
+      closePalette: () => this.setState({ paletteOpen: false }),
+      stop: (e) => e.stopPropagation(),
+      onPaletteType: (e) => this.setState({ paletteQuery: e.target.value }),
+      copyMarkdown: () => this.copyMarkdown(),
+      toggleInspector: () => this.setState(s => ({ inspectorOpen: !s.inspectorOpen })),
+      toggleProvenance: () => this.setState(s => ({ provenanceOpen: !s.provenanceOpen })),
+
+      cite: {
+        c337: () => this.pin('3.37'), c247: () => this.pin('2.47'),
+        c605: () => this.pin('6.5'), c1618: () => this.pin('16.18')
+      },
+
+      chapters: CHAPTERS.map((c, i) => ({
+        n: String(i + 1), title: c[0], count: c[1], open: () => this.flash('Chapter ' + (i + 1) + ' · ' + c[1] + ' verses')
+      })),
+
+      langs: [
+        { id: 'en', label: 'EN' }, { id: 'hi', label: 'हिं' }, { id: 'gu', label: 'ગુ' }
+      ].map(l => ({
+        label: l.label, pick: () => this.setLang(l.id),
+        bg: st.lang === l.id ? 'var(--gw-accent)' : 'transparent',
+        fg: st.lang === l.id ? 'var(--gw-on-accent)' : 'var(--gw-text-4)'
+      })),
+
+      demoStates: [
+        ['ask', 'ask'], ['answer', 'answer'], ['loading', 'loading'],
+        ['off_topic', 'off_topic'], ['withheld', 'withheld'], ['crisis', 'crisis']
+      ].map(d => ({
+        label: d[1],
+        pick: () => d[0] === 'loading' ? this.submit() : this.setState({ phase: d[0], stack: d[0] === 'crisis' ? [] : st.stack.length ? st.stack : ['3.37'] }),
+        bg: st.phase === d[0] ? 'var(--gw-pill-border)' : 'transparent',
+        fg: st.phase === d[0] ? 'var(--gw-accent)' : 'var(--gw-muted)'
+      })),
+
+      stages: STAGES.map((s, i) => ({
+        label: s[0], detail: i <= st.stage ? s[1] : '',
+        mark: i < st.stage ? '✓' : i === st.stage ? '•' : '·',
+        color: i < st.stage ? 'var(--gw-accent)' : i === st.stage ? 'var(--gw-text)' : 'var(--gw-muted)',
+        anim: i === st.stage ? 'gw-pulse 1.4s ease-in-out infinite' : 'none'
+      })),
+
+      provenance: PROVENANCE.map((p, i) => ({
+        rank: String(i + 1).padStart(2, '0'), ref: 'BG ' + p[0], gist: p[1], score: p[2],
+        citedMark: p[3] ? '●' : '',
+        citedColor: p[3] ? 'var(--gw-accent)' : 'transparent',
+        refColor: p[3] ? 'var(--gw-accent)' : 'var(--gw-muted)',
+        open: () => this.pin(p[0])
+      })),
+
+      stack: st.stack.filter(r => VERSES[r]).map(ref => {
+        const v = VERSES[ref];
+        return {
+          ref: v.ref, chapterTitle: v.chapterTitle,
+          devanagari: v.devanagari, iast: v.iast,
+          purohit: v.purohit, sivananda: parallel ? v.sivananda : '—',
+          plain: v.plain, commentary: v.commentary, gujarati: v.gujarati,
+          showGujarati: st.lang === 'gu',
+          commentaryOpen: !!st.commentary[ref],
+          commentaryArrow: st.commentary[ref] ? '▾' : '▸',
+          toggleCommentary: () => this.setState(s => ({ commentary: Object.assign({}, s.commentary, { [ref]: !s.commentary[ref] }) })),
+          unpin: () => this.setState(s => ({ stack: s.stack.filter(r => r !== ref) })),
+          prev: () => this.step(ref, -1),
+          next: () => this.step(ref, 1)
+        };
+      }),
+
+      activeId: 'gw-opt-0',
+      paletteResults: this.paletteRows()
+    };
+  }
+}
+</script>
+</body>
+</html>
