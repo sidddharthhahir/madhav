@@ -123,8 +123,11 @@ python scripts/search.py --explain BG.3.37 "desire becomes anger"
 free iteration, but not what `/ask` actually does. `--real` routes each
 question through the same query-understanding call the real pipeline uses
 before retrieving. The difference is large: 17/106 full recall without it,
-40/106 with it, on the identical index. See Known issues for why, and don't
-quote the free number as the product's recall.
+34-40/106 with it (run-to-run variance — `understand()` is a real,
+non-deterministic LLM call), on the identical index. `Pipeline`'s default
+grounding width is 12 verses, not 8 (see below); at k=12, `--real` measures
+**45/106**. See Known issues for why, and don't quote the free number as the
+product's recall.
 
 Transliteration normalisation is load-bearing. The corpus writes "Kṛṣṇa"; users
 type "Krishna". Plain Unicode folding gives `krsna` and matches nothing, so
@@ -145,7 +148,10 @@ partial, 76 complete misses.
 the Batch API (9 verses keep hand-written demo notes). Actual measured cost —
 not the estimate — was **$1.10** for the full batch. With enrichment alone,
 recall@8 moves to **7 full, 41 partial, 58 miss**; with enrichment plus dense
-retrieval (below), **17-18 full, ~44 partial, ~45 miss**.
+retrieval, **17/106 full** on raw question text — and **45/106 full, 41
+partial, 20 miss (k=12)** through the same query-understanding step the real
+product actually uses. See "Dense retrieval" and "Retrieval" above for the
+full before/after and why the raw-text number understates what ships.
 
 ```bash
 python -m gita.enrich.run --dry-run     # renders prompts, estimates cost, free
@@ -330,9 +336,9 @@ citation validation, HTTP API, seven test suites, eval harness, code licence
 basis in [NOTICE.md](NOTICE.md)).
 
 Not done: nothing left from the original scope. Recall is now measured
-correctly (see Known issues) at 40/106 full — the remaining 22 misses are the
-main open lever, mostly abstract/existential questions with little concrete
-vocabulary for retrieval to grab onto.
+correctly (see Known issues) at 45/106 full (k=12) — the remaining 20 misses
+are the main open lever, mostly abstract/existential questions with little
+concrete vocabulary for retrieval to grab onto.
 
 ## Known issues
 
@@ -348,17 +354,27 @@ vocabulary for retrieval to grab onto.
   retrieval on the raw question text; `Pipeline.ask()` never does that — it
   always rewrites the question toward corpus vocabulary via
   `answer.generate.understand()` first. On the identical index, raw-text
-  recall is 17/106 full; through real query understanding it's **40/106
-  (38%)**, 84/106 (79%) combined full+partial. Use plain `--eval --hybrid` for
-  free, fast iteration on retrieval itself; use `--eval --hybrid --real`
-  (costs ~$0.55, calls the understanding LLM per question) for the number
-  that actually describes the product.
-- 22 real misses remain at `--real`. Mostly abstract/existential questions
+  recall is 17/106 full; through real query understanding it's **34-40/106**
+  at k=8 (run-to-run variance — `understand()` is a real, non-deterministic
+  LLM call) and **45/106 (42%)** at k=12, `Pipeline`'s current default. Use
+  plain `--eval --hybrid` for free, fast iteration on retrieval itself; use
+  `--eval --hybrid --real -k 12` (costs ~$0.55, calls the understanding LLM
+  per question) for the number that actually describes the product.
+- `Pipeline`'s `max_verses` default is 12, not 8 — widening it recovered a
+  meaningful chunk of recall (many misses were verses ranked 8-12, displaced
+  by a thematically adjacent but differently-specific verse) for about 50%
+  more context tokens per answer. A real but small cost increase; the
+  citation validator still only allows citing what the model was shown.
+- 20 real misses remain at k=12. Mostly abstract/existential questions
   ("am I my thoughts or something underneath them") where the phrasing itself
   carries little concrete vocabulary, unlike the concrete-situation questions
-  dense retrieval handles well. Some may also be an artifact of the eval set
-  labelling only 2 expected verses per question when the Gita legitimately
-  supports more — not yet audited question-by-question to separate the two.
+  dense retrieval handles well. Some are also a confirmed artifact of the
+  eval set labelling only 2 expected verses per question when the Gita
+  legitimately supports more — e.g. "I keep getting attached to outcomes I
+  cannot control" retrieves the famous *nishkama karma* cluster (BG.5.12,
+  BG.3.19, BG.2.51...) ahead of the more specific verse the eval expects
+  (BG.2.62), which is a defensible ranking choice, not a failure. Not yet
+  audited question-by-question to find out how much of the 20 this explains.
 - Dense retrieval adds a soft runtime dependency on a local Ollama server.
   When it's down or embeddings haven't been built, the app degrades silently
   to BM25 alone — `GET /health`'s `dense_index.active` field tells you which

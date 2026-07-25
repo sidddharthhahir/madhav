@@ -47,8 +47,17 @@ class AnswerResult:
 
 
 class Pipeline:
+    # 12, not 8: many eval misses turned out to be verses ranked 8-12,
+    # displaced just past the old cutoff by a thematically adjacent but
+    # differently-specific verse (e.g. "attached to outcomes" pulls in the
+    # famous nishkama-karma cluster ahead of the more specific dwelling ->
+    # attachment -> craving chain in BG.2.62, which sits at dense rank 42).
+    # Widening the pool recovered a third of full recall on the free
+    # raw-text eval (17/106 -> 26/106) for ~50% more context tokens per
+    # answer -- a real cost increase, but a small one, and the citation
+    # validator still only allows citing what the model was actually shown.
     def __init__(self, db_path=None, *, client=None, model: str = G.DEFAULT_MODEL,
-                 max_verses: int = 8, threaded: bool = False, use_dense: bool = False):
+                 max_verses: int = 12, threaded: bool = False, use_dense: bool = False):
         self.conn = db.connect(db_path or db.DEFAULT_DB,
                                check_same_thread=not threaded)
         self.index, self.records = corpus.build_index(self.conn)

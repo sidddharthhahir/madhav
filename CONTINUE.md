@@ -59,36 +59,48 @@ FastAPI (dense-retrieval-backed by default), desktop UI on live data,
 |---|---|---|---|
 | BM25 only, no enrichment (original baseline) | 5/106 | 25 | 76 |
 | BM25 + Haiku enrichment | 7/106 | 41 | 58 |
-| BM25 + enrichment + dense, raw question text | 17/106 | 44 | 45 |
-| **Same, through real query understanding** | **40/106 (38%)** | **44** | **22** |
+| BM25 + enrichment + dense, raw question text, k=8 | 17/106 | 44 | 45 |
+| Same, through real query understanding, k=8 | 34-40/106 | 44 | 22-28 |
+| **Same, through real query understanding, k=12 (current default)** | **45/106 (42%)** | **41** | **20** |
 
-That last row is the number that actually describes the product. `Pipeline.ask()`
-never retrieves on the raw question -- it always runs `answer.generate.understand()`
-first, which rewrites the question toward corpus vocabulary (`search_query` plus
-explicit `themes`) before retrieval happens. `scripts/search.py --eval` measured
-retrieval on raw text for this project's entire life, which is a different and
-meaningfully harder task than what actually ships. Adding `--real` (routes each
-question through the real understanding call; costs ~$0.55) surfaced this:
-full recall more than doubled from 17 to 40 on the *same* index, same
-enrichment, same embeddings -- nothing about retrieval itself changed, only
-what was being measured. Combined hits (full+partial) are now 84/106 (79%).
+The `k=8 -> k=12` row is the real fix for most of what was previously read as
+"retrieval architecture problem": a lot of misses were verses ranked 8-12,
+just past the old cutoff, displaced by a thematically adjacent but
+differently-specific verse -- e.g. "attached to outcomes I cannot control"
+pulls the famous *nishkama karma* / fruits-of-action cluster (BG.5.12,
+BG.3.19, BG.2.51...) ahead of the more specific dwelling -> attachment ->
+craving chain in BG.2.62, which the eval expects and which sits at dense
+rank 42 but BM25 rank 144 -- a real ranking call, not a broken one. Widening
+`Pipeline`'s `max_verses` default from 8 to 12 (`src/gita/pipeline.py`)
+recovered most of that at the cost of ~50% more context tokens per answer
+(a real but small cost increase; the citation validator still only allows
+citing what the model was actually shown).
 
-Use `--eval --hybrid` for fast, free retrieval-only iteration (e.g. after
-touching the enrichment prompt or trying an embedding model) -- it isolates
-retrieval quality from the understanding stage, which is still a useful
-signal on its own. But `--eval --hybrid --real` is the number to report if
-someone asks what the product's actual recall is; the plain one understates
-it by more than 2x.
+Two different k=8 numbers are listed above because `answer.generate.understand()`
+is a real, non-deterministic LLM call -- re-running the identical eval set
+against the identical index produced 34/106 one time and 40/106 another.
+Don't treat any single `--real` run as exact; it's a real measurement with
+real variance, not a fixed constant. The k=12 number was only measured once,
+so treat it the same way pending another run.
 
-22 real misses remain. A quick read of them: mostly abstract/existential
-questions ("am I my thoughts or something underneath them", "does anything
-actually care whether I exist") where the phrase itself carries little
-concrete vocabulary for either BM25 or embeddings to grab onto, unlike the
-concrete-situation questions ("I only enjoy my job when I get praised for
-it") that dense retrieval handles well. Some of these 22 may also be an
-artifact of the eval set only labelling 2 expected verses per question when
-the Gita legitimately supports more -- that still hasn't been audited
-question by question.
+`scripts/search.py --eval` measured retrieval on raw text for this project's
+entire life, which is a different and meaningfully easier-to-undercount task
+than what actually ships -- `Pipeline.ask()` never retrieves on the raw
+question. Use plain `--eval --hybrid` for fast, free retrieval-only iteration
+(e.g. after touching the enrichment prompt or trying an embedding model); use
+`--eval --hybrid --real` (costs ~$0.55, calls the real understanding LLM per
+question) for the number that actually describes the product.
+
+20 real misses remain at k=12. A quick read of them: mostly abstract/
+existential questions ("am I my thoughts or something underneath them",
+"does anything actually care whether I exist") where the phrase itself
+carries little concrete vocabulary for either BM25 or embeddings to grab
+onto, unlike the concrete-situation questions ("I only enjoy my job when I
+get praised for it") that dense retrieval handles well. Some of these may
+also be an artifact of the eval set only labelling 2 expected verses per
+question when the Gita legitimately supports more (BG.2.62 vs. the
+nishkama-karma cluster above is a clean example of this) -- that still
+hasn't been audited question by question.
 
 **Nothing left from the original scope.** Hindi and Gujarati are now generated
 too (see below) and the code licence is resolved (§5).
@@ -103,7 +115,13 @@ too (see below) and the code licence is resolved (§5).
 - Full 672-verse Haiku enrichment batch: **$1.10** (measured, same way).
 - 20-verse Hindi/Gujarati calibration batch: **$0.017**.
 - Full 681-verse Hindi/Gujarati batch: **$0.63**.
-- **Total: ~$1.80.** Every cost table in this repo is an estimate for models
+- Three `--eval --hybrid --real` diagnostic runs (106 real `understand()` calls
+  each, ~$0.55/run) while chasing the recall numbers above: **~$1.65**. One of
+  these overlapped with a duplicate process that wasn't fully killed and ran
+  for roughly a minute before being caught (a background-job management
+  mistake, not a code bug) — a small amount of that is wasted double-spend,
+  not reflected as a separate line since the exact overlap wasn't measured.
+- **Total: ~$3.45.** Every cost table in this repo is an estimate for models
   that were never run, or a pre-flight number superseded once the real batch
   ran — Haiku enrichment's estimate was off by ~3.4x, translation's by ~1.9x,
   always in the same direction (over, not under). Don't trust an unmeasured
@@ -136,15 +154,28 @@ entry below if this comes up again for a third derived-content type.
 
 ### b. Push recall further, or accept the current ceiling
 
-`nomic-embed-text` was tried against `mxbai-embed-large` (larger, 1024-dim) —
-mxbai did *worse* untuned (4/106 vs 17/106), because it needs an
-instruction-prefix convention (`"Represent this sentence for searching
-relevant passages: "` on queries) this codebase doesn't apply. Before trying
-another model, apply that convention properly rather than assuming bigger is
-better. The other lever is re-tuning the enrichment `situations` prompt in
-`src/gita/enrich/prompt.py` — enrichment quality was validated qualitatively
-(the notes read as concrete and modern) but never audited against *why*
-specific expected verses are missed.
+`max_verses` went from 8 to 12 (see §2) for a real, measured recall jump. What's
+still open:
+
+- `nomic-embed-text` was tried against `mxbai-embed-large` (larger, 1024-dim) —
+  mxbai did *worse* untuned (4/106 vs 17/106 at k=8), because it needs an
+  instruction-prefix convention (`"Represent this sentence for searching
+  relevant passages: "` on queries) this codebase doesn't apply. Before trying
+  another model, apply that convention properly rather than assuming bigger is
+  better.
+- The enrichment `situations` prompt in `src/gita/enrich/prompt.py` was
+  validated qualitatively (the notes read as concrete and modern) but never
+  audited against *why* specific expected verses are missed.
+- The 20 remaining k=12 misses skew abstract/existential rather than
+  situational — worth checking whether the enrichment prompt should explicitly
+  ask for an abstract/philosophical framing alongside the concrete-situation
+  one it currently asks for exclusively.
+- Some fraction of "misses" are the eval set's own artifact (a question with
+  more than 2 legitimate Gita answers, only 2 of which are labelled) rather
+  than a real retrieval failure — BG.2.62 vs. the nishkama-karma cluster (§2)
+  is a clean, confirmed example. This hasn't been audited question by
+  question to find out how large that fraction actually is, which means the
+  true ceiling on this number is currently unknown in either direction.
 
 ### c. Code licence — resolved
 
