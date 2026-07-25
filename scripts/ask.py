@@ -29,10 +29,12 @@ def main(argv=None) -> int:
     ap.add_argument("--health", action="store_true")
     ap.add_argument("--json", action="store_true", help="emit raw JSON")
     ap.add_argument("--show-context", action="store_true")
+    ap.add_argument("--hybrid", action="store_true",
+                    help="fuse BM25 with dense (local Ollama) retrieval via RRF")
     ap.add_argument("--db", default=None)
     args = ap.parse_args(argv)
 
-    pipeline = Pipeline(args.db)
+    pipeline = Pipeline(args.db, use_dense=args.hybrid)
 
     if args.health:
         print(json.dumps(pipeline.health(), indent=2))

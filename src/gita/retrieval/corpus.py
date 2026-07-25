@@ -88,6 +88,25 @@ def searchable_text(rec: VerseRecord) -> str:
     return "\n".join(p for p in parts if p)
 
 
+def dense_text(rec: VerseRecord) -> str:
+    """The text dense retrieval embeds for one verse.
+
+    A single pooled embedding vector over a long, heterogeneous document (the
+    enrichment prose plus literal translations plus word-by-word Sanskrit
+    glosses) dilutes the semantic signal the enrichment layer exists to carry.
+    BM25 does not have this problem -- each term scores independently -- but
+    dense retrieval does, so it gets a narrower, more concentrated input:
+    enrichment only, falling back to the translation when unenriched.
+    """
+    if rec.enrichment:
+        e = rec.enrichment
+        parts = [e["summary"]]
+        for key in ("themes", "situations", "emotions", "keywords"):
+            parts.extend(e[key])
+        return "\n".join(p for p in parts if p)
+    return "\n".join(rec.translations.values())
+
+
 def build_index(conn) -> tuple[BM25, dict[str, VerseRecord]]:
     records = load_verses(conn)
     docs = [

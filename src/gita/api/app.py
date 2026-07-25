@@ -28,7 +28,10 @@ async def lifespan(app: FastAPI):
     # Nothing on the request path actually queries SQLite -- the pipeline holds
     # the index, records, valid ids and language list in memory -- but the flag
     # keeps a stray query from raising instead of silently working.
-    _state["pipeline"] = Pipeline(threaded=True)
+    # use_dense=True fuses in local Ollama embeddings via RRF; it degrades to
+    # BM25 alone if Ollama isn't running or embeddings haven't been built, so
+    # this is safe to leave on even where that setup step was skipped.
+    _state["pipeline"] = Pipeline(threaded=True, use_dense=True)
     yield
     pipeline = _state.pop("pipeline", None)
     if pipeline is not None:

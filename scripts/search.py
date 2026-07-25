@@ -19,8 +19,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gita.retrieval import corpus, normalize  # noqa: E402
+from gita.retrieval.bm25 import reciprocal_rank_fusion  # noqa: E402
 
 EVAL_PATH = ROOT / "eval" / "questions.json"
+
+
+def _hybrid_search(index, dense_index, query: str, k: int):
+    bm25_hits = index.search(query, k=k)
+    if dense_index is None:
+        return bm25_hits
+    dense_hits = dense_index.search(query, k=k)
+    return reciprocal_rank_fusion(bm25_hits, dense_hits)[:k]
 
 
 def cmd_health(index, records) -> int:
@@ -36,10 +45,10 @@ def cmd_health(index, records) -> int:
     return 0
 
 
-def cmd_search(index, query: str, k: int) -> int:
+def cmd_search(index, dense_index, query: str, k: int) -> int:
     print("query      : %s" % query)
     print("normalised : %s" % " ".join(normalize.tokenize(query)))
-    hits = index.search(query, k=k)
+    hits = _hybrid_search(index, dense_index, query, k)
     if not hits:
         print("\nno matches (every query term is out of vocabulary)")
         return 0
@@ -67,7 +76,7 @@ def cmd_explain(index, doc_id: str, query: str) -> int:
     return 0
 
 
-def cmd_eval(index, k: int) -> int:
+def cmd_eval(index, dense_index, k: int) -> int:
     """Recall@k against the hand-labelled question set."""
     if not EVAL_PATH.exists():
         print("no eval set at %s" % EVAL_PATH)
@@ -75,10 +84,11 @@ def cmd_eval(index, k: int) -> int:
     cases = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
     hit_count = 0
     partial = 0
-    print("Recall@%d over %d questions\n" % (k, len(cases)))
+    mode = "hybrid (BM25 + dense, RRF)" if dense_index is not None else "BM25 only"
+    print("Recall@%d over %d questions -- %s\n" % (k, len(cases), mode))
     for case in cases:
         expected = set(case["expected"])
-        got = {h.doc_id for h in index.search(case["question"], k=k)}
+        got = {h.doc_id for h in _hybrid_search(index, dense_index, case["question"], k)}
         found = expected & got
         if found == expected:
             status, hit_count = "FULL", hit_count + 1
@@ -104,22 +114,33 @@ def main(argv=None) -> int:
     ap.add_argument("--eval", action="store_true", help="run the eval set")
     ap.add_argument("--explain", metavar="VERSE_ID",
                     help="break down the score for one verse")
+    ap.add_argument("--hybrid", action="store_true",
+                     help="fuse BM25 with dense (local Ollama) retrieval via RRF")
     ap.add_argument("--db", default=None)
     args = ap.parse_args(argv)
 
-    _, index, records = corpus.open_index(args.db)
+    conn, index, records = corpus.open_index(args.db)
+
+    dense_index = None
+    if args.hybrid:
+        from gita.retrieval import dense as dense_mod
+        vectors = dense_mod.load_embeddings(conn)
+        if not vectors:
+            ap.error("no embeddings cached -- run scripts/build_embeddings.py first")
+        meta = {vid: {"chapter": r.chapter, "verse": r.verse} for vid, r in records.items()}
+        dense_index = dense_mod.DenseIndex(vectors, meta)
 
     if args.health:
         return cmd_health(index, records)
     if args.eval:
-        return cmd_eval(index, args.k)
+        return cmd_eval(index, dense_index, args.k)
 
     query = " ".join(args.query).strip()
     if not query:
         ap.error("provide a query, or use --health / --eval")
     if args.explain:
         return cmd_explain(index, args.explain, query)
-    return cmd_search(index, query, args.k)
+    return cmd_search(index, dense_index, query, args.k)
 
 
 if __name__ == "__main__":

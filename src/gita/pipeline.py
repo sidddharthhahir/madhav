@@ -15,7 +15,8 @@ from . import db
 from .answer import context as C
 from .answer import generate as G
 from .answer import validate as V
-from .retrieval import corpus
+from .retrieval import corpus, dense
+from .retrieval.bm25 import reciprocal_rank_fusion
 
 
 @dataclass
@@ -47,10 +48,21 @@ class AnswerResult:
 
 class Pipeline:
     def __init__(self, db_path=None, *, client=None, model: str = G.DEFAULT_MODEL,
-                 max_verses: int = 8, threaded: bool = False):
+                 max_verses: int = 8, threaded: bool = False, use_dense: bool = False):
         self.conn = db.connect(db_path or db.DEFAULT_DB,
                                check_same_thread=not threaded)
         self.index, self.records = corpus.build_index(self.conn)
+        # Off by default: dense retrieval calls out to a local Ollama server,
+        # and Pipeline() must keep working (API server, test suites) whether
+        # or not that's running. Opt in explicitly once embeddings are built
+        # via scripts/build_embeddings.py.
+        self.dense_index = None
+        if use_dense:
+            vectors = dense.load_embeddings(self.conn)
+            if vectors:
+                meta = {vid: {"chapter": r.chapter, "verse": r.verse}
+                         for vid, r in self.records.items()}
+                self.dense_index = dense.DenseIndex(vectors, meta)
         self.valid_ids = V.known_verse_ids(self.conn)
         # Snapshotted at construction so nothing on the request path touches
         # SQLite. Everything answering a question -- index, records, valid ids,
@@ -62,12 +74,15 @@ class Pipeline:
         self.client = client
         self.model = model
         self.max_verses = max_verses
-        # History and saved-verse writes are the only runtime SQLite access.
-        # Under a threaded server they arrive from arbitrary worker threads on a
-        # connection opened with check_same_thread=False, so they must be
-        # serialised -- that flag disables SQLite's guard, it does not make the
-        # connection safe.
-        self._write_lock = threading.Lock()
+        # chapters/history/saved reads and the history/saved-verse writes are
+        # the only runtime SQLite access. Under a threaded server they arrive
+        # from arbitrary worker threads on a connection opened with
+        # check_same_thread=False, which disables SQLite's own guard but does
+        # not make concurrent access safe -- two threads calling execute() on
+        # the same connection at once can corrupt memory (SIGSEGV inside
+        # libsqlite3, not a Python exception), so every access -- reads
+        # included -- must go through this lock.
+        self._conn_lock = threading.Lock()
 
     def close(self) -> None:
         self.conn.close()
@@ -75,13 +90,14 @@ class Pipeline:
     # -- sidebar state -----------------------------------------------------
 
     def chapters(self) -> list[dict]:
-        rows = self.conn.execute(
-            """SELECT c.chapter, c.title, c.verse_count,
-                      (SELECT COUNT(*) FROM enrichment e
-                         JOIN verses v ON v.verse_id = e.verse_id
-                        WHERE v.chapter = c.chapter) AS enriched
-                 FROM chapters c ORDER BY c.chapter"""
-        ).fetchall()
+        with self._conn_lock:
+            rows = self.conn.execute(
+                """SELECT c.chapter, c.title, c.verse_count,
+                          (SELECT COUNT(*) FROM enrichment e
+                             JOIN verses v ON v.verse_id = e.verse_id
+                            WHERE v.chapter = c.chapter) AS enriched
+                     FROM chapters c ORDER BY c.chapter"""
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def chapter_verses(self, chapter: int) -> list[dict]:
@@ -93,7 +109,7 @@ class Pipeline:
         ]
 
     def record_history(self, result: "AnswerResult") -> None:
-        with self._write_lock:
+        with self._conn_lock:
             self.conn.execute(
                 """INSERT INTO history (question, language, status, citations, asked_at)
                    VALUES (?, ?, ?, ?, ?)""",
@@ -104,16 +120,18 @@ class Pipeline:
             self.conn.commit()
 
     def history(self, limit: int = 30) -> list[dict]:
-        rows = self.conn.execute(
-            "SELECT * FROM history ORDER BY asked_at DESC, id DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
+        with self._conn_lock:
+            rows = self.conn.execute(
+                "SELECT * FROM history ORDER BY asked_at DESC, id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
         return [dict(r, citations=json.loads(r["citations"] or "[]")) for r in rows]
 
     def saved(self) -> list[dict]:
-        rows = self.conn.execute(
-            "SELECT verse_id, note, saved_at FROM saved_verses ORDER BY saved_at DESC"
-        ).fetchall()
+        with self._conn_lock:
+            rows = self.conn.execute(
+                "SELECT verse_id, note, saved_at FROM saved_verses ORDER BY saved_at DESC"
+            ).fetchall()
         out = []
         for r in rows:
             rec = self.records.get(r["verse_id"])
@@ -127,7 +145,7 @@ class Pipeline:
     def save_verse(self, verse_id: str, note: str | None = None) -> bool:
         if verse_id not in self.records:
             return False
-        with self._write_lock:
+        with self._conn_lock:
             self.conn.execute(
                 """INSERT INTO saved_verses (verse_id, note, saved_at) VALUES (?, ?, ?)
                    ON CONFLICT(verse_id) DO UPDATE SET note=excluded.note""",
@@ -138,7 +156,7 @@ class Pipeline:
         return True
 
     def unsave_verse(self, verse_id: str) -> None:
-        with self._write_lock:
+        with self._conn_lock:
             self.conn.execute(
                 "DELETE FROM saved_verses WHERE verse_id=?", (verse_id,))
             self.conn.commit()
@@ -152,6 +170,14 @@ class Pipeline:
             "vocabulary": self.index.vocabulary_size,
             "model": self.model,
             "languages_in_corpus": self.corpus_languages,
+            "dense_index": {
+                "configured": self.dense_index is not None,
+                "model": self.dense_index.model if self.dense_index else None,
+                "documents": len(self.dense_index) if self.dense_index else 0,
+                # Live check, not just "embeddings were loaded at startup" --
+                # Ollama can go down independently of the pipeline's lifetime.
+                "ollama_reachable": dense.is_reachable() if self.dense_index else False,
+            },
         })
         return h
 
@@ -169,7 +195,17 @@ class Pipeline:
     # -- retrieval only (no API key required) ------------------------------
 
     def retrieve(self, query: str, k: int | None = None):
-        return self.index.search(query, k=k or self.max_verses)
+        k = k or self.max_verses
+        bm25_hits = self.index.search(query, k=k)
+        if self.dense_index is None:
+            return bm25_hits
+        try:
+            dense_hits = self.dense_index.search(query, k=k)
+        except RuntimeError:
+            # Ollama unreachable at query time -- degrade to BM25 alone rather
+            # than fail the whole answer over an optional enhancement.
+            return bm25_hits
+        return reciprocal_rank_fusion(bm25_hits, dense_hits)[:k]
 
     def preview(self, question: str, k: int | None = None) -> dict:
         """Retrieval + context assembly with no model calls.
