@@ -131,13 +131,24 @@ def estimate_cost(records, verse_ids, model: str,
     }
 
 
+def _to_custom_id(verse_id: str) -> str:
+    # Batch API custom_id must match ^[a-zA-Z0-9_-]{1,64}$ -- verse ids like
+    # "BG.1.1" contain dots, which that pattern rejects. Encode losslessly;
+    # verse ids never contain underscores, so this round-trips exactly.
+    return verse_id.replace(".", "_")
+
+
+def _from_custom_id(custom_id: str) -> str:
+    return custom_id.replace("_", ".")
+
+
 def submit(conn, records, verse_ids, *, model=DEFAULT_MODEL, effort=None) -> str:
     from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
     from anthropic.types.messages.batch_create_params import Request
 
     requests = [
         Request(
-            custom_id=vid,                     # the verse id IS the correlation key
+            custom_id=_to_custom_id(vid),
             params=MessageCreateParamsNonStreaming(
                 **build_params(records[vid], model, effort)
             ),
@@ -198,7 +209,7 @@ def collect(conn, batch_id: str) -> dict:
     generated_at = _now()
 
     for result in client.messages.batches.results(batch_id):
-        verse_id = result.custom_id
+        verse_id = _from_custom_id(result.custom_id)
         if result.result.type != "succeeded":
             errored.append("%s:%s" % (verse_id, result.result.type))
             continue
