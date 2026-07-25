@@ -8,6 +8,10 @@ Not a fine-tuned model. The value of `[BG 3.37]` is that it points at a real
 verse that really makes that point — a fine-tune would produce confident,
 unverifiable citations instead.
 
+**Picking this up on a new machine?** Start with [CONTINUE.md](CONTINUE.md) —
+setup, current state, the next actions in order with costs, and the traps
+already hit.
+
 ## Layout
 
 ```
