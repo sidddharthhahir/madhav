@@ -85,9 +85,17 @@ def health():
 
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest):
-    result = get_pipeline().ask(req.question, k=req.k).to_dict()
-    result.pop("plan", None)          # internal; not part of the contract
-    return result
+    pipeline = get_pipeline()
+    result = pipeline.ask(req.question, k=req.k)
+    # Recorded regardless of ok/failed -- the frontend's history row already
+    # renders a status dot for both cases, so both were always meant to be
+    # logged. This was previously never called at all: the history table,
+    # GET /history, and the sidebar UI all existed with nothing writing to
+    # them, so a page reload had no conversation to restore.
+    pipeline.record_history(result)
+    out = result.to_dict()
+    out.pop("plan", None)             # internal; not part of the contract
+    return out
 
 
 @app.post("/preview")

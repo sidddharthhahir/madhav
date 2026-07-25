@@ -200,6 +200,29 @@ def main() -> int:
     check("no model calls", client.messages.calls == [],
           str(client.messages.calls))
 
+    # 10. History persists the answer text, not just the question ---------
+    # record_history() existed with nothing ever calling it -- the history
+    # table, GET /history, and the sidebar UI were all live and all silently
+    # empty. This is the regression test for that: a reload has to be able to
+    # restore the last answer, which means the answer text itself has to be
+    # in the row, not just the question and citation ids.
+    print("\n10. record_history persists question, answer, and citations")
+    client = StubClient(PLAN, ["Desire denied becomes anger [%s]." % good])
+    pipeline = Pipeline(client=client)
+    result = pipeline.ask(QUESTION, k=5)
+    pipeline.record_history(result)
+    logged = pipeline.history(limit=1)[0]
+    check("question logged", logged["question"] == QUESTION, logged["question"])
+    check("answer text logged", logged["answer"] == result.answer,
+          repr(logged["answer"]))
+    check("citations logged", logged["citations"] == result.citations,
+          str(logged["citations"]))
+    # This suite runs against the real committed corpus, not a fixture --
+    # leave no trace in data/gita.sqlite3's history table.
+    pipeline.conn.execute("DELETE FROM history WHERE id = (SELECT MAX(id) FROM history)")
+    pipeline.conn.commit()
+    pipeline.close()
+
     print()
     if failures:
         print("%d FAILURE(S)" % failures)

@@ -111,10 +111,11 @@ class Pipeline:
     def record_history(self, result: "AnswerResult") -> None:
         with self._conn_lock:
             self.conn.execute(
-                """INSERT INTO history (question, language, status, citations, asked_at)
-                   VALUES (?, ?, ?, ?, ?)""",
+                """INSERT INTO history (question, language, status, citations,
+                                        answer, asked_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (result.question, result.language, result.status,
-                 json.dumps(result.citations),
+                 json.dumps(result.citations), result.answer,
                  dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")),
             )
             self.conn.commit()

@@ -79,6 +79,9 @@ CREATE TABLE IF NOT EXISTS history (
     language   TEXT,
     status     TEXT,
     citations  TEXT,                    -- JSON array of verse_ids
+    answer     TEXT,                    -- full answer text, so a reload can
+                                         -- restore the last conversation
+                                         -- without paying to re-generate it
     asked_at   TEXT NOT NULL
 );
 
@@ -147,7 +150,21 @@ def connect(path: Path | str = DEFAULT_DB, *,
     conn = sqlite3.connect(path, check_same_thread=check_same_thread)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
+    _migrate(conn)
     return conn
+
+
+def _migrate(conn) -> None:
+    """Additive column migrations for databases created before they existed.
+
+    `CREATE TABLE IF NOT EXISTS` in SCHEMA is a no-op against an existing
+    table, so a column added there later needs an explicit ALTER TABLE here
+    or every already-committed copy of the database silently lacks it.
+    """
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(history)")}
+    if "answer" not in cols:
+        conn.execute("ALTER TABLE history ADD COLUMN answer TEXT")
+        conn.commit()
 
 
 def upsert_verse(conn, verse_id, chapter, verse, sanskrit, transliteration):

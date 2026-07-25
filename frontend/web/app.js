@@ -454,7 +454,23 @@ function escapeAttr(s) { return escapeHtml(s).replace(/\n/g, " "); }
 
 // ---------------------------------------------------------------- boot
 
+// A reload used to lose the on-screen conversation even though the question
+// had already been answered -- the history table existed but nothing ever
+// wrote to it, so there was nothing to restore. Now that /ask logs each
+// result, the most recent successful answer can come back on load. The
+// verses-panel (state.retrieved) isn't persisted in history, so it stays
+// empty on a restored answer -- only the question and answer text return,
+// not the full provenance breakdown from the original request.
+async function restoreLastAnswer() {
+  const [last] = await api("/history?limit=1");
+  if (!last || !last.answer) return;
+  $("q").value = last.question;
+  state.citations = last.citations || [];
+  state.answerText = last.answer;
+  renderAnswer(last.answer);
+}
+
 (async function boot() {
-  await Promise.all([loadHealth(), loadSidebar()]);
+  await Promise.all([loadHealth(), loadSidebar(), restoreLastAnswer()]);
   $("q").focus();
 })();
