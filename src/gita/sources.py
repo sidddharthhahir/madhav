@@ -81,6 +81,22 @@ _PD_SANSKRIT = [
     _p("neel", "Sri Neelkanth", 1650, allow=["sc"]),
 ]
 
+# --- Derived: generated here, not sourced from upstream at all ---------------
+# Hindi and Gujarati translations produced by src/gita/translate -- an LLM
+# translation from the Sanskrit original plus the two already-cleared English
+# translations (purohit, siva), not adapted from any third-party Hindi/Gujarati
+# edition. There is no upstream rights question to evaluate: nothing here
+# passed through vedicscriptures, and the source material it was built from is
+# already permitted by the entries above. Gujarati never had a field code at
+# all until this, since the upstream dataset carries no Gujarati.
+
+_DERIVED = [
+    _p("derived", "Claude (derived translation)", None, allow=["ht", "gt"],
+       note="Not from vedicscriptures. Machine translation from Sanskrit + "
+            "the purohit/siva English translations, both already permitted "
+            "above. See src/gita/translate/prompt.py for the exact prompt."),
+]
+
 # --- In copyright: excluded entirely ----------------------------------------
 
 _EXCLUDED = [
@@ -106,14 +122,16 @@ _EXCLUDED = [
 ]
 
 POLICIES: dict[str, SourcePolicy] = {
-    p.key: p for p in (_PD_ENGLISH + _PD_SANSKRIT + _EXCLUDED)
+    p.key: p for p in (_PD_ENGLISH + _PD_SANSKRIT + _DERIVED + _EXCLUDED)
 }
 
 # Fields that carry the verse text itself rather than a commentary.
-TRANSLATION_FIELDS = {"et", "ht"}
+# "gt" (Gujarati translation) exists only for the derived source above --
+# nothing upstream has ever had a Gujarati field.
+TRANSLATION_FIELDS = {"et", "ht", "gt"}
 COMMENTARY_FIELDS = {"ec", "hc", "sc"}
 
-FIELD_LANG = {"et": "en", "ec": "en", "ht": "hi", "hc": "hi", "sc": "sa"}
+FIELD_LANG = {"et": "en", "ec": "en", "ht": "hi", "hc": "hi", "sc": "sa", "gt": "gu"}
 
 
 def kind_of(fld: str) -> str:

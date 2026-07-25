@@ -86,8 +86,7 @@ def main() -> int:
         n = conn.execute(
             "SELECT COUNT(DISTINCT verse_id) FROM texts WHERE lang=?", (lang,)
         ).fetchone()[0]
-        print("  [ -- ] %s coverage: %d / %d verses (expected 0 at this stage)"
-              % (label, n, total))
+        check("%s coverage: %d / %d verses" % (label, n, total), n == total)
 
     empty_sanskrit = conn.execute(
         "SELECT COUNT(*) FROM verses WHERE sanskrit IS NULL OR TRIM(sanskrit)=''"
