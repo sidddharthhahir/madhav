@@ -59,14 +59,36 @@ FastAPI (dense-retrieval-backed by default), desktop UI on live data,
 |---|---|---|---|
 | BM25 only, no enrichment (original baseline) | 5/106 | 25 | 76 |
 | BM25 + Haiku enrichment | 7/106 | 41 | 58 |
-| BM25 + enrichment + dense (hybrid, current) | **17-18/106** | **~44** | **~45** |
+| BM25 + enrichment + dense, raw question text | 17/106 | 44 | 45 |
+| **Same, through real query understanding** | **40/106 (38%)** | **44** | **22** |
 
-Hybrid roughly tripled full recall over enrichment alone, but 17% full recall
-is still low in absolute terms. Some of the remaining misses may be an
+That last row is the number that actually describes the product. `Pipeline.ask()`
+never retrieves on the raw question -- it always runs `answer.generate.understand()`
+first, which rewrites the question toward corpus vocabulary (`search_query` plus
+explicit `themes`) before retrieval happens. `scripts/search.py --eval` measured
+retrieval on raw text for this project's entire life, which is a different and
+meaningfully harder task than what actually ships. Adding `--real` (routes each
+question through the real understanding call; costs ~$0.55) surfaced this:
+full recall more than doubled from 17 to 40 on the *same* index, same
+enrichment, same embeddings -- nothing about retrieval itself changed, only
+what was being measured. Combined hits (full+partial) are now 84/106 (79%).
+
+Use `--eval --hybrid` for fast, free retrieval-only iteration (e.g. after
+touching the enrichment prompt or trying an embedding model) -- it isolates
+retrieval quality from the understanding stage, which is still a useful
+signal on its own. But `--eval --hybrid --real` is the number to report if
+someone asks what the product's actual recall is; the plain one understates
+it by more than 2x.
+
+22 real misses remain. A quick read of them: mostly abstract/existential
+questions ("am I my thoughts or something underneath them", "does anything
+actually care whether I exist") where the phrase itself carries little
+concrete vocabulary for either BM25 or embeddings to grab onto, unlike the
+concrete-situation questions ("I only enjoy my job when I get praised for
+it") that dense retrieval handles well. Some of these 22 may also be an
 artifact of the eval set only labelling 2 expected verses per question when
-the Gita legitimately supports more — that hasn't been audited question by
-question, so don't assume every miss is a real retrieval failure without
-checking.
+the Gita legitimately supports more -- that still hasn't been audited
+question by question.
 
 **Nothing left from the original scope.** Hindi and Gujarati are now generated
 too (see below) and the code licence is resolved (§5).
@@ -149,6 +171,7 @@ Each of these cost real debugging time.
 | **SQLite reads need the same lock as writes, not just writes** | `Pipeline` already knew inserts had to be serialised under a threaded FastAPI server (`check_same_thread=False` is a backstop, not a real guarantee) — but `chapters()`, `history()`, and `saved()` were plain reads on the same shared connection, left unlocked on the assumption that "writes are the only runtime SQLite access." They aren't: those three reads fire concurrently on every page load. Two threads calling `execute()` on the same connection at once doesn't raise a Python exception — it segfaults the whole process (confirmed via macOS crash report: `SIGSEGV` inside `sqlite3VdbeExec`, called from a FastAPI threadpool worker). Fixed by putting every `self.conn` access, reads included, through the same lock. If you add a new method that touches `self.conn`, it needs the lock too — there is no read/write distinction that makes a bare read safe here. |
 | **Background shell jobs (`&`/`nohup`/`disown`) don't reliably survive their tool call** | Starting `uvicorn ... &` then `disown`ing it inside a single shell invocation looked like it worked (server answered requests) but the process vanished minutes later with no shutdown log line — the wrapping tool call's process group appears to get torn down regardless of `disown`. Long-running dev servers need to be started via whatever the harness's actual "run in background" primitive is, not shell-level backgrounding tricks. |
 | **The rights-policy schema has no concept of "generated here," only "sourced from upstream"** | `sources.py`'s field codes (`et`/`ht`/`sc`/...) and `FIELD_LANG` map were built entirely around the upstream vedicscriptures dataset. Writing Hindi/Gujarati translations into `texts` with `source_key='derived'` made `verify_store.py`'s policy check fail: no field code existed for Gujarati at all, and no policy entry existed for `derived`. This is the check working correctly, not a bug -- `sources.py` says explicitly "unknown source keys return False... must be reviewed and added explicitly rather than silently swept in." Fixed by adding a real `_DERIVED` policy entry and a `gt` field code, with a note explaining why it's permitted (translated from Sanskrit + already-cleared English, not adapted from any third-party Hindi/Gujarati edition). Don't be tempted to special-case `derived` past the check instead of teaching the check about it -- the whole point of the check is that new sources get reviewed, not exempted. |
+| **`scripts/search.py --eval` measured a different, harder task than the product actually does** | The eval harness ran retrieval on the raw question text. `Pipeline.ask()` never does that -- it always runs the question through `answer.generate.understand()` first, which rewrites it toward corpus vocabulary before retrieval. This made recall look far worse than it is: 17/106 full on raw text vs. 40/106 through the same understanding step the real pipeline always uses, on the identical index. Nothing about retrieval changed between those two numbers -- only what was being measured. `test_pipeline.py` had already flagged this exact distinction in a comment ("retrieval runs on the EXPANDED query from stage 1, not the raw question") but the eval script was never updated to match. Fixed by adding `--real` to `search.py --eval`, which costs real money (~$0.55 for the full set) since it calls the understanding LLM per question -- so the free, raw-text number stays the default and is still useful for isolating retrieval quality alone, but report the `--real` number, not the free one, when the question is "what does the product actually do." |
 
 ---
 

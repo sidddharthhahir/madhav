@@ -76,19 +76,47 @@ def cmd_explain(index, doc_id: str, query: str) -> int:
     return 0
 
 
-def cmd_eval(index, dense_index, k: int) -> int:
-    """Recall@k against the hand-labelled question set."""
+def cmd_eval(index, dense_index, k: int, *, real: bool = False) -> int:
+    """Recall@k against the hand-labelled question set.
+
+    Retrieval in the actual /ask pipeline never runs on the raw question --
+    Pipeline.ask() always calls answer.generate.understand() first, which
+    rewrites it toward corpus vocabulary (a "search_query" plus explicit
+    "themes") before retrieval happens. Measuring recall on the raw question
+    text, as this function did before `real` existed, is a different and
+    meaningfully harder task than what the product actually does: on this eval
+    set, real query understanding took full recall from 17/106 to 40/106 (that
+    comparison run is what surfaced the gap in the first place). Without
+    --real this is still useful for isolating retrieval quality itself from
+    the understanding stage, but the number it prints is not the product's
+    real recall, and reporting it as if it were is how this was mismeasured
+    for one iteration of this project.
+    """
     if not EVAL_PATH.exists():
         print("no eval set at %s" % EVAL_PATH)
         return 1
+    if real:
+        from gita.answer import generate as G
+        try:
+            G._client()
+        except Exception as exc:
+            print("--real needs a working Anthropic client: %s" % exc)
+            return 1
     cases = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
     hit_count = 0
     partial = 0
     mode = "hybrid (BM25 + dense, RRF)" if dense_index is not None else "BM25 only"
+    if real:
+        mode += ", through real query understanding (costs money)"
     print("Recall@%d over %d questions -- %s\n" % (k, len(cases), mode))
     for case in cases:
         expected = set(case["expected"])
-        got = {h.doc_id for h in _hybrid_search(index, dense_index, case["question"], k)}
+        query = case["question"]
+        if real:
+            from gita.answer import generate as G
+            plan = G.understand(query)
+            query = plan.retrieval_query
+        got = {h.doc_id for h in _hybrid_search(index, dense_index, query, k)}
         found = expected & got
         if found == expected:
             status, hit_count = "FULL", hit_count + 1
@@ -112,6 +140,13 @@ def main(argv=None) -> int:
     ap.add_argument("-k", type=int, default=8, help="how many hits to return")
     ap.add_argument("--health", action="store_true", help="report index coverage")
     ap.add_argument("--eval", action="store_true", help="run the eval set")
+    ap.add_argument("--real", action="store_true",
+                     help="with --eval: route each question through real query "
+                          "understanding first, like the actual /ask pipeline "
+                          "does. Costs real money (~$0.55 for the full 106-"
+                          "question set at time of writing) -- the plain --eval "
+                          "number measures retrieval in isolation and is free, "
+                          "but is not the product's actual recall.")
     ap.add_argument("--explain", metavar="VERSE_ID",
                     help="break down the score for one verse")
     ap.add_argument("--hybrid", action="store_true",
@@ -133,7 +168,7 @@ def main(argv=None) -> int:
     if args.health:
         return cmd_health(index, records)
     if args.eval:
-        return cmd_eval(index, dense_index, args.k)
+        return cmd_eval(index, dense_index, args.k, real=args.real)
 
     query = " ".join(args.query).strip()
     if not query:

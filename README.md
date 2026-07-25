@@ -114,9 +114,17 @@ and the per-source basis: [NOTICE.md](NOTICE.md).
 ```bash
 python scripts/search.py "why am I always angry"
 python scripts/search.py --health
-python scripts/search.py --eval                      # recall@k against eval set
+python scripts/search.py --eval                      # recall@k, retrieval only, free
+python scripts/search.py --eval --hybrid --real       # recall@k as the product actually behaves, costs ~$0.55
 python scripts/search.py --explain BG.3.37 "desire becomes anger"
 ```
+
+`--eval` alone measures retrieval on the raw question text — useful for fast,
+free iteration, but not what `/ask` actually does. `--real` routes each
+question through the same query-understanding call the real pipeline uses
+before retrieving. The difference is large: 17/106 full recall without it,
+40/106 with it, on the identical index. See Known issues for why, and don't
+quote the free number as the product's recall.
 
 Transliteration normalisation is load-bearing. The corpus writes "Kṛṣṇa"; users
 type "Krishna". Plain Unicode folding gives `krsna` and matches nothing, so
@@ -321,9 +329,10 @@ citation validation, HTTP API, seven test suites, eval harness, code licence
 ([MIT](LICENSE) — covers the code only; the corpus text has its own per-source
 basis in [NOTICE.md](NOTICE.md)).
 
-Not done: nothing left from the original scope. The main open lever is
-retrieval quality — recall@8 is still only 17-18/106 full even with hybrid
-retrieval, see Known issues below.
+Not done: nothing left from the original scope. Recall is now measured
+correctly (see Known issues) at 40/106 full — the remaining 22 misses are the
+main open lever, mostly abstract/existential questions with little concrete
+vocabulary for retrieval to grab onto.
 
 ## Known issues
 
@@ -334,12 +343,22 @@ retrieval, see Known issues below.
   thinking-token volume high enough to be misleading for Haiku specifically —
   see the enrichment section above. Calibrate against a real batch before
   trusting them for any given model.
-- The eval set is 106 questions with 2 expected verses each. Full recall@8 is
-  still low in absolute terms (17-18/106, ~16%) even with hybrid retrieval —
-  many questions legitimately have more than 2 defensible citations across the
-  Gita, so some of the "misses" are an artifact of a tight hand-labelled
-  answer key rather than a retrieval failure; this hasn't been audited
-  question-by-question to separate the two.
+- **`scripts/search.py --eval` without `--real` measures a different, easier
+  question than "what does the product actually retrieve."** It runs
+  retrieval on the raw question text; `Pipeline.ask()` never does that — it
+  always rewrites the question toward corpus vocabulary via
+  `answer.generate.understand()` first. On the identical index, raw-text
+  recall is 17/106 full; through real query understanding it's **40/106
+  (38%)**, 84/106 (79%) combined full+partial. Use plain `--eval --hybrid` for
+  free, fast iteration on retrieval itself; use `--eval --hybrid --real`
+  (costs ~$0.55, calls the understanding LLM per question) for the number
+  that actually describes the product.
+- 22 real misses remain at `--real`. Mostly abstract/existential questions
+  ("am I my thoughts or something underneath them") where the phrasing itself
+  carries little concrete vocabulary, unlike the concrete-situation questions
+  dense retrieval handles well. Some may also be an artifact of the eval set
+  labelling only 2 expected verses per question when the Gita legitimately
+  supports more — not yet audited question-by-question to separate the two.
 - Dense retrieval adds a soft runtime dependency on a local Ollama server.
   When it's down or embeddings haven't been built, the app degrades silently
   to BM25 alone — `GET /health`'s `dense_index.active` field tells you which
