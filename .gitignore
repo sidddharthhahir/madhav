@@ -19,6 +19,11 @@ data/*.sqlite3
 data/*.sqlite3-wal
 data/*.sqlite3-shm
 
+# Downloaded raw source dumps (archive.org OCR layers and similar). Large,
+# re-fetchable, and not authored here. src/gita/ingest/gitapress.py documents
+# where each one comes from.
+data/sources/
+
 # Python
 .venv/
 __pycache__/

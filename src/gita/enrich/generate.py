@@ -192,6 +192,7 @@ def collect(conn, batch_id: str) -> dict:
 
     written = 0
     invalid: list[str] = []
+    trimmed: list[str] = []
     errored: list[str] = []
     unparsable: list[str] = []
     generated_at = _now()
@@ -213,10 +214,14 @@ def collect(conn, batch_id: str) -> dict:
             unparsable.append("%s:%s" % (verse_id, exc.msg))
             continue
 
-        problems = P.validate_enrichment(data)
+        # Trim overflow rather than discard the record; only genuine breakage
+        # blocks a write.
+        record, notes = P.normalise_enrichment(data)
+        if notes:
+            trimmed.append("%s:%s" % (verse_id, "; ".join(notes)))
+
+        problems = P.validate_enrichment(record)
         if problems:
-            # Recorded but not written: a malformed enrichment silently
-            # degrades retrieval for that verse forever.
             invalid.append("%s:%s" % (verse_id, "; ".join(problems)))
             continue
 
@@ -231,16 +236,16 @@ def collect(conn, batch_id: str) -> dict:
                  keywords=excluded.keywords, model=excluded.model,
                  prompt_hash=excluded.prompt_hash,
                  generated_at=excluded.generated_at""",
-            (verse_id, data["summary"].strip(),
-             json.dumps(data["themes"], ensure_ascii=False),
-             json.dumps(data["situations"], ensure_ascii=False),
-             json.dumps(data["emotions"], ensure_ascii=False),
-             json.dumps(data["keywords"], ensure_ascii=False),
+            (verse_id, record["summary"],
+             json.dumps(record["themes"], ensure_ascii=False),
+             json.dumps(record["situations"], ensure_ascii=False),
+             json.dumps(record["emotions"], ensure_ascii=False),
+             json.dumps(record["keywords"], ensure_ascii=False),
              model, phash, generated_at),
         )
         written += 1
 
-    stats = {"written": written, "invalid": invalid,
+    stats = {"written": written, "invalid": invalid, "trimmed": trimmed,
              "errored": errored, "unparsable": unparsable}
     conn.execute(
         """UPDATE enrich_batches

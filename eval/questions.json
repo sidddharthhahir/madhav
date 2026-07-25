@@ -1,83 +1,121 @@
 [
-  {
-    "question": "why do people hate content creators they have never met in real life",
-    "expected": ["BG.3.37", "BG.7.27", "BG.16.18"],
-    "note": "the reel's own question; 3.37 desire-becomes-anger, 7.27 delusion of dualities, 16.18 ego and pride"
-  },
-  {
-    "question": "I work hard but never get recognised, should I even bother trying anymore",
-    "expected": ["BG.2.47", "BG.2.48"]
-  },
-  {
-    "question": "why do I lose my temper over small things",
-    "expected": ["BG.2.62", "BG.2.63", "BG.3.37"]
-  },
-  {
-    "question": "I cannot stop comparing myself to people on social media",
-    "expected": ["BG.3.37", "BG.16.18"]
-  },
-  {
-    "question": "my father died and I cannot stop grieving",
-    "expected": ["BG.2.11", "BG.2.13", "BG.2.27"]
-  },
-  {
-    "question": "my mind will not stop racing when I try to sleep",
-    "expected": ["BG.6.34", "BG.6.35"]
-  },
-  {
-    "question": "how do I stop being controlled by my cravings and my phone",
-    "expected": ["BG.2.62", "BG.2.67", "BG.5.22"]
-  },
-  {
-    "question": "should I leave my job for something that sounds more impressive",
-    "expected": ["BG.3.35", "BG.18.47"]
-  },
-  {
-    "question": "I feel like I am my own worst enemy and I keep sabotaging myself",
-    "expected": ["BG.6.5", "BG.6.6"]
-  },
-  {
-    "question": "how do I stay calm when everything in my life is going wrong",
-    "expected": ["BG.2.14", "BG.2.56"]
-  },
-  {
-    "question": "I did everything right and still failed, how do I deal with that",
-    "expected": ["BG.2.47", "BG.2.48"]
-  },
-  {
-    "question": "I overeat and oversleep and cannot find any balance in my routine",
-    "expected": ["BG.6.16", "BG.6.17"]
-  },
-  {
-    "question": "someone wronged me badly and I cannot let go of the resentment",
-    "expected": ["BG.12.13", "BG.16.3"]
-  },
-  {
-    "question": "how should I treat colleagues I genuinely dislike",
-    "expected": ["BG.6.9", "BG.12.18"]
-  },
-  {
-    "question": "is it wrong that I want to be rich",
-    "expected": ["BG.16.12"]
-  },
-  {
-    "question": "people criticise me online and it completely destroys my mood",
-    "expected": ["BG.12.18", "BG.14.24"]
-  },
-  {
-    "question": "I am terrified of dying",
-    "expected": ["BG.2.20", "BG.2.27"]
-  },
-  {
-    "question": "how do I know what my actual responsibility in life is",
-    "expected": ["BG.3.35", "BG.18.47"]
-  },
-  {
-    "question": "chasing pleasure keeps leaving me feeling empty afterwards",
-    "expected": ["BG.5.22", "BG.2.70"]
-  },
-  {
-    "question": "I keep getting attached to outcomes I cannot control",
-    "expected": ["BG.2.47", "BG.2.62"]
-  }
+  {"question": "why do people hate content creators they have never met in real life", "expected": ["BG.3.37", "BG.7.27", "BG.16.18"], "theme": "envy", "note": "the reel's own question"},
+  {"question": "I work hard but never get recognised, should I even bother trying anymore", "expected": ["BG.2.47", "BG.2.48"], "theme": "work"},
+  {"question": "why do I lose my temper over small things", "expected": ["BG.2.63", "BG.3.36"], "theme": "anger"},
+  {"question": "I cannot stop comparing myself to people on social media", "expected": ["BG.16.18", "BG.6.32"], "theme": "envy"},
+  {"question": "my father died and I cannot stop grieving", "expected": ["BG.2.11", "BG.2.13"], "theme": "grief"},
+  {"question": "my mind will not stop racing when I try to sleep", "expected": ["BG.6.34", "BG.6.35"], "theme": "restlessness"},
+  {"question": "how do I stop being controlled by my cravings and my phone", "expected": ["BG.2.62", "BG.2.67"], "theme": "craving"},
+  {"question": "should I leave my job for something that sounds more impressive", "expected": ["BG.3.35", "BG.18.47"], "theme": "duty"},
+  {"question": "I feel like I am my own worst enemy and I keep sabotaging myself", "expected": ["BG.6.5", "BG.6.6"], "theme": "self"},
+  {"question": "how do I stay calm when everything in my life is going wrong", "expected": ["BG.2.14", "BG.2.56"], "theme": "equanimity"},
+  {"question": "I did everything right and still failed, how do I deal with that", "expected": ["BG.2.38", "BG.2.48"], "theme": "failure"},
+  {"question": "I overeat and oversleep and cannot find any balance in my routine", "expected": ["BG.6.16", "BG.6.17"], "theme": "discipline"},
+  {"question": "someone wronged me badly and I cannot let go of the resentment", "expected": ["BG.12.13", "BG.16.3"], "theme": "forgiveness"},
+  {"question": "how should I treat colleagues I genuinely dislike", "expected": ["BG.6.9", "BG.12.18"], "theme": "relationships"},
+  {"question": "is it wrong that I want to be rich", "expected": ["BG.16.12"], "theme": "money"},
+  {"question": "people criticise me online and it completely destroys my mood", "expected": ["BG.12.19", "BG.14.24"], "theme": "criticism"},
+  {"question": "I am terrified of dying", "expected": ["BG.2.20", "BG.2.27"], "theme": "death"},
+  {"question": "how do I know what my actual responsibility in life is", "expected": ["BG.3.35", "BG.18.47"], "theme": "duty"},
+  {"question": "chasing pleasure keeps leaving me feeling empty afterwards", "expected": ["BG.5.22", "BG.2.70"], "theme": "craving"},
+  {"question": "I keep getting attached to outcomes I cannot control", "expected": ["BG.2.62", "BG.2.64"], "theme": "attachment"},
+
+  {"question": "my startup failed after four years and I feel like a fraud", "expected": ["BG.2.48", "BG.2.38"], "theme": "failure"},
+  {"question": "I got passed over for promotion and someone less capable got it", "expected": ["BG.3.37", "BG.16.4"], "theme": "envy"},
+  {"question": "should I keep doing work nobody notices or values", "expected": ["BG.3.35", "BG.18.9"], "theme": "work"},
+  {"question": "how do I work hard without burning myself out over results", "expected": ["BG.2.47", "BG.2.50"], "theme": "work"},
+  {"question": "I only enjoy my job when I get praised for it", "expected": ["BG.14.24", "BG.12.19"], "theme": "work"},
+  {"question": "is it better to do my own ordinary work or copy someone else's impressive career", "expected": ["BG.18.47", "BG.18.48"], "theme": "duty"},
+  {"question": "I keep starting things and abandoning them halfway", "expected": ["BG.6.35", "BG.12.14"], "theme": "discipline"},
+  {"question": "I procrastinate constantly and feel heavy and unmotivated", "expected": ["BG.14.8", "BG.18.35"], "theme": "discipline"},
+  {"question": "how do I build a habit that actually sticks", "expected": ["BG.6.35", "BG.6.17"], "theme": "discipline"},
+  {"question": "I am exhausted from pushing myself too hard for too long", "expected": ["BG.6.16", "BG.6.17"], "theme": "discipline"},
+
+  {"question": "I snapped at my family again and felt awful afterwards", "expected": ["BG.2.63", "BG.16.21"], "theme": "anger"},
+  {"question": "why does wanting something so badly turn into anger when I do not get it", "expected": ["BG.3.37", "BG.2.62"], "theme": "anger"},
+  {"question": "how do I stop rage from taking over my judgement", "expected": ["BG.2.63", "BG.5.23"], "theme": "anger"},
+  {"question": "I said something in anger I can never take back", "expected": ["BG.17.15", "BG.16.2"], "theme": "anger"},
+  {"question": "what actually pushes a person to act against their own values", "expected": ["BG.3.36", "BG.3.37"], "theme": "anger"},
+  {"question": "greed and lust and anger keep running my life", "expected": ["BG.16.21", "BG.5.23"], "theme": "craving"},
+
+  {"question": "I scroll for hours and feel worse about my own life afterwards", "expected": ["BG.2.62", "BG.16.18"], "theme": "envy"},
+  {"question": "I cannot be happy for my friend's success", "expected": ["BG.16.4", "BG.7.27"], "theme": "envy"},
+  {"question": "why do I need to feel better than the people around me", "expected": ["BG.16.4", "BG.15.5"], "theme": "envy"},
+  {"question": "I resent people who had it easier than me", "expected": ["BG.16.18", "BG.16.4"], "theme": "envy"},
+  {"question": "how do I stop measuring my life against other people's", "expected": ["BG.6.32", "BG.12.13"], "theme": "envy"},
+
+  {"question": "I lost my mother and nothing feels real anymore", "expected": ["BG.2.11", "BG.2.27"], "theme": "grief"},
+  {"question": "does anything of a person survive after they die", "expected": ["BG.2.20", "BG.2.22"], "theme": "death"},
+  {"question": "my friend died young and it feels senseless", "expected": ["BG.2.27", "BG.2.28"], "theme": "grief"},
+  {"question": "I had a health scare and now I cannot stop thinking about dying", "expected": ["BG.2.20", "BG.2.30"], "theme": "death"},
+  {"question": "how should I think about my own body ageing and failing", "expected": ["BG.2.22", "BG.2.14"], "theme": "death"},
+  {"question": "I am afraid of losing the people I love", "expected": ["BG.2.28", "BG.2.13"], "theme": "death"},
+  {"question": "what should be on my mind at the very end of my life", "expected": ["BG.8.5", "BG.8.7"], "theme": "death"},
+  {"question": "everything I build eventually gets destroyed anyway", "expected": ["BG.11.32", "BG.2.28"], "theme": "impermanence"},
+  {"question": "how do I accept that time takes everything", "expected": ["BG.11.32", "BG.2.27"], "theme": "impermanence"},
+
+  {"question": "my anxiety spikes at night and I cannot settle down", "expected": ["BG.6.34", "BG.6.19"], "theme": "restlessness"},
+  {"question": "how do I get my mind to be still for even a minute", "expected": ["BG.6.19", "BG.6.35"], "theme": "restlessness"},
+  {"question": "small distractions pull me off course constantly", "expected": ["BG.2.67", "BG.2.60"], "theme": "restlessness"},
+  {"question": "I feel scattered and pulled in every direction", "expected": ["BG.2.67", "BG.6.34"], "theme": "restlessness"},
+  {"question": "is there any way to be genuinely peaceful", "expected": ["BG.2.70", "BG.2.71"], "theme": "peace"},
+  {"question": "why do I never feel satisfied no matter what I get", "expected": ["BG.2.70", "BG.5.22"], "theme": "craving"},
+  {"question": "how do I stop my senses running my life", "expected": ["BG.2.60", "BG.2.61"], "theme": "craving"},
+
+  {"question": "how do I forgive someone who is not sorry", "expected": ["BG.16.3", "BG.12.13"], "theme": "forgiveness"},
+  {"question": "I keep replaying an argument from months ago", "expected": ["BG.2.62", "BG.12.15"], "theme": "forgiveness"},
+  {"question": "should I cut off a family member who keeps hurting me", "expected": ["BG.12.13", "BG.13.8"], "theme": "relationships"},
+  {"question": "how do I be around difficult people without losing my peace", "expected": ["BG.12.15", "BG.12.18"], "theme": "relationships"},
+  {"question": "I want to be kinder but people take advantage of it", "expected": ["BG.16.2", "BG.16.3"], "theme": "relationships"},
+  {"question": "how should I speak to someone when I am furious with them", "expected": ["BG.17.15", "BG.12.15"], "theme": "speech"},
+  {"question": "I hurt people with my words without meaning to", "expected": ["BG.17.15", "BG.16.4"], "theme": "speech"},
+  {"question": "how do I stop needing everyone to approve of me", "expected": ["BG.14.24", "BG.12.19"], "theme": "criticism"},
+  {"question": "praise makes me arrogant and criticism destroys me", "expected": ["BG.14.24", "BG.15.5"], "theme": "criticism"},
+
+  {"question": "I have more money than before and I am no happier", "expected": ["BG.16.12", "BG.5.22"], "theme": "money"},
+  {"question": "I keep accumulating things I do not need", "expected": ["BG.16.12", "BG.16.13"], "theme": "money"},
+  {"question": "wealthy people I know seem arrogant and hollow", "expected": ["BG.16.13", "BG.16.15"], "theme": "money"},
+  {"question": "is ambition a bad thing", "expected": ["BG.16.12", "BG.2.50"], "theme": "money"},
+
+  {"question": "I feel worthless compared to everyone around me", "expected": ["BG.6.5", "BG.6.6"], "theme": "self"},
+  {"question": "how do I become someone I actually respect", "expected": ["BG.6.5", "BG.15.5"], "theme": "self"},
+  {"question": "part of me wants to improve and part of me sabotages it", "expected": ["BG.6.6", "BG.6.5"], "theme": "self"},
+  {"question": "am I my thoughts or something underneath them", "expected": ["BG.3.42", "BG.2.20"], "theme": "self"},
+  {"question": "what part of me is actually in charge", "expected": ["BG.3.42", "BG.3.43"], "theme": "self"},
+
+  {"question": "nothing I do feels like it matters", "expected": ["BG.18.9", "BG.3.8"], "theme": "meaning"},
+  {"question": "why should I keep going when the world seems to be getting worse", "expected": ["BG.4.7", "BG.11.33"], "theme": "meaning"},
+  {"question": "how do I find purpose when I have no idea what I am doing", "expected": ["BG.4.34", "BG.3.35"], "theme": "meaning"},
+  {"question": "I feel completely alone even around people", "expected": ["BG.6.32", "BG.9.29"], "theme": "loneliness"},
+  {"question": "does anything actually care whether I exist", "expected": ["BG.9.29", "BG.10.20"], "theme": "loneliness"},
+  {"question": "I have done things I am deeply ashamed of, is it too late for me", "expected": ["BG.9.30", "BG.9.31"], "theme": "guilt"},
+  {"question": "can someone with a bad past actually change", "expected": ["BG.9.30", "BG.9.31"], "theme": "guilt"},
+
+  {"question": "I have to make a huge decision and I am completely paralysed", "expected": ["BG.1.47", "BG.18.63"], "theme": "decision"},
+  {"question": "I am shaking and cannot face what is in front of me", "expected": ["BG.1.29", "BG.1.30"], "theme": "despair"},
+  {"question": "I want to walk away from a responsibility that feels too heavy", "expected": ["BG.1.46", "BG.2.31"], "theme": "despair"},
+  {"question": "how do I choose when both options seem wrong", "expected": ["BG.2.31", "BG.18.47"], "theme": "decision"},
+  {"question": "everyone gives me different advice and I am lost", "expected": ["BG.4.34", "BG.18.63"], "theme": "decision"},
+  {"question": "should I follow what I want or what is expected of me", "expected": ["BG.3.35", "BG.18.48"], "theme": "decision"},
+  {"question": "who should I actually learn from", "expected": ["BG.4.34", "BG.4.38"], "theme": "learning"},
+
+  {"question": "how do I treat people I have power over", "expected": ["BG.3.21", "BG.6.32"], "theme": "relationships"},
+  {"question": "does it matter how I behave when nobody is watching", "expected": ["BG.3.21", "BG.18.9"], "theme": "integrity"},
+  {"question": "how do I stop being so easily offended", "expected": ["BG.12.15", "BG.2.14"], "theme": "equanimity"},
+  {"question": "what does it actually look like to be at peace with someone", "expected": ["BG.12.15", "BG.16.2"], "theme": "relationships"},
+  {"question": "I want to be someone people feel safe around", "expected": ["BG.12.13", "BG.16.2"], "theme": "relationships"},
+
+  {"question": "why am I lazy some days and driven others", "expected": ["BG.14.7", "BG.14.8"], "theme": "gunas"},
+  {"question": "what makes some people restless and others dull", "expected": ["BG.14.7", "BG.14.8"], "theme": "gunas"},
+  {"question": "does what I eat affect my mind", "expected": ["BG.17.8", "BG.6.16"], "theme": "discipline"},
+  {"question": "what kind of happiness actually lasts", "expected": ["BG.18.37", "BG.18.38"], "theme": "meaning"},
+  {"question": "I am depressed and everything feels heavy and pointless", "expected": ["BG.18.35", "BG.14.8"], "theme": "gunas"},
+
+  {"question": "I give to charity but partly to look good", "expected": ["BG.17.20", "BG.17.21"], "theme": "integrity"},
+  {"question": "how do I do the right thing without wanting credit", "expected": ["BG.18.9", "BG.4.20"], "theme": "integrity"},
+  {"question": "I want to give up and hand everything over to something bigger", "expected": ["BG.18.66", "BG.9.22"], "theme": "surrender"},
+  {"question": "is it weak to ask for help from god", "expected": ["BG.9.22", "BG.7.16"], "theme": "surrender"},
+  {"question": "I only pray when I am desperate, is that hypocritical", "expected": ["BG.7.16", "BG.9.22"], "theme": "surrender"},
+  {"question": "how do I keep going when obstacles keep coming", "expected": ["BG.18.58", "BG.6.40"], "theme": "perseverance"},
+  {"question": "will the effort I put into becoming better be wasted", "expected": ["BG.6.40", "BG.2.40"], "theme": "perseverance"}
 ]

@@ -58,7 +58,7 @@ def main(argv=None) -> int:
         stats = G.collect(conn, batch_id)
         print("collected batch %s" % batch_id)
         print("  written    %d" % stats["written"])
-        for label in ("invalid", "errored", "unparsable"):
+        for label in ("trimmed", "invalid", "errored", "unparsable"):
             items = stats[label]
             print("  %-10s %d" % (label, len(items)))
             for item in items[:10]:

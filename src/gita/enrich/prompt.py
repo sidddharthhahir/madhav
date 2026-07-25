@@ -13,6 +13,8 @@ the per-verse user turn varies.
 import hashlib
 import json
 
+from .. import textclean
+
 # Field constraints are stated in the prompt, not the schema: the structured
 # outputs implementation does not support array-length or string-length
 # constraints, so minItems/maxItems would be silently stripped. We validate
@@ -109,9 +111,15 @@ reflect the common ground rather than picking a side.\
 
 
 def _clip(text: str | None, limit: int) -> str:
+    """Repair OCR damage, then clip.
+
+    Repair happens before clipping so the character budget is spent on usable
+    text rather than on stray punctuation -- the commentary carries ~13,000
+    misread question marks, which is real budget at 2,500 chars per verse.
+    """
+    text = textclean.repair(text)
     if not text:
         return ""
-    text = text.strip()
     return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " ..."
 
 
@@ -151,6 +159,8 @@ def prompt_hash() -> str:
 
 
 # Client-side equivalents of the constraints the schema cannot express.
+# `min` is a correctness floor: below it the record is too thin to be useful.
+# `max` is a preference, not a defect -- see normalise_enrichment.
 FIELD_BOUNDS = {
     "themes": (3, 12),
     "situations": (4, 14),
@@ -158,22 +168,63 @@ FIELD_BOUNDS = {
     "keywords": (5, 20),
 }
 
+MIN_SUMMARY_CHARS = 40
 
-def validate_enrichment(data: dict) -> list[str]:
-    """Return a list of problems; empty means the record is usable."""
-    problems = []
+
+def normalise_enrichment(data: dict) -> tuple[dict, list[str]]:
+    """Coerce a record into shape, returning (record, notes).
+
+    An over-long list is NOT a defect. The earlier version rejected the whole
+    record when any field ran over its maximum, which meant one extra keyword
+    silently cost that verse its enrichment forever -- paid for and discarded,
+    across a 701-verse batch. Overflow is now trimmed and noted instead.
+
+    Only genuine breakage still fails: a missing field, a non-list, too few
+    items to be useful, or a summary too short to say anything.
+    """
+    out: dict = {}
+    notes: list[str] = []
+
     summary = (data.get("summary") or "").strip()
-    if len(summary) < 40:
-        problems.append("summary too short (%d chars)" % len(summary))
+    out["summary"] = summary
 
     for field, (low, high) in FIELD_BOUNDS.items():
         items = data.get(field)
         if not isinstance(items, list):
-            problems.append("%s missing or not a list" % field)
+            out[field] = []
             continue
-        cleaned = [i for i in items if isinstance(i, str) and i.strip()]
-        if len(cleaned) < low:
-            problems.append("%s has %d items, expected >= %d" % (field, len(cleaned), low))
-        elif len(cleaned) > high:
-            problems.append("%s has %d items, expected <= %d" % (field, len(cleaned), high))
+        cleaned, seen = [], set()
+        for item in items:
+            if not isinstance(item, str):
+                continue
+            value = " ".join(item.split())
+            key = value.lower()
+            if value and key not in seen:
+                seen.add(key)
+                cleaned.append(value)
+        if len(cleaned) > high:
+            notes.append("%s trimmed from %d to %d" % (field, len(cleaned), high))
+            cleaned = cleaned[:high]
+        out[field] = cleaned
+
+    return out, notes
+
+
+def validate_enrichment(data: dict) -> list[str]:
+    """Return blocking problems only; empty means the record is usable.
+
+    Call on the output of normalise_enrichment, not on raw model output.
+    """
+    problems = []
+    if len(data.get("summary", "")) < MIN_SUMMARY_CHARS:
+        problems.append("summary too short (%d chars, need %d)"
+                        % (len(data.get("summary", "")), MIN_SUMMARY_CHARS))
+
+    for field, (low, _high) in FIELD_BOUNDS.items():
+        items = data.get(field)
+        if not isinstance(items, list):
+            problems.append("%s missing or not a list" % field)
+        elif len(items) < low:
+            problems.append("%s has %d items, need at least %d"
+                            % (field, len(items), low))
     return problems
