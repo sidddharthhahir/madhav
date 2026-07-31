@@ -597,6 +597,23 @@ textarea#q:focus {
   font-family: ui-serif, 'New York', Georgia, serif;
   font-size: 14px; line-height: 1.58; color: var(--gw-text-2);
 }
+/* Hindi and Gujarati sit between the English translations and the plain-words
+   note. Each script gets its own font stack -- Gujarati has no coverage in
+   the Devanagari faces, so sharing one stack silently falls back to a system
+   default and the two read as different qualities of typesetting. */
+.langbox {
+  border-top: 1px solid var(--gw-border); padding: 13px 15px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.langrow { display: flex; flex-direction: column; gap: 5px; }
+.langbody { font-size: 15px; line-height: 1.85; color: var(--gw-text-2); }
+.langbody.deva {
+  font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT', serif;
+}
+.langbody.guj {
+  font-family: 'Kohinoor Gujarati', 'Noto Serif Gujarati', 'Gujarati MT', serif;
+}
+
 .plainbox {
   border-top: 1px solid var(--gw-border); padding: 13px 15px;
   display: flex; flex-direction: column; gap: 6px;

@@ -365,6 +365,17 @@ function renderInspector() {
           <span class="tbody">${escapeHtml(sivananda)}</span>
         </div>
       </div>
+      ${(v.other_langs && (v.other_langs.hi || v.other_langs.gu)) ? `
+      <div class="langbox">
+        ${v.other_langs.hi ? `<div class="langrow">
+          <span class="tlabel">हिन्दी</span>
+          <span class="langbody deva">${escapeHtml(v.other_langs.hi)}</span>
+        </div>` : ""}
+        ${v.other_langs.gu ? `<div class="langrow">
+          <span class="tlabel">ગુજરાતી</span>
+          <span class="langbody guj">${escapeHtml(v.other_langs.gu)}</span>
+        </div>` : ""}
+      </div>` : ""}
       <div class="plainbox">
         <span class="tlabel">In plain words</span>
         <span class="plaintext">${

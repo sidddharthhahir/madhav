@@ -9,7 +9,7 @@ that gap, and `index_health()` reports how much of the corpus still lacks it.
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .. import db
 from .bm25 import BM25, Doc
@@ -28,6 +28,14 @@ class VerseRecord:
     translations: dict[str, str]     # source_key -> body (English)
     commentary: dict[str, str]       # source_key -> body
     enrichment: dict | None
+    # lang -> body, for non-English translations (hi, gu). Deliberately a
+    # SEPARATE field from `translations` rather than more entries in it:
+    # searchable_text() and dense_text() both read `translations`, so folding
+    # Hindi and Gujarati in there would put them straight into the BM25 index
+    # and the embeddings. Retrieval runs on English enrichment against English
+    # queries, and mixing scripts into it would add noise to every search to
+    # no benefit. These are for display only.
+    other_langs: dict[str, str] = field(default_factory=dict)
 
 
 def load_verses(conn) -> dict[str, VerseRecord]:
@@ -40,8 +48,12 @@ def load_verses(conn) -> dict[str, VerseRecord]:
             sanskrit=row["sanskrit"], translations={}, commentary={}, enrichment=None,
         )
 
+    # 'hi' and 'gu' were previously excluded here, which is why 1,402
+    # generated translations existed in the store but could not be reached by
+    # any surface of the app.
     for row in conn.execute(
-        "SELECT verse_id, lang, source_key, kind, body FROM texts WHERE lang IN ('en','sa')"
+        "SELECT verse_id, lang, source_key, kind, body FROM texts "
+        "WHERE lang IN ('en','sa','hi','gu')"
     ):
         rec = records.get(row["verse_id"])
         if rec is None:
@@ -50,6 +62,8 @@ def load_verses(conn) -> dict[str, VerseRecord]:
             rec.translations[row["source_key"]] = row["body"]
         elif row["kind"] == "commentary" and row["lang"] == "en":
             rec.commentary[row["source_key"]] = row["body"]
+        elif row["kind"] == "translation" and row["lang"] in ("hi", "gu"):
+            rec.other_langs[row["lang"]] = row["body"]
 
     for row in conn.execute(
         """SELECT verse_id, summary, themes, situations, emotions, keywords

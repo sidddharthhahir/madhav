@@ -208,6 +208,7 @@ class Pipeline:
         return {
             "verse_id": rec.verse_id, "chapter": rec.chapter, "verse": rec.verse,
             "sanskrit": rec.sanskrit, "translations": rec.translations,
+            "other_langs": rec.other_langs,
             "commentary": sorted(rec.commentary), "enriched": rec.enrichment is not None,
             "enrichment": rec.enrichment,
         }
