@@ -5,10 +5,14 @@ rebuilding BM25 on every call would dominate latency and defeat the point of an
 in-process index.
 """
 
+import os
+import threading
+import time
+from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -83,8 +87,45 @@ def health():
     return get_pipeline().health()
 
 
+# /ask is the only endpoint that spends money -- two model calls per request,
+# a few cents each. Everything else reads local data and is free. Left
+# unguarded, anyone who can reach the port can drain the account attached to
+# the key, and a runaway client can do it by accident.
+#
+# A fixed window per client, in memory: this is a single-process, single-user
+# desktop app, so a shared counter is the right size of solution. It is a
+# spend guard, not a security control -- it will not stop someone determined,
+# and it is no substitute for authentication if this is ever exposed beyond
+# localhost.
+ASK_RATE_LIMIT = int(os.environ.get("MADHAV_ASK_PER_HOUR", "60"))
+_ask_calls: dict[str, deque] = {}
+_ask_lock = threading.Lock()
+
+
+def _rate_limit_ask(request: Request) -> None:
+    if ASK_RATE_LIMIT <= 0:            # 0 disables the guard entirely
+        return
+    who = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    with _ask_lock:
+        seen = _ask_calls.setdefault(who, deque())
+        while seen and now - seen[0] > 3600:
+            seen.popleft()
+        if len(seen) >= ASK_RATE_LIMIT:
+            retry = int(3600 - (now - seen[0])) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=("Rate limit reached: %d answers per hour. Retrieval and "
+                        "/preview are free and unaffected. Set "
+                        "MADHAV_ASK_PER_HOUR to change this." % ASK_RATE_LIMIT),
+                headers={"Retry-After": str(retry)},
+            )
+        seen.append(now)
+
+
 @app.post("/ask", response_model=AskResponse)
-def ask(req: AskRequest):
+def ask(req: AskRequest, request: Request):
+    _rate_limit_ask(request)
     pipeline = get_pipeline()
     result = pipeline.ask(req.question, k=req.k)
     # Recorded regardless of ok/failed -- the frontend's history row already

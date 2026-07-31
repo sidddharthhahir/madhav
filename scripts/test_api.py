@@ -98,6 +98,25 @@ def main() -> int:
                 )
                 pipeline.local.commit()
 
+        print("\n/ask is rate limited, free endpoints are not")
+        # Drives the limiter's own state rather than making N real requests:
+        # the point is that the guard trips and that it only guards the
+        # endpoint that spends money.
+        from gita.api.app import ASK_RATE_LIMIT, _ask_calls
+        import time as _t
+        _ask_calls["testclient"] = __import__("collections").deque(
+            [_t.monotonic()] * ASK_RATE_LIMIT)
+        r = client.post("/ask", json={"question": "why am I so angry"})
+        check("429 once the hourly limit is reached", r.status_code == 429,
+              r.status_code)
+        check("429 carries Retry-After", "retry-after" in
+              {k.lower() for k in r.headers}, dict(r.headers))
+        check("free /preview is not rate limited",
+              client.post("/preview", json={"question": "anger"}).status_code == 200)
+        check("free /search is not rate limited",
+              client.get("/search", params={"q": "anger"}).status_code == 200)
+        _ask_calls.clear()
+
         print("\nPOST /ask input validation")
         r = client.post("/ask", json={"question": ""})
         check("422 on empty question", r.status_code == 422, r.status_code)
