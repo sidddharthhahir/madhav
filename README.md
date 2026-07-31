@@ -122,12 +122,12 @@ python scripts/search.py --explain BG.3.37 "desire becomes anger"
 `--eval` alone measures retrieval on the raw question text — useful for fast,
 free iteration, but not what `/ask` actually does. `--real` routes each
 question through the same query-understanding call the real pipeline uses
-before retrieving. The difference is large: 17/106 full recall without it,
-34-40/106 with it (run-to-run variance — `understand()` is a real,
-non-deterministic LLM call), on the identical index. `Pipeline`'s default
-grounding width is 12 verses, not 8 (see below); at k=12, `--real` measures
-**45/106**. See Known issues for why, and don't quote the free number as the
-product's recall.
+before retrieving. The difference is large, and on the identical index: 17/106
+full recall on raw question text against **55/106** through real query
+understanding at the shipping defaults (k=20, fusion pool 30). Don't quote the
+free number as the product's recall. `understand()` is a real,
+non-deterministic call, so treat any single `--real` run as a measurement with
+variance, not a constant.
 
 Transliteration normalisation is load-bearing. The corpus writes "Kṛṣṇa"; users
 type "Krishna". Plain Unicode folding gives `krsna` and matches nothing, so
@@ -148,9 +148,9 @@ partial, 76 complete misses.
 the Batch API (9 verses keep hand-written demo notes). Actual measured cost —
 not the estimate — was **$1.10** for the full batch. With enrichment alone,
 recall@8 moves to **7 full, 41 partial, 58 miss**; with enrichment plus dense
-retrieval, **17/106 full** on raw question text — and **45/106 full, 41
-partial, 20 miss (k=12)** through the same query-understanding step the real
-product actually uses. See "Dense retrieval" and "Retrieval" above for the
+retrieval, **17/106 full** on raw question text — and **55/106 full, 38
+partial, 13 miss** at the shipping defaults through the same query-
+understanding step the real product actually uses. See "Dense retrieval" and "Retrieval" above for the
 full before/after and why the raw-text number understates what ships.
 
 ```bash
@@ -190,12 +190,28 @@ written to SQLite before anything else happens.
 
 ## Dense retrieval (hybrid)
 
+**Optional. Measured cost of skipping it: about one question in a hundred.**
+
+| retrieval | full | partial | miss |
+|---|---|---|---|
+| BM25 + dense (Ollama running) | 55/106 | 38 | 13 |
+| BM25 alone (no Ollama) | 54/106 | 37 | 15 |
+
+Measured through `Pipeline.retrieve` on the 106-question eval. The app is
+fully usable without Ollama: retrieval falls back to BM25 automatically, in
+about 5ms, with no error and no hang — verified by pointing the client at a
+dead port. Nothing else in the product depends on it. Install it if you want
+the extra question or two; skip it and nothing breaks.
+
+(The embeddings for the 701 verses ship inside the committed database. Ollama
+is only needed to embed *your question* at query time, which is why the app
+still works without it.)
+
 BM25 is lexical: it needs shared vocabulary between the question and the
 enrichment text. `reciprocal_rank_fusion` in `retrieval/bm25.py` fuses it with
-a dense (embedding-similarity) ranking, closing some of the gap BM25 alone
-cannot. Anthropic has no embeddings endpoint, and paying a hosted embeddings
-API per query is hard to justify for 701 short documents, so this runs
-entirely locally against [Ollama](https://ollama.com):
+a dense (embedding-similarity) ranking. Anthropic has no embeddings endpoint,
+and paying a hosted embeddings API per query is hard to justify for 701 short
+documents, so this runs entirely locally against [Ollama](https://ollama.com):
 
 ```bash
 brew install --cask ollama            # or download from ollama.com
@@ -364,7 +380,7 @@ citation validation, HTTP API, seven test suites, eval harness, code licence
 basis in [NOTICE.md](NOTICE.md)).
 
 Not done: nothing left from the original scope. Recall is now measured
-correctly (see Known issues) at 45/106 full (k=12) — the remaining 20 misses
+correctly (see Known issues) at 55/106 full (k=20) — the remaining 20 misses
 are the main open lever, mostly abstract/existential questions with little
 concrete vocabulary for retrieval to grab onto.
 
@@ -382,13 +398,12 @@ concrete vocabulary for retrieval to grab onto.
   retrieval on the raw question text; `Pipeline.ask()` never does that — it
   always rewrites the question toward corpus vocabulary via
   `answer.generate.understand()` first. On the identical index, raw-text
-  recall is 17/106 full; through real query understanding it's **34-40/106**
-  at k=8 (run-to-run variance — `understand()` is a real, non-deterministic
-  LLM call) and **45/106 (42%)** at k=12, `Pipeline`'s current default. Use
+  recall is 17/106 full; through real query understanding it's **55/106
+  (52%)** at the shipping defaults (k=20, fusion pool 30). Use
   plain `--eval --hybrid` for free, fast iteration on retrieval itself; use
-  `--eval --hybrid --real -k 12` (costs ~$0.55, calls the understanding LLM
-  per question) for the number that actually describes the product.
-- `Pipeline`'s `max_verses` default is 12, not 8 — widening it recovered a
+  `--eval --hybrid --real` (costs ~$0.55, calls the understanding LLM per
+  question) for the number that actually describes the product.
+- `Pipeline`'s `max_verses` default is 20, not 8 — widening it recovered a
   meaningful chunk of recall (many misses were verses ranked 8-12, displaced
   by a thematically adjacent but differently-specific verse) for about 50%
   more context tokens per answer. A real but small cost increase; the
@@ -396,14 +411,14 @@ concrete vocabulary for retrieval to grab onto.
 - **`k` is now 20 and the browser no longer overrides it.** The frontend sent
   `k: 8` on every request, which silently overrode the server default -- so
   the earlier 8 -> 12 tuning never reached the UI at all. Removing it, and
-  raising the default to 20, takes the shipped app from ~35 to **54/106 full**
+  raising the default to 20, takes the shipped app from ~35 to **55/106 full**
   (11 misses). Measured on `Pipeline.retrieve` itself, not a reimplementation.
 - Fusion now draws from a pool of 30 candidates per ranker rather than exactly
   `k`. At `pool == k`, RRF could only reorder verses both rankers already
   agreed on; a verse ranked 15th by BM25 and 3rd by dense was invisible.
   Depth here costs local sorting and no tokens, since only the top `k` are
   sent to the model.
-- 11 real misses remain at k=20. Mostly abstract/existential questions
+- 13 nominal misses remain at k=20. Mostly abstract/existential questions
   ("am I my thoughts or something underneath them") where the phrasing itself
   carries little concrete vocabulary, unlike the concrete-situation questions
   dense retrieval handles well. Some are also a confirmed artifact of the
@@ -413,7 +428,9 @@ concrete vocabulary for retrieval to grab onto.
   BG.3.19, BG.2.51...) ahead of the more specific verse the eval expects
   (BG.2.62), which is a defensible ranking choice, not a failure. Not yet
   audited question-by-question to find out how much of the 20 this explains.
-- Dense retrieval adds a soft runtime dependency on a local Ollama server.
-  When it's down or embeddings haven't been built, the app degrades silently
-  to BM25 alone — `GET /health`'s `dense_index.active` field tells you which
-  mode is in effect, but nothing surfaces a warning at query time.
+- Dense retrieval adds an **optional** runtime dependency on a local Ollama
+  server. When it's absent the app falls back to BM25 in ~5ms with no error,
+  and the measured difference is one question in 106 (see "Dense retrieval").
+  `GET /health` reports `dense_index.ollama_reachable` if you want to know
+  which mode is in effect; nothing is surfaced at query time because at that
+  magnitude it would be noise.

@@ -26,6 +26,7 @@ const state = {
   paletteRows: [],
   paletteIndex: 0,
   savedIds: new Set(),
+  lastQuestion: "",
   historyById: new Map(),
 };
 
@@ -319,6 +320,7 @@ async function askStreaming(question) {
           state.retrieved = payload.retrieved || [];
           state.citations = payload.citations || [];
           state.answerText = payload.answer;
+          state.lastQuestion = question;
           renderAnswer(payload.answer);
           renderProvenance(null, payload);
           break;
@@ -714,86 +716,16 @@ function citedList() {
   return state.citations.map((c) => c.replace("BG.", "BG ")).join(", ");
 }
 
-// PDF export is the browser's own print-to-PDF, not a hand-rolled writer --
-// it already handles pagination and font rendering correctly for every
-// answer language this app produces (English, Hindi, Gujarati), which
-// nothing built here would match without embedding real font files.
-function exportPdf() {
-  if (!state.answerText) return;
-  const q = $("q").value.trim();
-  $("printQuestion").textContent = q;
-  $("printCited").textContent = state.citations.length ? `Cited: ${citedList()}` : "";
-  const prevTitle = document.title;
-  document.title = (q || "Madhav answer").slice(0, 80);
-  window.print();
-  document.title = prevTitle;
-}
-
-// PNG export is a plain <canvas> renderer, not a DOM-rasterisation library:
-// the foreignObject-based SVG trick that would let real HTML/CSS be
-// rasterised is unreliable across browsers for this (tainted canvas,
-// inconsistent font handling), and this answer format -- paragraphs plus
-// inline citation pills -- is simple enough to lay out by hand instead of
-// pulling in an html2canvas-sized dependency for it.
-const CITATION_RE = /\[?\bBG\.?\s*(\d{1,2})[.:](\d{1,3})\b\]?/g;
-
-function wrapTokens(text) {
-  const tokens = [];
-  let last = 0, m;
-  CITATION_RE.lastIndex = 0;
-  while ((m = CITATION_RE.exec(text))) {
-    if (m.index > last) {
-      tokens.push(...text.slice(last, m.index).split(/\s+/).filter(Boolean)
-        .map((w) => ({ type: "word", text: w })));
-    }
-    tokens.push({ type: "pill", text: `BG ${m[1]}.${m[2]}` });
-    last = CITATION_RE.lastIndex;
-  }
-  if (last < text.length) {
-    tokens.push(...text.slice(last).split(/\s+/).filter(Boolean)
-      .map((w) => ({ type: "word", text: w })));
-  }
-  return tokens;
-}
-
-function layoutParagraph(ctx, text, maxWidth, spaceWidth, pillPadX) {
-  const lines = [];
-  let current = [];
-  let width = 0;
-  for (const tok of wrapTokens(text)) {
-    const tokWidth = tok.type === "pill"
-      ? ctx.measureText(tok.text).width + pillPadX * 2
-      : ctx.measureText(tok.text).width;
-    const addWidth = current.length ? spaceWidth + tokWidth : tokWidth;
-    if (current.length && width + addWidth > maxWidth) {
-      lines.push(current);
-      current = [tok];
-      width = tokWidth;
-    } else {
-      current.push(tok);
-      width += addWidth;
-    }
-  }
-  if (current.length) lines.push(current);
-  return lines;
-}
-
-function wrapPlainText(ctx, text, maxWidth) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines = [];
-  let current = "";
-  for (const w of words) {
-    const candidate = current ? `${current} ${w}` : w;
-    if (current && ctx.measureText(candidate).width > maxWidth) {
-      lines.push(current);
-      current = w;
-    } else {
-      current = candidate;
-    }
-  }
-  if (current) lines.push(current);
-  return lines.length ? lines : [""];
-}
+// Fill the print-only blocks whenever a print is about to start, however it
+// was triggered. They used to be populated by an Export PDF button; that
+// button is gone, so without this a native Cmd+P produced the answer with an
+// empty question heading and no citation list. beforeprint covers Cmd+P, the
+// File menu and print preview alike.
+addEventListener("beforeprint", () => {
+  $("printQuestion").textContent = $("q").value.trim() || state.lastQuestion || "";
+  $("printCited").textContent =
+    state.citations.length ? `Cited: ${citedList()}` : "";
+});
 
 $("btnPalette").addEventListener("click", openPalette);
 $("btnInspector").addEventListener("click", toggleInspector);

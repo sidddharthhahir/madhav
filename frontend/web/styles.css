@@ -629,8 +629,6 @@ textarea#q:focus {
   background: var(--gw-pill-bg); border: 1px solid var(--gw-pill-border);
   padding: 3px 8px; border-radius: 6px;
 }
-.vtitle { font-size: 12px; color: var(--gw-muted); overflow: hidden;
-          text-overflow: ellipsis; white-space: nowrap; }
 .iconbtn {
   width: 25px; height: 25px; flex: none; border-radius: 7px;
   border: 1px solid var(--gw-rule); background: transparent;
@@ -649,11 +647,6 @@ textarea#q:focus {
   font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT',
                ui-serif, serif;
   font-size: 18px; line-height: 1.85; color: var(--gw-text);
-}
-.iast {
-  padding: 0 15px 13px;
-  font-family: ui-serif, 'New York', Georgia, serif;
-  font-style: italic; font-size: 13.5px; line-height: 1.6; color: var(--gw-muted);
 }
 .tgrid {
   border-top: 1px solid var(--gw-border);
@@ -786,22 +779,6 @@ textarea#q:focus {
 }
 .clearall:hover { background: var(--gw-hover-row); color: var(--gw-text); }
 
-.examples { margin-top: 30px; max-width: 68ch; }
-.ex-lead { font-size: 13.5px; color: var(--gw-muted); margin-bottom: 12px; }
-.ex {
-  display: block; width: 100%; text-align: left; margin-bottom: 8px;
-  padding: 11px 14px; border-radius: 10px; cursor: pointer;
-  background: var(--gw-glass); border: 1px solid var(--gw-border);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  color: var(--gw-text-3);
-  font-family: ui-serif, 'New York', Georgia, serif; font-size: 15.5px;
-  transition: background-color .16s ease, border-color .16s ease,
-              color .16s ease, transform .14s ease;
-}
-.ex:hover {
-  border-color: var(--gw-accent); color: var(--gw-text);
-  transform: translateX(3px);
-}
 
 /* Bars, not a number. The raw score's SCALE changes with configuration --
    RRF fusion produces ~0.03 while unfused BM25 produces ~50 -- so the digits

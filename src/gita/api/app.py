@@ -130,6 +130,13 @@ def _rate_limit_ask(request: Request) -> None:
     who = request.client.host if request.client else "unknown"
     now = time.monotonic()
     with _ask_lock:
+        # Drop clients whose window has fully expired. Without this the dict
+        # keeps one entry per address seen since start-up forever -- invisible
+        # for one person on localhost, an unbounded leak for anything exposed.
+        for addr in [a for a, d in _ask_calls.items()
+                     if a != who and (not d or now - d[-1] > 3600)]:
+            del _ask_calls[addr]
+
         seen = _ask_calls.setdefault(who, deque())
         while seen and now - seen[0] > 3600:
             seen.popleft()
