@@ -591,6 +591,22 @@ textarea#q:focus,
 .provrow .ref { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; }
 .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
 
+/* Speaker tag. Drawn only for Arjuna, Sanjaya and Dhritarashtra -- Krishna is
+   82% of the corpus, so tagging him would put a label on almost every row and
+   the tag would stop meaning anything. Its presence IS the signal: "these are
+   not Krishna's words". Teal rather than gold, because gold is the app's mark
+   for verified counsel and this is precisely the flag that says otherwise. */
+.speaker {
+  font-size: 10px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; white-space: nowrap; flex: none;
+  color: var(--gw-teal); border: 1px solid var(--gw-teal-dim);
+  border-radius: 5px; padding: 2px 6px; opacity: .9;
+}
+.speaker.compact {
+  font-size: 9.5px; letter-spacing: .08em; padding: 1px 5px;
+  border-color: transparent; background: rgba(79,209,197,.10);
+}
+
 /* ---------------- dharma-sankata (two-sided choice) ---------------- */
 
 .modeswitch {

@@ -15,6 +15,8 @@ them and invites the model to cite something marginal.
 
 from dataclasses import dataclass, field
 
+from .. import speakers
+
 # Commentary is the richest interpretive material available (Sivananda on all
 # 701 verses) but it is long and, in places, carries OCR damage from the source
 # scans. Cap it so it supports the answer without dominating the context.
@@ -52,6 +54,15 @@ def render_verse(rec, hit=None, *, include_commentary: bool = True) -> str:
     """One verse as the model sees it."""
     lines = ["<verse id=\"%s\">" % rec.verse_id,
              "reference: BG %d.%d" % (rec.chapter, rec.verse)]
+
+    # Who is speaking, and what that makes the words. Without this the model
+    # sees Arjuna's "my limbs fail me, my throat is parched" as material of
+    # exactly the same kind as Krishna's reply to it, and will quote despair
+    # back to someone in despair as though it were counsel.
+    speaker = getattr(rec, "speaker", None)
+    if speaker:
+        lines.append("spoken by: %s -- %s"
+                     % (speaker, speakers.ROLE.get(speaker, "")))
 
     if rec.sanskrit:
         lines.append("sanskrit: %s" % rec.sanskrit.replace("\n", " / "))

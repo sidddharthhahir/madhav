@@ -589,10 +589,27 @@ async function runDilemma() {
            so this is genuinely different counsel on each side.`}</p>`;
 }
 
+// Who is speaking. Krishna is 82% of the text, so marking HIM everywhere would
+// be noise on almost every row -- the tag is only drawn for the other three,
+// where it carries the information that actually changes how a verse reads.
+const SPEAKER_NOTE = {
+  Arjuna: "the question, not the answer",
+  Sanjaya: "narration, not instruction",
+  Dhritarashtra: "the opening question, not instruction",
+};
+
+function speakerTag(speaker, compact) {
+  if (!speaker || speaker === "Krishna") return "";
+  const note = SPEAKER_NOTE[speaker] || "";
+  return `<span class="speaker${compact ? " compact" : ""}" title="${escapeHtml(note)}">`
+    + `${escapeHtml(speaker)}</span>`;
+}
+
 function verseCard(v) {
   return `
     <button class="dl-verse" data-verse="${v.verse_id}">
-      <span class="ref">BG ${v.verse_id.split(".").slice(1).join(".")}</span>
+      <span class="ref">BG ${v.verse_id.split(".").slice(1).join(".")}${
+        v.speaker && v.speaker !== "Krishna" ? " · " + escapeHtml(v.speaker) : ""}</span>
       <span class="body">
         <span class="sum">${escapeHtml(v.summary)}</span>
         ${v.stance && v.stance.length
@@ -663,7 +680,8 @@ async function loadCounterpoint() {
       res.clauses.length > 4 ? ` <span>+${res.clauses.length - 4} more</span>` : ""}</p>
     ${res.verses.map((v) => `
       <button class="cprow" data-verse="${v.verse_id}">
-        <span class="ref">BG ${v.verse_id.split(".").slice(1).join(".")}</span>
+        <span class="ref">BG ${v.verse_id.split(".").slice(1).join(".")}${
+          v.speaker && v.speaker !== "Krishna" ? " · " + escapeHtml(v.speaker) : ""}</span>
         <span class="body">
           <span class="sum">${escapeHtml(v.summary)}</span>
           ${v.stance && v.stance.length
@@ -690,6 +708,7 @@ function renderProvenance(citable, out) {
         <span class="dot" style="background:${
           cited.has(r.verse_id) ? "var(--gw-accent)" : "var(--gw-rule)"}"></span>
         <span class="ref">BG ${r.verse_id.split(".").slice(1).join(".")}</span>
+        ${speakerTag(r.speaker, true)}
         <span style="font-size:12px;color:var(--gw-muted)">${
           cited.has(r.verse_id) ? "quoted in the answer" : ""}</span>
         <span class="score" aria-hidden="true">${
@@ -773,6 +792,7 @@ function renderInspector() {
     <section class="vcard">
       <div class="vtop">
         <span class="vref">Chapter ${v.chapter}, verse ${v.verse}</span>
+        ${speakerTag(v.speaker)}
         <span style="flex:1"></span>
         <button class="iconbtn" data-nav="prev" data-verse="${v.verse_id}" title="Previous verse">←</button>
         <button class="iconbtn" data-nav="next" data-verse="${v.verse_id}" title="Next verse">→</button>

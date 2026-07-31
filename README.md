@@ -353,14 +353,16 @@ python scripts/test_pipeline.py   # 22 end-to-end checks against a stub client
 python scripts/test_api.py        # 21 HTTP contract checks
 python scripts/test_api_ui.py     # confirms the desktop UI's app.js calls the routes it needs
 python scripts/test_rerank.py     # 32 reranker/counterpoint checks against a stub client
+python scripts/test_speakers.py   # speaker attribution, incl. the sandhi trap
 python scripts/eval_answers.py     # answer-shape regressions (costs ~25c, real API calls)
 ```
 
-Run all nine in sequence:
+Run all ten in sequence:
 
 ```bash
 for s in verify_store check_contrast test_validator test_pipeline test_api \
-         test_api_ui test_prefixes test_rerank validate_eval; do python scripts/$s.py; done
+         test_api_ui test_prefixes test_rerank test_speakers validate_eval; do
+  python scripts/$s.py; done
 ```
 
 `test_pipeline.py` stubs the Anthropic client, so the reject-and-regenerate
@@ -434,6 +436,46 @@ invention.
 watermark — the one place the text stops explaining and shows. Once per
 session, no flash, and it degrades to a plain brightening under
 `prefers-reduced-motion`.
+
+## Who is speaking
+
+The Gita is a dialogue inside a dialogue, and the pipeline used to treat all
+701 verses as one undifferentiated body of counsel. That is wrong in a way that
+matters for a *citing* app: **BG 1.29** — *"my limbs fail me and my throat is
+parched, my body trembles"* — is not advice. It is a man having a panic attack,
+and the remaining seventeen chapters are the reply to it.
+
+Attribution is derived from the Sanskrit at load time, never stored:
+
+| speaker | verses | |
+|---|---|---|
+| **Krishna** | 574 | the teaching |
+| Arjuna | 85 | the question, doubt and distress |
+| Sanjaya | 41 | narration |
+| Dhritarashtra | 1 | the opening question |
+
+These match the counts the traditional Gita Mahatmya quotes.
+
+Two things make it non-trivial:
+
+**The sandhi trap.** `bhagavān` + `uvāca` fuses into `bhagavānuvāca`, turning
+the independent vowel **उ** (U+0909) into the dependent sign **ु** (U+0941). A
+substring search for `उवाच` therefore matches Arjuna, Sanjaya and Dhritarashtra
+and silently misses **all 574 of Krishna's verses** — it does not error, it
+just attributes his entire teaching to whoever spoke last. `test_speakers.py`
+asserts against exactly this.
+
+**One unmarked transition.** BG 1.28 is half narration, half speech — *"…
+sorrowing, he said this"* — and Arjuna then speaks through 1.46 with no
+`arjuna uvāca` of his own. Marker-following alone gives Arjuna 67 / Sanjaya 59;
+moving exactly 1.29–1.46 gives 85 / 41, the traditional counts. Two independent
+things agreeing on the same 18 verses is the evidence for hard-coding them.
+
+The speaker is shown in the UI (only for the three who are *not* Krishna — his
+82% would make the tag meaningless), and the answer prompt is told what each
+speaker's words are evidence of, so despair is never quoted back as counsel.
+It is deliberately **not** indexed: "krishna" on 82% of the corpus is noise for
+BM25 and pulls every embedding toward one point.
 
 ## Dharma-sankata — holding both sides
 

@@ -139,7 +139,7 @@ class Pipeline:
     def chapter_verses(self, chapter: int) -> list[dict]:
         return [
             {"verse_id": r.verse_id, "chapter": r.chapter, "verse": r.verse,
-             "enriched": r.enrichment is not None,
+             "enriched": r.enrichment is not None, "speaker": r.speaker,
              "preview": next(iter(r.translations.values()), "")[:140]}
             for r in self.records.values() if r.chapter == chapter
         ]
@@ -225,6 +225,7 @@ class Pipeline:
         return {
             "verse_id": rec.verse_id, "chapter": rec.chapter, "verse": rec.verse,
             "sanskrit": rec.sanskrit, "translations": rec.translations,
+            "speaker": rec.speaker,
             "other_langs": rec.other_langs,
             "commentary": sorted(rec.commentary), "enriched": rec.enrichment is not None,
             "enrichment": rec.enrichment,
@@ -267,7 +268,8 @@ class Pipeline:
             "question": question,
             "retrieved": [
                 {"verse_id": v.verse_id, "rank": v.rank,
-                 "score": round(v.score, 3), "enriched": v.enriched}
+                 "score": round(v.score, 3), "enriched": v.enriched,
+                 "speaker": self.records[v.verse_id].speaker}
                 for v in ctx.verses
             ],
             "citable": C.citable_list(ctx),
@@ -379,7 +381,8 @@ class Pipeline:
 
         retrieved = [
             {"verse_id": v.verse_id, "rank": v.rank,
-             "score": round(v.score, 3), "enriched": v.enriched}
+             "score": round(v.score, 3), "enriched": v.enriched,
+             "speaker": self.records[v.verse_id].speaker}
             for v in ctx.verses
         ]
 
@@ -550,7 +553,8 @@ class Pipeline:
 
         retrieved = [
             {"verse_id": v.verse_id, "rank": v.rank,
-             "score": round(v.score, 3), "enriched": v.enriched}
+             "score": round(v.score, 3), "enriched": v.enriched,
+             "speaker": self.records[v.verse_id].speaker}
             for v in ctx.verses
         ]
         yield ("retrieved", {"verses": retrieved})

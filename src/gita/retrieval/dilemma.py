@@ -65,6 +65,7 @@ def dilemma(records, retrieve, option_a: str, option_b: str, *, k: int = 5,
         return {
             "verse_id": hit.doc_id,
             "score": round(hit.score, 3),
+            "speaker": rec.speaker if rec else None,
             "summary": enr.get("summary", ""),
             # Stance is what stops a verse being read as endorsement of the
             # option it was retrieved for. It says who the verse is actually

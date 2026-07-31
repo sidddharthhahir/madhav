@@ -12,6 +12,7 @@ import json
 from dataclasses import dataclass, field
 
 from .. import db
+from .. import speakers
 from .bm25 import BM25, Doc
 
 # Commentary is long and repetitive; including all of it swamps BM25 length
@@ -59,6 +60,12 @@ class VerseRecord:
     # queries, and mixing scripts into it would add noise to every search to
     # no benefit. These are for display only.
     other_langs: dict[str, str] = field(default_factory=dict)
+    # Who is speaking. Derived from the Sanskrit at load, never stored -- see
+    # gita/speakers.py. Deliberately NOT indexed: every verse would contribute
+    # the token "krishna" to 82% of the corpus, which is pure noise for BM25
+    # and pulls every embedding toward the same point. This is for display and
+    # for the answer stage, which can actually use it.
+    speaker: str = speakers.KRISHNA
 
 
 def load_verses(conn) -> dict[str, VerseRecord]:
@@ -87,6 +94,14 @@ def load_verses(conn) -> dict[str, VerseRecord]:
             rec.commentary[row["source_key"]] = row["body"]
         elif row["kind"] == "translation" and row["lang"] in ("hi", "gu"):
             rec.other_langs[row["lang"]] = row["body"]
+
+    # Attribution needs the verses in canonical order, which the query above
+    # already guarantees, and needs all of them before any can be resolved --
+    # a speaker holds until the next marker.
+    for vid, name in speakers.attribute(
+            [type("R", (), {"verse_id": r.verse_id, "sanskrit": r.sanskrit})
+             for r in records.values()]).items():
+        records[vid].speaker = name
 
     for row in conn.execute(
         """SELECT verse_id, summary, themes, situations, emotions, stance, keywords

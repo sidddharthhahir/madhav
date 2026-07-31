@@ -220,6 +220,40 @@ This is the third time in this project that a plausible retrieval idea has
 survived eyeballing and died on the eval, after multi-query fusion and stance
 indexing. Do not ship a retrieval change on the strength of a query you liked.
 
+### Speaker attribution: the app was quoting Arjuna as if he were Krishna
+
+Until now all 701 verses were one undifferentiated pool. So a question like
+"i feel paralysed and cannot act" retrieves -- correctly, on vocabulary --
+Arjuna's paralysis, and 7 of the 20 grounding verses came back as Arjuna or
+Sanjaya rather than Krishna. The app would then quote "my limbs fail me and my
+throat is parched" as counsel. For a product whose whole promise is verified
+citation, that is the one kind of wrong that matters.
+
+Derived at load from the Sanskrit, never stored, so it cannot drift from the
+text: Krishna 574, Arjuna 85, Sanjaya 41, Dhritarashtra 1. Matches tradition.
+
+**Two traps, both worth remembering.**
+
+1. *Sandhi.* `bhagavan + uvaca -> bhagavanuvaca` converts the independent
+   vowel U+0909 into the dependent sign U+0941, so a substring search for
+   `उवाच` matches the other three speakers and misses all 574 of Krishna's
+   verses. It does not raise; it silently attributes his teaching to whoever
+   spoke last. I hit this three times before catching it -- the counts looked
+   almost plausible each time (Arjuna 615, Krishna 0). Match the full markers.
+
+2. *One unmarked transition.* BG.1.28 introduces Arjuna's speech in narration
+   ("sorrowing, he said this") with no `arjuna uvaca` line, so marker-following
+   keeps attributing 1.29-1.46 to Sanjaya. Hard-coded in `speakers.UNMARKED`,
+   and the arithmetic confirms rather than merely permits it: marker-only
+   gives 67/59, moving exactly those 18 verses gives the traditional 85/41.
+
+Deliberately NOT indexed. Putting the speaker in `searchable_text` would add
+"krishna" to 82% of documents -- noise for BM25's IDF and a pull toward one
+point for every embedding. It goes to the answer stage and the UI, which can
+use it, and nowhere near the ranker. `test_speakers.py` asserts the exclusion
+with a sentinel, because the names occur legitimately in translations and
+summaries so searching for "Arjuna" proves nothing.
+
 ### The contrast checker earned its keep immediately
 
 `scripts/check_contrast.py` was written to support four prahar palettes instead

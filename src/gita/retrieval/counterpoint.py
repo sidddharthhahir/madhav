@@ -124,6 +124,7 @@ def counterpoint(records, retrieve, verse_ids, *, k: int = 5) -> dict:
             "verse_id": hit.doc_id,
             "rank": len(verses) + 1,
             "score": round(hit.score, 3),
+            "speaker": rec.speaker,
             "summary": (rec.enrichment or {}).get("summary", ""),
             # The stance is why this verse is the counterweight, so it travels
             # with it. It is also the first time this field has been visible
