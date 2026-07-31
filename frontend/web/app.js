@@ -178,9 +178,11 @@ function renderFailure(out) {
 // Turn [BG 3.37] into a clickable pill. This is the signature interaction:
 // the citation is the product.
 function renderAnswer(text) {
+  // --i drives the staggered rise-in in CSS, so paragraphs land in sequence
+  // rather than all at once.
   const html = escapeHtml(text)
     .split(/\n{2,}/)
-    .map((p) => `<p>${p.replace(/\[?\bBG\.?\s*(\d{1,2})[.:](\d{1,3})\b\]?/g,
+    .map((p, i) => `<p style="--i:${i}">${p.replace(/\[?\bBG\.?\s*(\d{1,2})[.:](\d{1,3})\b\]?/g,
       (m, c, v) => `<span class="pill" data-verse="BG.${c}.${v}"
                           role="button" tabindex="0">BG ${c}.${v}</span>`)}</p>`)
     .join("");
@@ -710,7 +712,107 @@ function hideHistoryBanner() {
   $("historyBanner").innerHTML = "";
 }
 
+// ------------------------------------------------------------- starfield
+
+// Canvas 2D rather than WebGL/Three.js: a few hundred drifting points is
+// nowhere near needing a GPU pipeline, and this project is deliberately
+// zero-build and zero-dependency -- pulling in a 600KB 3D library for a
+// background texture would trade the whole architecture for an effect that
+// plain canvas draws just as well.
+function startCosmos() {
+  const cv = $("cosmos");
+  if (!cv || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const ctx = cv.getContext("2d");
+  const warm = getComputedStyle(document.documentElement).getPropertyValue("--gw-star").trim();
+  const cool = getComputedStyle(document.documentElement).getPropertyValue("--gw-star-2").trim();
+
+  let stars = [], w = 0, h = 0;
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  function seed() {
+    w = cv.clientWidth; h = cv.clientHeight;
+    cv.width = w * DPR; cv.height = h * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // Density scaled to area so a large display isn't sparse and a small
+    // one isn't a snowstorm.
+    const n = Math.round((w * h) / 9000);
+    stars = Array.from({ length: n }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 1.25 + 0.25,
+      vy: Math.random() * 0.05 + 0.012,
+      vx: (Math.random() - 0.5) * 0.02,
+      a: Math.random() * 0.6 + 0.15,
+      tw: Math.random() * 0.014 + 0.003,   // twinkle rate
+      up: Math.random() > 0.5,
+      cool: Math.random() > 0.72,
+    }));
+  }
+
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
+    for (const s of stars) {
+      s.a += s.up ? s.tw : -s.tw;
+      if (s.a >= 0.8) s.up = false;
+      if (s.a <= 0.12) s.up = true;
+      s.y -= s.vy; s.x += s.vx;
+      if (s.y < -2) { s.y = h + 2; s.x = Math.random() * w; }
+      if (s.x < -2) s.x = w + 2;
+      if (s.x > w + 2) s.x = -2;
+
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = s.cool ? cool : warm;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+
+  seed();
+  addEventListener("resize", seed);
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- boot
+
+// The count tracks real progress -- it starts when boot() starts and only
+// completes once the corpus and sidebar have actually loaded, rather than
+// running a fixed timer that pretends to be loading something.
+function preloader() {
+  const el = $("preloader"), pct = $("prePct"), arc = $("preArc");
+  if (!el) return { done: () => {} };
+  const CIRC = 339.29;
+  let shown = 0, target = 8, settled = false;
+
+  const tick = setInterval(() => {
+    // Ease toward the target so the number moves continuously instead of
+    // jumping between the few real milestones.
+    shown += Math.max(0.6, (target - shown) * 0.14);
+    if (shown > target) shown = target;
+    const v = Math.min(100, Math.round(shown));
+    pct.textContent = v + "%";
+    arc.style.strokeDashoffset = String(CIRC - (CIRC * v) / 100);
+    if (settled && v >= 100) {
+      clearInterval(tick);
+      el.classList.add("done");
+      setTimeout(() => el.remove(), 800);
+    }
+  }, 40);
+
+  return {
+    step: (t) => { target = Math.max(target, t); },
+    done: () => { target = 100; settled = true; },
+  };
+}
+
 (async function boot() {
+  const pre = preloader();
+  startCosmos();
+  pre.step(35);
   await Promise.all([loadHealth(), loadSidebar()]);
+  pre.step(92);
+  pre.done();
   $("q").focus();
 })();

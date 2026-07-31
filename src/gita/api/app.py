@@ -183,8 +183,24 @@ app.add_middleware(
 )
 
 if WEB_ROOT.is_dir():
-    app.mount("/static", StaticFiles(directory=WEB_ROOT), name="static")
+    # StaticFiles sends ETag/Last-Modified, but browsers apply heuristic
+    # caching to HTML and JS when no explicit policy is given -- which meant
+    # a returning visitor could keep running yesterday's app.js against
+    # today's markup, with no error to explain the mismatch. There is no
+    # build step here to hash filenames, so the frontend is served
+    # must-revalidate instead: the conditional request still 304s when
+    # nothing changed, so this costs a round trip, not bandwidth.
+    class NoCacheStatic(StaticFiles):
+        def file_response(self, *args, **kwargs):
+            resp = super().file_response(*args, **kwargs)
+            resp.headers["Cache-Control"] = "no-cache, must-revalidate"
+            return resp
+
+    app.mount("/static", NoCacheStatic(directory=WEB_ROOT), name="static")
 
     @app.get("/", include_in_schema=False)
     def index():
-        return FileResponse(WEB_ROOT / "index.html")
+        return FileResponse(
+            WEB_ROOT / "index.html",
+            headers={"Cache-Control": "no-cache, must-revalidate"},
+        )

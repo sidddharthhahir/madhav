@@ -7,6 +7,42 @@
 <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+
+<!-- Drifting starfield + nebula, drawn in app.js. Sits behind the whole
+     shell; purely decorative, and aria-hidden so it is never announced. -->
+<canvas id="cosmos" aria-hidden="true"></canvas>
+
+<!-- Slowly rotating Sudarshana chakra watermark. Sacred geometry rather than
+     generic ornament: the discus is Krishna's, and the 16 spokes give the
+     rotation something to read against. -->
+<div class="chakra-wrap" aria-hidden="true">
+  <svg class="chakra" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="94" class="ck-ring"/>
+    <circle cx="100" cy="100" r="76" class="ck-ring"/>
+    <circle cx="100" cy="100" r="40" class="ck-ring"/>
+    <circle cx="100" cy="100" r="15" class="ck-ring"/>
+    <g class="ck-spokes">
+      <path d="M100 6 L100 194 M6 100 L194 100 M33 33 L167 167 M167 33 L33 167"/>
+      <path d="M100 24 L136 60 L100 96 L64 60 Z"/>
+    </g>
+  </svg>
+</div>
+
+<div id="preloader">
+  <div class="pre-inner">
+    <svg class="pre-chakra" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="54" class="pre-track"/>
+      <circle cx="60" cy="60" r="54" class="pre-arc" id="preArc"/>
+      <g class="pre-spokes">
+        <path d="M60 14 L60 106 M14 60 L106 60 M27 27 L93 93 M93 27 L27 93"/>
+      </g>
+    </svg>
+    <div class="pre-pct" id="prePct">0%</div>
+    <div class="pre-deva">॥ योगः कर्मसु कौशलम् ॥</div>
+    <div class="pre-gloss">yoga is skill in action</div>
+  </div>
+</div>
+
 <div id="app">
 
   <div class="titlebar">

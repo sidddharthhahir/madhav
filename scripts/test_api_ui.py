@@ -71,9 +71,19 @@ def main() -> int:
             a = client.get(asset)
             check("%s 200" % asset, a.status_code == 200, a.status_code)
         css = client.get("/static/styles.css").text
-        check("css has corrected dark muted", "#948F86" in css)
+        # These assert the contrast-checked muted values for the current
+        # cosmic palette. The point of the check is not the specific hex --
+        # it is that --gw-muted is a value someone actually measured against
+        # every surface it lands on, which is the trap CONTINUE.md records
+        # (#8A857D passed on the canvas and failed on the lighter button
+        # surface). Worst measured case here: 5.31:1 dark, 4.83:1 light,
+        # both above the 4.5:1 AA floor. If the palette changes again,
+        # re-measure and update these -- do not delete the check.
+        check("css has contrast-checked dark muted", "#9A9484" in css)
+        check("css has contrast-checked light muted", "#5E5748" in css)
         check("css has light theme", "prefers-color-scheme: light" in css)
         check("css has focus-visible", "focus-visible" in css)
+        check("css respects reduced motion", "prefers-reduced-motion" in css)
         js = client.get("/static/app.js").text
         for path in ("/preview", "/ask", "/verse/", "/chapters", "/health", "/search"):
             check("app.js calls %s" % path, path in js)

@@ -1,52 +1,78 @@
-/* Palette lifted from the Madhav design, including the corrected
-   --gw-muted values that pass WCAG AA at small sizes in both themes. */
+/* ===========================================================================
+   Madhav — cosmic theme.
+
+   The palette is drawn from the Gita's own imagery rather than generic
+   "futuristic" chrome: the deep indigo of Krishna's form and of the night
+   before Kurukshetra, peacock teal from his crown feather, and the gold of
+   temple lamps. Sacred geometry (the Sudarshana chakra) and Devanagari
+   carry the theme; the glass, glow and starfield carry the futurism.
+
+   Every text/surface pair below was checked for WCAG AA (4.5:1) against
+   EVERY background it actually appears on, not just the canvas -- the trap
+   documented in CONTINUE.md, where #8A857D passed on the page but failed on
+   the lighter button surface. Worst case in this palette is 5.31:1 (dark
+   muted on the button surface) and 4.83:1 (light muted on the page).
+   =========================================================================== */
+
 :root {
-  --gw-page: #0B0C0E;
-  --gw-bg: #16181C; --gw-panel: #191C1F; --gw-card: #1B1E22; --gw-card-alt: #1E2126;
-  --gw-input: #1B1E22;
-  --gw-sidebar: rgba(30,33,38,.82);
-  --gw-titlebar-a: #22262C; --gw-titlebar-b: #1C1F24; --gw-titlebar-border: #2A2F36;
-  --gw-btn: #23272D; --gw-btn-hover: #2A2F36; --gw-hover-row: #1F2328;
-  --gw-border: #262A30; --gw-border-strong: #31363D; --gw-rule: #2E333A;
-  --gw-text: #E8E4DC; --gw-text-2: #DAD5CC; --gw-text-3: #C5C0B8;
-  --gw-text-4: #A5A099; --gw-muted: #948F86;
-  --gw-accent: #C89B4A; --gw-accent-fill: #C89B4A; --gw-accent-hover: #DCAE5B;
-  --gw-on-accent: #17130B;
-  --gw-pill-bg: #221E16; --gw-pill-border: #3A3325; --gw-pill-hover: #2E2718;
-  --gw-palette: #22262C; --gw-palette-border: #343941; --gw-overlay: rgba(8,9,10,.55);
-  --gw-warn-bg: #241C13; --gw-warn-border: #4A3A2A;
-  --gw-scroll: #2E333A;
-  --gw-shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.2);
-  --gw-shadow-md: 0 8px 24px rgba(0,0,0,.40), 0 2px 6px rgba(0,0,0,.30);
-  --gw-shadow-lg: 0 30px 80px rgba(0,0,0,.55), 0 8px 24px rgba(0,0,0,.35);
-  --gw-glow: 0 0 0 4px rgba(200,155,74,.14);
-  --gw-ambient: radial-gradient(1200px 600px at 18% -10%, rgba(200,155,74,.07), transparent 60%),
-                radial-gradient(900px 500px at 100% 0%, rgba(120,140,180,.05), transparent 55%);
+  --gw-page: #05060D;
+  --gw-bg: #080A14; --gw-panel: #0C0F1C; --gw-card: #111527; --gw-card-alt: #151A2E;
+  --gw-input: #0E1220;
+  --gw-sidebar: rgba(12,15,28,.72);
+  --gw-titlebar-a: #0D1120; --gw-titlebar-b: #080B16; --gw-titlebar-border: #1E2540;
+  --gw-btn: #1A2038; --gw-btn-hover: #232A48; --gw-hover-row: #161B31;
+  --gw-border: #1C2238; --gw-border-strong: #2A3252; --gw-rule: #232A44;
+  --gw-text: #EFEBE1; --gw-text-2: #DFD9CC; --gw-text-3: #C6BFB1;
+  --gw-text-4: #B0A897; --gw-muted: #9A9484;
+  --gw-accent: #E0B457; --gw-accent-fill: #D4A24C; --gw-accent-hover: #F0C874;
+  --gw-on-accent: #120E05;
+  --gw-teal: #4FD1C5; --gw-teal-dim: #2C8C86;
+  --gw-pill-bg: #1B1B22; --gw-pill-border: #4A3D22; --gw-pill-hover: #262232;
+  --gw-palette: #0E1220; --gw-palette-border: #2A3252; --gw-overlay: rgba(3,4,10,.72);
+  --gw-warn-bg: #1C1710; --gw-warn-border: #4A3A2A;
+  --gw-scroll: #262E4A;
+  --gw-glass: rgba(17,21,39,.62);
+  --gw-glass-edge: rgba(224,180,87,.14);
+  --gw-shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+  --gw-shadow-md: 0 10px 30px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.4);
+  --gw-shadow-lg: 0 40px 100px rgba(0,0,0,.7), 0 10px 30px rgba(0,0,0,.5);
+  --gw-glow: 0 0 0 3px rgba(224,180,87,.22);
+  --gw-glow-teal: 0 0 24px -4px rgba(79,209,197,.45);
+  --gw-star: rgba(224,180,87,.85);
+  --gw-star-2: rgba(79,209,197,.7);
+  --gw-nebula-a: rgba(60,40,120,.30);
+  --gw-nebula-b: rgba(14,90,110,.22);
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --gw-page: #E7E4DD;
-    --gw-bg: #FCFBF8; --gw-panel: #F6F4EF; --gw-card: #FFFFFF; --gw-card-alt: #F8F6F1;
-    --gw-input: #FFFFFF;
-    --gw-sidebar: rgba(243,241,235,.82);
-    --gw-titlebar-a: #F4F2EC; --gw-titlebar-b: #EBE8E1; --gw-titlebar-border: #DCD7CE;
-    --gw-btn: #EFEDE7; --gw-btn-hover: #E5E2DA; --gw-hover-row: #F0EDE6;
-    --gw-border: #E1DDD4; --gw-border-strong: #D5D0C6; --gw-rule: #DCD7CE;
-    --gw-text: #1F1B18; --gw-text-2: #2C2723; --gw-text-3: #3B3630;
-    --gw-text-4: #524D46; --gw-muted: #6B6660;
-    --gw-accent: #8A6320; --gw-accent-fill: #C89B4A; --gw-accent-hover: #B4832F;
-    --gw-on-accent: #17130B;
-    --gw-pill-bg: #F7EFDD; --gw-pill-border: #E2D0A8; --gw-pill-hover: #F1E4C6;
-    --gw-palette: #FFFFFF; --gw-palette-border: #D5D0C6; --gw-overlay: rgba(90,85,76,.32);
-    --gw-warn-bg: #FBF3E2; --gw-warn-border: #E2D0A8;
-    --gw-scroll: #CFCAC0;
-    --gw-shadow-sm: 0 1px 2px rgba(80,70,50,.08), 0 1px 1px rgba(80,70,50,.05);
-    --gw-shadow-md: 0 10px 26px rgba(80,70,50,.10), 0 2px 8px rgba(80,70,50,.06);
-    --gw-shadow-lg: 0 30px 80px rgba(60,50,35,.18), 0 8px 24px rgba(60,50,35,.10);
-    --gw-glow: 0 0 0 4px rgba(138,99,32,.12);
-    --gw-ambient: radial-gradient(1200px 600px at 18% -10%, rgba(200,155,74,.10), transparent 60%),
-                  radial-gradient(900px 500px at 100% 0%, rgba(120,140,180,.06), transparent 55%);
+    --gw-page: #DED7C6;
+    --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
+    --gw-input: #FFFDF7;
+    --gw-sidebar: rgba(242,237,224,.78);
+    --gw-titlebar-a: #F4EFE2; --gw-titlebar-b: #EBE5D5; --gw-titlebar-border: #D8D0BC;
+    --gw-btn: #EDE7D8; --gw-btn-hover: #E3DCC9; --gw-hover-row: #EFE9DA;
+    --gw-border: #DED7C6; --gw-border-strong: #CDC5AF; --gw-rule: #D8D0BC;
+    --gw-text: #1A1710; --gw-text-2: #2A251C; --gw-text-3: #3D372B;
+    --gw-text-4: #4E4739; --gw-muted: #5E5748;
+    --gw-accent: #75540E; --gw-accent-fill: #B98A22; --gw-accent-hover: #8A6512;
+    --gw-on-accent: #FFFDF7;
+    --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
+    --gw-pill-bg: #F5EAD0; --gw-pill-border: #DCC08A; --gw-pill-hover: #EFE0BC;
+    --gw-palette: #FFFDF7; --gw-palette-border: #CDC5AF; --gw-overlay: rgba(70,62,45,.32);
+    --gw-warn-bg: #FAF2DF; --gw-warn-border: #DCC08A;
+    --gw-scroll: #C9C0A9;
+    --gw-glass: rgba(255,253,247,.72);
+    --gw-glass-edge: rgba(117,84,14,.18);
+    --gw-shadow-sm: 0 1px 2px rgba(90,78,50,.10);
+    --gw-shadow-md: 0 10px 30px rgba(90,78,50,.14), 0 2px 8px rgba(90,78,50,.08);
+    --gw-shadow-lg: 0 40px 100px rgba(70,60,38,.22), 0 10px 30px rgba(70,60,38,.12);
+    --gw-glow: 0 0 0 3px rgba(117,84,14,.20);
+    --gw-glow-teal: 0 0 24px -4px rgba(11,95,90,.30);
+    --gw-star: rgba(117,84,14,.55);
+    --gw-star-2: rgba(11,95,90,.45);
+    --gw-nebula-a: rgba(150,130,90,.18);
+    --gw-nebula-b: rgba(90,130,140,.14);
   }
 }
 
@@ -59,24 +85,100 @@ html, body {
                'Helvetica Neue', sans-serif;
   font-size: 14px; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overflow: hidden;
 }
 
-/* A flat single-color page reads as a void at this size. A very soft,
-   off-center glow (warm from the accent, cool from the opposite corner)
-   gives the shell some atmosphere without becoming a visible "effect" --
-   fixed to the viewport so it doesn't scroll or repeat awkwardly. */
-body { background-image: var(--gw-ambient); background-attachment: fixed; }
+/* Two soft nebula fields behind the starfield. Fixed, so they read as depth
+   rather than as something that scrolls with content. */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(1100px 700px at 12% -8%, var(--gw-nebula-a), transparent 62%),
+    radial-gradient(900px 620px at 105% 8%, var(--gw-nebula-b), transparent 58%),
+    radial-gradient(800px 500px at 50% 115%, var(--gw-nebula-a), transparent 60%);
+}
 
-/* Smooth, consistent motion on every interactive surface, applied once
-   here rather than repeated per-component. Transform is included for the
-   hover-lift treatment on buttons, pills and cards. */
+#cosmos {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+}
+
+/* ---------------- sacred geometry watermark ---------------- */
+
+.chakra-wrap {
+  position: fixed; top: 50%; left: 62%; transform: translate(-50%,-50%);
+  width: min(78vh, 900px); height: min(78vh, 900px);
+  pointer-events: none; z-index: 0; opacity: .05;
+}
+.chakra { width: 100%; height: 100%; animation: chakra-spin 190s linear infinite; }
+.ck-ring { fill: none; stroke: var(--gw-accent); stroke-width: .6; }
+.ck-spokes path { fill: none; stroke: var(--gw-accent); stroke-width: .5; }
+@keyframes chakra-spin { to { transform: rotate(360deg); } }
+
+/* ---------------- preloader ---------------- */
+
+#preloader {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(900px 600px at 50% 45%, rgba(60,40,120,.22), transparent 65%),
+    var(--gw-page);
+  transition: opacity .7s ease, visibility .7s ease;
+}
+#preloader.done { opacity: 0; visibility: hidden; }
+.pre-inner { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pre-chakra { width: 132px; height: 132px; }
+.pre-track { fill: none; stroke: var(--gw-border-strong); stroke-width: 1.5; }
+/* r=54 -> circumference 339.29. Offset is driven from JS as the count rises. */
+.pre-arc {
+  fill: none; stroke: var(--gw-accent); stroke-width: 1.5; stroke-linecap: round;
+  stroke-dasharray: 339.29; stroke-dashoffset: 339.29;
+  transform: rotate(-90deg); transform-origin: 60px 60px;
+  transition: stroke-dashoffset .25s ease;
+  filter: drop-shadow(0 0 6px rgba(224,180,87,.55));
+}
+.pre-spokes path {
+  fill: none; stroke: var(--gw-accent); stroke-width: .5; opacity: .30;
+  transform-origin: 60px 60px; animation: chakra-spin 24s linear infinite;
+}
+.pre-pct {
+  margin-top: -84px; margin-bottom: 58px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 21px; font-weight: 600; color: var(--gw-text);
+  letter-spacing: .02em;
+}
+.pre-deva {
+  font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT', serif;
+  font-size: 19px; color: var(--gw-accent); letter-spacing: .04em;
+  opacity: 0; animation: rise-in .9s .35s ease forwards;
+}
+.pre-gloss {
+  font-size: 12px; color: var(--gw-muted); letter-spacing: .14em;
+  text-transform: lowercase;
+  opacity: 0; animation: rise-in .9s .6s ease forwards;
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Motion is decorative here. Anyone who has asked the system to reduce it
+   gets the same information with the movement removed. */
+@media (prefers-reduced-motion: reduce) {
+  .chakra, .pre-spokes path { animation: none; }
+  .pre-deva, .pre-gloss { animation: none; opacity: 1; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
 a, button, .row, .btn, .pill, .provrow, .vcard, textarea#q,
-.historybanner button, .palette li {
-  transition: background-color .16s ease, border-color .16s ease,
-              color .16s ease, box-shadow .16s ease, transform .12s ease;
+.historybanner button, .palette li, .iconbtn {
+  transition: background-color .18s ease, border-color .18s ease,
+              color .18s ease, box-shadow .22s ease, transform .16s ease;
 }
 
-/* Keyboard focus must be visible -- this app is shortcut-driven. */
 :focus-visible,
 button:focus-visible, input:focus-visible, textarea:focus-visible,
 [role="option"]:focus-visible, [tabindex]:focus-visible {
@@ -91,6 +193,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
   background: var(--gw-scroll); border-radius: 6px;
   border: 3px solid transparent; background-clip: content-box;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--gw-border-strong); background-clip: content-box; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------------- shell ---------------- */
@@ -98,69 +201,78 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
 #app {
   height: 100vh; min-width: 1120px;
   display: flex; flex-direction: column;
-  background: var(--gw-bg);
+  background: transparent;
+  position: relative; z-index: 1;
 }
 
 .titlebar {
-  height: 64px; flex: none; display: flex; align-items: center; gap: 10px;
+  height: 66px; flex: none; display: flex; align-items: center; gap: 10px;
   padding: 0 16px 0 20px;
   background: linear-gradient(var(--gw-titlebar-a), var(--gw-titlebar-b));
   border-bottom: 1px solid var(--gw-titlebar-border);
   box-shadow: var(--gw-shadow-sm);
-  position: relative; z-index: 2;
+  position: relative; z-index: 3;
+}
+/* A hairline of light along the bottom edge, brightest under the brand --
+   suggests a light source in the room rather than a flat cut. */
+.titlebar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg,
+    transparent, var(--gw-accent) 12%, var(--gw-teal) 45%, transparent 78%);
+  opacity: .35;
 }
 
 .brand { display: flex; align-items: center; gap: 11px; }
 
-/* The brand lockup was drawn for a light background: a dark teal wordmark
-   inside a white circle, with an opaque white backdrop (no transparency in
-   the source PNG). Dropped straight onto the dark titlebar it reads as a
-   white rectangle, so it sits on its own rounded light tile instead. That
-   honours the artwork's intended contrast rather than fighting it. */
 .logochip {
   display: flex; align-items: center; justify-content: center; flex: none;
-  width: 46px; height: 46px; border-radius: 11px;
+  width: 46px; height: 46px; border-radius: 13px;
   background: #FFFFFF;
-  box-shadow: 0 1px 0 rgba(255,255,255,.14), 0 2px 8px rgba(0,0,0,.35);
+  box-shadow: 0 0 0 1px var(--gw-glass-edge), 0 4px 16px rgba(0,0,0,.45),
+              0 0 22px -6px rgba(224,180,87,.5);
   overflow: hidden;
 }
 .logochip img { display: block; width: 40px; height: 40px; }
-
-/* On a light background the tile is redundant, so it disappears. */
 @media (prefers-color-scheme: light) {
   .logochip { background: transparent; box-shadow: none; }
 }
 
 .wordmark {
-  font-size: 18px; font-weight: 680; letter-spacing: .01em;
-  background: linear-gradient(135deg, var(--gw-text) 40%, var(--gw-accent) 160%);
+  font-size: 19px; font-weight: 700; letter-spacing: .012em;
+  background: linear-gradient(112deg, var(--gw-text) 26%, var(--gw-accent) 74%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .tagline {
   font-size: 11px; color: var(--gw-muted);
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: .02em;
 }
 
 .btn {
-  height: 28px; padding: 0 10px; background: var(--gw-btn);
-  border: 1px solid var(--gw-border-strong); border-radius: 7px;
+  height: 30px; padding: 0 12px; background: var(--gw-btn);
+  border: 1px solid var(--gw-border-strong); border-radius: 8px;
   color: var(--gw-text-4); font-family: inherit; font-size: 12px; cursor: pointer;
   box-shadow: var(--gw-shadow-sm);
 }
-.btn:hover { background: var(--gw-btn-hover); color: var(--gw-text); transform: translateY(-1px); }
+.btn:hover {
+  background: var(--gw-btn-hover); color: var(--gw-text);
+  border-color: var(--gw-accent); transform: translateY(-1px);
+  box-shadow: var(--gw-shadow-sm), 0 0 18px -6px rgba(224,180,87,.5);
+}
 .btn:active { transform: translateY(0); }
 .btn.ghost { background: transparent; box-shadow: none; }
-.btn.ghost:hover { box-shadow: var(--gw-shadow-sm); }
 .btn.primary {
-  background: linear-gradient(160deg, var(--gw-accent-hover), var(--gw-accent-fill));
+  background: linear-gradient(150deg, var(--gw-accent-hover), var(--gw-accent-fill));
   border: none; color: var(--gw-on-accent);
-  font-weight: 590; font-size: 13px; height: 32px; width: 100%;
-  box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 6px 16px -6px rgba(200,155,74,.55);
+  font-weight: 640; font-size: 13px; height: 34px; width: 100%;
+  letter-spacing: .01em;
+  box-shadow: 0 1px 0 rgba(255,255,255,.22) inset,
+              0 8px 22px -8px rgba(212,162,76,.75);
 }
 .btn.primary:hover {
-  background: linear-gradient(160deg, var(--gw-accent-hover), var(--gw-accent-hover));
-  color: var(--gw-on-accent); transform: translateY(-1px);
-  box-shadow: 0 1px 0 rgba(255,255,255,.22) inset, 0 10px 22px -6px rgba(200,155,74,.65);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 rgba(255,255,255,.28) inset,
+              0 12px 30px -8px rgba(212,162,76,.9);
 }
 .btn.primary:active { transform: translateY(0); }
 .kbd {
@@ -173,36 +285,34 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
 /* ---------------- sidebar ---------------- */
 
 .sidebar {
-  width: 240px; flex: none;
+  width: 244px; flex: none;
   background: var(--gw-sidebar);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(160%) blur(22px);
+  -webkit-backdrop-filter: saturate(160%) blur(22px);
   border-right: 1px solid var(--gw-border);
   box-shadow: var(--gw-shadow-md);
   display: flex; flex-direction: column; min-height: 0;
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;
 }
-.sidebar .scroll { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+.sidebar .scroll { flex: 1; overflow-y: auto; padding: 4px 8px 14px; }
 .grouplabel {
-  padding: 14px 6px 6px; font-size: 11px; font-weight: 640;
-  letter-spacing: .09em; text-transform: uppercase; color: var(--gw-muted);
+  padding: 16px 6px 6px; font-size: 10px; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--gw-muted);
 }
 .row {
   display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 6px 8px 6px 10px; border: none; border-radius: 7px;
+  padding: 7px 8px 7px 11px; border: none; border-radius: 8px;
   background: transparent; color: var(--gw-text-3);
   font-family: inherit; font-size: 13px; text-align: left; cursor: pointer;
   position: relative;
 }
-/* A thin accent bar on the leading edge, not just a background tint --
-   reads faster than a colour change alone, especially for the active
-   chapter/history row when scanning a long list. */
 .row::before {
-  content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 2px;
-  border-radius: 2px; background: var(--gw-accent); opacity: 0;
-  transition: opacity .16s ease;
+  content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 2px;
+  border-radius: 2px; background: linear-gradient(var(--gw-accent), var(--gw-teal));
+  opacity: 0; transition: opacity .18s ease;
 }
 .row:hover { background: var(--gw-hover-row); color: var(--gw-text); }
+.row:hover::before { opacity: .55; }
 .row.active { background: var(--gw-btn); color: var(--gw-text); }
 .row.active::before { opacity: 1; }
 .row .num {
@@ -218,73 +328,72 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
 /* ---------------- centre ---------------- */
 
 .centre { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; }
-.centre-inner { padding: 28px 36px 60px; width: 100%; }
+.centre-inner { padding: 30px 40px 70px; width: 100%; }
 .measure { max-width: 68ch; }
 
 .asklabel {
-  font-size: 11px; font-weight: 640; letter-spacing: .09em;
+  font-size: 10px; font-weight: 700; letter-spacing: .18em;
   text-transform: uppercase; color: var(--gw-muted); margin-bottom: 10px;
 }
 textarea#q {
-  width: 100%; max-width: 68ch; min-height: 76px; resize: vertical;
-  background: var(--gw-input); color: var(--gw-text);
-  border: 1px solid var(--gw-border-strong); border-radius: 10px;
-  padding: 12px 14px; font-family: inherit; font-size: 15px; line-height: 1.55;
+  width: 100%; max-width: 68ch; min-height: 78px; resize: vertical;
+  background: var(--gw-glass); color: var(--gw-text);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--gw-border-strong); border-radius: 13px;
+  padding: 13px 15px; font-family: inherit; font-size: 15px; line-height: 1.55;
   box-shadow: var(--gw-shadow-sm);
 }
 textarea#q::placeholder { color: var(--gw-muted); }
 textarea#q:focus {
   outline: none; border-color: var(--gw-accent);
-  box-shadow: var(--gw-glow), var(--gw-shadow-sm);
+  box-shadow: var(--gw-glow), 0 0 30px -10px rgba(224,180,87,.55);
 }
-/* The UI chrome stays sans-serif throughout; the answer is the one place
-   that's actually meant to be read at length, so it gets a serif built for
-   long-form text rather than borrowing the interface font -- the same
-   reasoning the inspector's translation panes already used, extended to
-   the primary content instead of just the reference material. */
+
 .answer {
   font-family: ui-serif, 'New York', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
-  font-size: 17px; line-height: 1.7; color: var(--gw-text-2);
-  max-width: 68ch; margin-top: 26px; white-space: pre-wrap;
-  letter-spacing: .001em;
+  font-size: 17.5px; line-height: 1.72; color: var(--gw-text-2);
+  max-width: 68ch; margin-top: 28px; white-space: pre-wrap;
 }
-.answer p { margin: 0 0 15px; }
+/* Paragraphs rise in one after another as the answer lands, so a finished
+   answer arrives as a considered response rather than a wall appearing at
+   once. Indices are set inline by renderAnswer(). */
+.answer p {
+  margin: 0 0 16px;
+  opacity: 0; animation: rise-in .5s ease forwards;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
 
-/* The signature component. inline-block rather than inline so the hover
-   lift (a transform) actually applies -- transforms on plain inline boxes
-   are unreliable across browsers -- while still wrapping naturally inside
-   the surrounding paragraph text. */
 .pill {
-  display: inline-block; padding: 1px 6px; margin: 0 1px;
+  display: inline-block; padding: 1px 7px; margin: 0 1px;
   background: var(--gw-pill-bg); border: 1px solid var(--gw-pill-border);
-  border-radius: 5px; color: var(--gw-accent);
+  border-radius: 6px; color: var(--gw-accent);
   font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px;
   cursor: pointer;
 }
 .pill:hover {
   background: var(--gw-pill-hover); border-color: var(--gw-accent);
-  transform: translateY(-1px); box-shadow: var(--gw-shadow-sm);
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px -4px rgba(224,180,87,.6);
 }
 
-.provenance { margin-top: 32px; max-width: 68ch; }
+.provenance { margin-top: 34px; max-width: 68ch; }
 .provhead {
   display: flex; align-items: center; gap: 10px;
   padding-bottom: 8px; border-bottom: 1px solid var(--gw-rule);
 }
 .provhead .t {
-  font-size: 11px; font-weight: 640; letter-spacing: .09em;
+  font-size: 10px; font-weight: 700; letter-spacing: .18em;
   text-transform: uppercase; color: var(--gw-muted);
 }
 .provhead .n { font-size: 12px; color: var(--gw-muted); margin-left: auto; }
 .provrow {
   display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 7px 8px; border: none; background: transparent;
-  border-radius: 7px; cursor: pointer; font-family: inherit;
+  padding: 8px; border: none; background: transparent;
+  border-radius: 8px; cursor: pointer; font-family: inherit;
   color: var(--gw-text-3); font-size: 13px; text-align: left;
 }
 .provrow:hover {
-  background: var(--gw-hover-row); color: var(--gw-text);
-  transform: translateX(2px);
+  background: var(--gw-hover-row); color: var(--gw-text); transform: translateX(3px);
 }
 .provrow .rank, .provrow .score {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -296,23 +405,23 @@ textarea#q:focus {
 .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
 
 .notice {
-  margin-top: 22px; max-width: 68ch; padding: 12px 14px;
+  margin-top: 22px; max-width: 68ch; padding: 13px 15px;
   background: var(--gw-warn-bg); border: 1px solid var(--gw-warn-border);
   border-left: 3px solid var(--gw-accent);
-  border-radius: 4px 9px 9px 4px; box-shadow: var(--gw-shadow-sm);
+  border-radius: 4px 11px 11px 4px; box-shadow: var(--gw-shadow-sm);
   font-size: 13px; color: var(--gw-text-3); line-height: 1.55;
 }
 
 /* Marks a restored past answer as distinct from a live, in-progress one --
-   without this, clicking a history row and getting the same answer text back
-   in the same pane (with the old question sitting in the editable box, as it
-   used to) is indistinguishable from an ongoing, editable conversation. The
-   question itself is shown here as read-only text, never written into #q. */
+   the question itself is shown here as read-only text, never written into
+   #q, so a saved answer can't be mistaken for an editable conversation. */
 .historybanner {
   display: none; flex-direction: column; gap: 8px; margin-top: 18px;
-  padding: 10px 14px; border-radius: 4px 8px 8px 4px;
-  background: var(--gw-card-alt); border: 1px solid var(--gw-border);
+  padding: 11px 15px; border-radius: 4px 11px 11px 4px;
+  background: var(--gw-glass); border: 1px solid var(--gw-border);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border-left: 3px solid var(--gw-accent); box-shadow: var(--gw-shadow-sm);
+  max-width: 68ch;
 }
 .historybanner.show { display: flex; }
 .historybanner .hb-meta {
@@ -320,7 +429,8 @@ textarea#q:focus {
   font-size: 12.5px; color: var(--gw-muted);
 }
 .historybanner .hdot {
-  width: 6px; height: 6px; border-radius: 50%; background: var(--gw-accent); flex: none;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--gw-accent);
+  flex: none; box-shadow: 0 0 10px rgba(224,180,87,.9);
 }
 .historybanner button {
   margin-left: auto; background: none; border: none; color: var(--gw-accent);
@@ -334,51 +444,59 @@ textarea#q:focus {
 /* ---------------- inspector ---------------- */
 
 .inspector {
-  width: 400px; flex: none; background: var(--gw-panel);
+  width: 408px; flex: none;
+  background: var(--gw-sidebar);
+  backdrop-filter: saturate(160%) blur(22px);
+  -webkit-backdrop-filter: saturate(160%) blur(22px);
   border-left: 1px solid var(--gw-border);
   box-shadow: var(--gw-shadow-md);
   display: flex; flex-direction: column; min-height: 0;
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;
 }
 .insphead {
-  height: 40px; flex: none; display: flex; align-items: center; gap: 8px;
-  padding: 0 14px; border-bottom: 1px solid var(--gw-border);
+  height: 42px; flex: none; display: flex; align-items: center; gap: 8px;
+  padding: 0 15px; border-bottom: 1px solid var(--gw-border);
 }
 .insphead .t {
-  font-size: 11px; font-weight: 640; letter-spacing: .09em;
+  font-size: 10px; font-weight: 700; letter-spacing: .18em;
   text-transform: uppercase; color: var(--gw-muted);
 }
 .inspscroll { flex: 1; overflow-y: auto; }
 .vcard {
   border-bottom: 1px solid var(--gw-border);
-  background: var(--gw-card);
+  background: linear-gradient(var(--gw-card), var(--gw-panel));
+  animation: rise-in .4s ease;
 }
-.vtop {
-  display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px;
-}
+.vtop { display: flex; align-items: center; gap: 8px; padding: 13px 15px 9px; }
 .vref {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12.5px; color: var(--gw-accent); font-weight: 600;
   background: var(--gw-pill-bg); border: 1px solid var(--gw-pill-border);
-  padding: 2px 7px; border-radius: 5px;
+  padding: 3px 8px; border-radius: 6px;
 }
 .vtitle { font-size: 12px; color: var(--gw-muted); overflow: hidden;
           text-overflow: ellipsis; white-space: nowrap; }
 .iconbtn {
-  width: 24px; height: 24px; flex: none; border-radius: 6px;
+  width: 25px; height: 25px; flex: none; border-radius: 7px;
   border: 1px solid var(--gw-rule); background: transparent;
   color: var(--gw-muted); font-family: inherit; font-size: 12px; cursor: pointer;
 }
-.iconbtn:hover { color: var(--gw-text); background: var(--gw-btn); }
+.iconbtn:hover {
+  color: var(--gw-accent); background: var(--gw-btn); border-color: var(--gw-accent);
+}
 
+/* The verse itself is the reason the app exists -- it gets the most
+   deliberate typographic treatment on the page: larger, warmer, and lit
+   from the left by a gold rule. */
 .sanskrit {
-  padding: 4px 14px 10px;
+  padding: 6px 15px 12px; margin: 0 15px 2px 0;
+  border-left: 2px solid var(--gw-accent); padding-left: 13px; margin-left: 15px;
   font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT',
                ui-serif, serif;
-  font-size: 17px; line-height: 1.75; color: var(--gw-text);
+  font-size: 18px; line-height: 1.85; color: var(--gw-text);
 }
 .iast {
-  padding: 0 14px 12px;
+  padding: 0 15px 13px;
   font-family: ui-serif, 'New York', Georgia, serif;
   font-style: italic; font-size: 13.5px; line-height: 1.6; color: var(--gw-muted);
 }
@@ -387,22 +505,24 @@ textarea#q:focus {
   display: grid; grid-template-columns: 1fr 1px 1fr;
 }
 .tgrid .sep { background: var(--gw-border); }
-.tcol { padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
+.tcol { padding: 13px 15px; display: flex; flex-direction: column; gap: 7px; }
 .tlabel {
-  font-size: 11px; font-weight: 640; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--gw-muted);
+  font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--gw-teal);
 }
 .tbody {
   font-family: ui-serif, 'New York', Georgia, serif;
-  font-size: 14px; line-height: 1.55; color: var(--gw-text-2);
+  font-size: 14px; line-height: 1.58; color: var(--gw-text-2);
 }
 .plainbox {
-  border-top: 1px solid var(--gw-border); padding: 12px 14px;
-  display: flex; flex-direction: column; gap: 6px; background: var(--gw-card-alt);
+  border-top: 1px solid var(--gw-border); padding: 13px 15px;
+  display: flex; flex-direction: column; gap: 6px;
+  background: linear-gradient(var(--gw-card-alt), transparent);
 }
-.plaintext { font-size: 13.5px; line-height: 1.55; color: var(--gw-text-3); }
+.plainbox .tlabel { color: var(--gw-accent); }
+.plaintext { font-size: 13.5px; line-height: 1.58; color: var(--gw-text-3); }
 .empty {
-  padding: 26px 18px; display: flex; flex-direction: column; gap: 8px;
+  padding: 28px 20px; display: flex; flex-direction: column; gap: 8px;
   color: var(--gw-muted); font-size: 13px; line-height: 1.55;
 }
 
@@ -410,48 +530,51 @@ textarea#q:focus {
 
 .overlay {
   position: fixed; inset: 0; background: var(--gw-overlay);
-  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   display: flex; align-items: flex-start; justify-content: center;
   padding-top: 14vh; z-index: 50;
-  animation: overlay-in .12s ease-out;
+  animation: overlay-in .16s ease-out;
 }
 .palette {
-  width: 560px; background: var(--gw-palette);
-  border: 1px solid var(--gw-palette-border); border-radius: 12px;
-  box-shadow: var(--gw-shadow-lg); overflow: hidden;
-  animation: palette-in .14s cubic-bezier(.2,.8,.3,1);
+  width: 580px; background: var(--gw-palette);
+  border: 1px solid var(--gw-palette-border); border-radius: 16px;
+  box-shadow: var(--gw-shadow-lg), 0 0 0 1px var(--gw-glass-edge);
+  overflow: hidden;
+  animation: palette-in .2s cubic-bezier(.2,.9,.3,1);
 }
 @keyframes overlay-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes palette-in {
-  from { opacity: 0; transform: translateY(-6px) scale(.985) }
+  from { opacity: 0; transform: translateY(-10px) scale(.97) }
   to   { opacity: 1; transform: translateY(0) scale(1) }
 }
 .palette input {
-  width: 100%; padding: 14px 16px; background: transparent; border: none;
+  width: 100%; padding: 15px 17px; background: transparent; border: none;
   border-bottom: 1px solid var(--gw-palette-border);
   color: var(--gw-text); font-family: inherit; font-size: 15px;
 }
 .palette input:focus { outline: none; }
-.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 320px; overflow-y: auto; }
+.palette ul { list-style: none; margin: 0; padding: 7px; max-height: 320px; overflow-y: auto; }
 .palette li {
-  display: flex; align-items: center; gap: 10px; padding: 9px 10px;
-  border-radius: 7px; cursor: pointer; font-size: 13px; color: var(--gw-text-3);
+  display: flex; align-items: center; gap: 10px; padding: 10px;
+  border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--gw-text-3);
 }
-.palette li[aria-selected="true"] { background: var(--gw-btn); color: var(--gw-text); }
+.palette li[aria-selected="true"] {
+  background: var(--gw-btn); color: var(--gw-text);
+  box-shadow: inset 2px 0 0 var(--gw-accent);
+}
 .palette li .lref {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px; color: var(--gw-accent); width: 66px; flex: none;
 }
 .palette li .lhint { margin-left: auto; font-size: 11px; color: var(--gw-muted); }
 .palette .pfoot {
-  border-top: 1px solid var(--gw-palette-border); padding: 8px 16px;
+  border-top: 1px solid var(--gw-palette-border); padding: 9px 17px;
   display: flex; gap: 16px;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px; color: var(--gw-muted);
 }
 
-/* A gradient sweep reading as "in progress" rather than a flat blink --
-   the highlight band moves left to right through the label text. */
+/* A gradient sweep reading as "in progress" rather than a flat blink. */
 .spin {
   display: inline-block;
   background: linear-gradient(90deg,
@@ -470,23 +593,23 @@ textarea#q:focus {
 /* ---------------------------------------------------------------- print */
 /* Export PDF uses the browser's native print-to-PDF rather than a library --
    it already handles pagination, fonts (including Hindi/Gujarati answers),
-   and quality correctly, which a hand-rolled PDF writer would not. This is
-   what actually prints: everything else on the page is hidden, and only the
-   question/answer/citations render, in a fixed light theme regardless of the
-   on-screen dark/light setting, since printed output should not assume a
-   dark background. */
+   and quality correctly. Everything decorative is dropped and the output is
+   forced to a light theme, since printed output should not assume a dark
+   background or carry a starfield. */
 .printonly { display: none; }
 
 @media print {
   .titlebar, .sidebar, .inspector, #notice, .provenance, #q,
-  .asklabel, .noprint { display: none !important; }
+  .asklabel, .noprint, #cosmos, .chakra-wrap, #preloader { display: none !important; }
 
   html, body, #app, .body, .centre, .centre-inner, .answer {
     background: #fff !important; color: #111 !important;
   }
+  body::before { display: none !important; }
+  html, body { overflow: visible !important; }
   .centre { display: block !important; }
   .centre-inner { max-width: 100% !important; padding: 0 !important; }
-  .answer p { color: #111 !important; }
+  .answer p { color: #111 !important; opacity: 1 !important; animation: none !important; }
   .pill {
     border: 1px solid #999 !important; background: #f0f0f0 !important;
     color: #111 !important;
