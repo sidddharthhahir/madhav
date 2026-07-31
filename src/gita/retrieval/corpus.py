@@ -19,6 +19,29 @@ from .bm25 import BM25, Doc
 COMMENTARY_CHARS = 1500
 
 
+# MEASURED: "stance" is generated and stored but deliberately NOT indexed.
+#
+# It was added to fix two audited failures where retrieval could not tell "I
+# feel worthless next to everyone" from "I think I am better than everyone" --
+# both are about comparison and status. The enrichment does produce exactly
+# the right text ("a warning to the arrogant, NOT comfort for the humble").
+# Indexing it changed nothing: 54/41/11 with it, 55/39/12 without, which is
+# one question moving inside noise.
+#
+# The reason is mechanical, and worth remembering before trying this again in
+# another form. Neither ranker represents negation. BM25 is bag-of-words, so
+# "not comfort for the humble" contributes the tokens `comfort` and `humble`
+# and ATTRACTS the very query it was written to repel. A sentence embedding
+# averages its tokens, so a negated clause lands near what it negates rather
+# than away from it. Stance is a statement about which queries should NOT
+# match, and neither method can express that.
+#
+# The field is kept because it is generated, paid for, and is the right input
+# for a reranker -- a model reading the text can act on the negation that
+# neither index can. See CONTINUE.md.
+STANCE_INDEXED = False
+INDEXED_FIELDS = ("themes", "situations", "emotions", "keywords")
+
 @dataclass
 class VerseRecord:
     verse_id: str
@@ -66,7 +89,7 @@ def load_verses(conn) -> dict[str, VerseRecord]:
             rec.other_langs[row["lang"]] = row["body"]
 
     for row in conn.execute(
-        """SELECT verse_id, summary, themes, situations, emotions, keywords
+        """SELECT verse_id, summary, themes, situations, emotions, stance, keywords
              FROM enrichment"""
     ):
         rec = records.get(row["verse_id"])
@@ -77,6 +100,7 @@ def load_verses(conn) -> dict[str, VerseRecord]:
             "themes": json.loads(row["themes"] or "[]"),
             "situations": json.loads(row["situations"] or "[]"),
             "emotions": json.loads(row["emotions"] or "[]"),
+            "stance": json.loads(row["stance"] or "[]"),
             "keywords": json.loads(row["keywords"] or "[]"),
         }
     return records
@@ -92,8 +116,8 @@ def searchable_text(rec: VerseRecord) -> str:
         # Themes/situations/emotions/keywords repeated once each is enough --
         # BM25 saturates term frequency, so duplicating them to "boost" the
         # signal buys almost nothing and distorts length normalisation.
-        for key in ("themes", "situations", "emotions", "keywords"):
-            parts.extend(e[key])
+        for key in INDEXED_FIELDS:
+            parts.extend(e.get(key, []))
 
     parts.extend(rec.translations.values())
     for body in rec.commentary.values():
@@ -115,8 +139,8 @@ def dense_text(rec: VerseRecord) -> str:
     if rec.enrichment:
         e = rec.enrichment
         parts = [e["summary"]]
-        for key in ("themes", "situations", "emotions", "keywords"):
-            parts.extend(e[key])
+        for key in INDEXED_FIELDS:
+            parts.extend(e.get(key, []))
         return "\n".join(p for p in parts if p)
     return "\n".join(rec.translations.values())
 

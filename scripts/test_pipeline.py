@@ -10,7 +10,9 @@ without a credential and without spending anything.
 """
 
 import json
+import shutil
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -18,7 +20,20 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gita.answer import generate as G  # noqa: E402
-from gita.pipeline import Pipeline  # noqa: E402
+from gita.pipeline import Pipeline as _Pipeline  # noqa: E402
+
+# Every Pipeline here gets a throwaway personal store. Two reasons, both
+# learned the hard way: the plan cache lives in that store, so a cached plan
+# from an earlier run silently skipped the stub's understand() call and this
+# suite started asserting against a call that never happened; and the history
+# rows these tests create were landing in the real sidebar, which meant the
+# suite had to remember to delete after itself and got it wrong once.
+_TMPDIR = tempfile.mkdtemp(prefix="madhav-test-")
+
+
+def Pipeline(*a, **kw):
+    kw.setdefault("local_db_path", Path(_TMPDIR) / "local.sqlite3")
+    return _Pipeline(*a, **kw)
 
 
 # --- stub client ---------------------------------------------------------
@@ -249,13 +264,6 @@ def main() -> int:
           repr(logged["answer"]))
     check("citations logged", logged["citations"] == result.citations,
           str(logged["citations"]))
-    # This suite runs against the real store, not a fixture, so it has to
-    # leave no trace. Targets `local` (where history now lives) and matches
-    # on the question rather than MAX(id) -- deleting the highest id would
-    # remove whatever the person using the app asked most recently if this
-    # ever ran while the server was up.
-    pipeline.local.execute("DELETE FROM history WHERE question = ?", (QUESTION,))
-    pipeline.local.commit()
     pipeline.close()
 
     # 11. Streaming keeps the citation guarantee -------------------------
@@ -291,10 +299,8 @@ def main() -> int:
     check("status is citation_validation_failed",
           result.status == "citation_validation_failed", result.status)
 
-    # Both streaming cases record history, same as /ask -- clean up.
-    p = Pipeline()
-    p.local.execute("DELETE FROM history WHERE question = ?", (QUESTION,))
-    p.local.commit(); p.close()
+
+    shutil.rmtree(_TMPDIR, ignore_errors=True)
 
     print()
     if failures:

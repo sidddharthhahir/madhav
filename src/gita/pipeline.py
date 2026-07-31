@@ -6,6 +6,7 @@ story to manage and no vector database to operate.
 """
 
 import datetime as dt
+import hashlib
 import json
 import threading
 import time
@@ -271,7 +272,7 @@ class Pipeline:
 
         t0 = time.perf_counter()
         try:
-            plan = G.understand(question, client=self.client, model=self.model)
+            plan, _cached = self.understand_cached(question)
         except G.MissingCredentialsError as exc:
             return AnswerResult(question, "", "en", [], ok=False,
                                 status="no_credentials", detail=str(exc))
@@ -340,6 +341,91 @@ class Pipeline:
             usage=generated.usage, timings=timings, plan=asdict(plan),
         )
 
+    def delete_history(self, entry_id: int) -> bool:
+        with self._conn_lock:
+            cur = self.local.execute("DELETE FROM history WHERE id=?", (entry_id,))
+            self.local.commit()
+        return cur.rowcount > 0
+
+    def clear_history(self) -> int:
+        """Also drops the answer cache: leaving cached answers behind after
+        someone clears their history would quietly keep the text they asked to
+        remove, which is not what 'clear' means to the person clicking it."""
+        with self._conn_lock:
+            n = self.local.execute("SELECT COUNT(*) FROM history").fetchone()[0]
+            self.local.execute("DELETE FROM history")
+            self.local.execute("DELETE FROM answer_cache")
+            self.local.execute("DELETE FROM plan_cache")
+            self.local.commit()
+        return n
+
+    # -- caches ------------------------------------------------------------
+
+    @staticmethod
+    def _norm(question: str) -> str:
+        """Whitespace and case folded so trivial edits still hit the cache."""
+        return " ".join(question.lower().split())
+
+    def _plan_key(self, question: str) -> str:
+        return hashlib.sha256(
+            ("%s|%s" % (self.model, self._norm(question))).encode()).hexdigest()
+
+    def _answer_key(self, question: str, k: int) -> str:
+        from .answer import prompts as _P
+        # The prompt text is part of the key: an answer written to older
+        # instructions must not be served after the prompt changes.
+        stamp = hashlib.sha256(
+            (_P.ANSWER_SYSTEM + _P.QUERY_SYSTEM).encode()).hexdigest()[:16]
+        return hashlib.sha256(
+            ("%s|%s|%d|%s" % (self.model, stamp, k, self._norm(question))).encode()
+        ).hexdigest()
+
+    def cached_plan(self, question: str):
+        with self._conn_lock:
+            row = self.local.execute(
+                "SELECT plan FROM plan_cache WHERE key=?",
+                (self._plan_key(question),)).fetchone()
+        if not row:
+            return None
+        return G.QueryPlan(**json.loads(row["plan"]))
+
+    def store_plan(self, question: str, plan) -> None:
+        with self._conn_lock:
+            self.local.execute(
+                """INSERT INTO plan_cache (key, question, plan, cached_at)
+                   VALUES (?, ?, ?, ?) ON CONFLICT(key) DO NOTHING""",
+                (self._plan_key(question), question, json.dumps(asdict(plan)),
+                 dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")))
+            self.local.commit()
+
+    def cached_answer(self, question: str, k: int):
+        with self._conn_lock:
+            row = self.local.execute(
+                "SELECT result FROM answer_cache WHERE key=?",
+                (self._answer_key(question, k),)).fetchone()
+        return json.loads(row["result"]) if row else None
+
+    def store_answer(self, question: str, k: int, result: "AnswerResult") -> None:
+        if not result.ok:
+            return                      # never cache a failure
+        with self._conn_lock:
+            self.local.execute(
+                """INSERT INTO answer_cache (key, question, result, cached_at)
+                   VALUES (?, ?, ?, ?) ON CONFLICT(key) DO NOTHING""",
+                (self._answer_key(question, k), question,
+                 json.dumps(result.to_dict()),
+                 dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")))
+            self.local.commit()
+
+    def understand_cached(self, question: str):
+        """understand(), served from cache when the same question repeats."""
+        hit = self.cached_plan(question)
+        if hit is not None:
+            return hit, True
+        plan = G.understand(question, client=self.client, model=self.model)
+        self.store_plan(question, plan)
+        return plan, False
+
     # -- streaming ---------------------------------------------------------
 
     def ask_stream(self, question: str, *, k: int | None = None):
@@ -369,7 +455,7 @@ class Pipeline:
         yield ("stage", {"name": "understanding"})
         t0 = time.perf_counter()
         try:
-            plan = G.understand(question, client=self.client, model=self.model)
+            plan, _cached = self.understand_cached(question)
         except G.MissingCredentialsError as exc:
             yield ("failed", AnswerResult(question, "", "en", [], ok=False,
                                           status="no_credentials", detail=str(exc)))

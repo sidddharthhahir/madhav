@@ -238,12 +238,13 @@ def collect(conn, batch_id: str) -> dict:
 
         conn.execute(
             """INSERT INTO enrichment (verse_id, summary, themes, situations,
-                                       emotions, keywords, model, prompt_hash,
-                                       generated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                       emotions, stance, keywords, model,
+                                       prompt_hash, generated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(verse_id) DO UPDATE SET
                  summary=excluded.summary, themes=excluded.themes,
                  situations=excluded.situations, emotions=excluded.emotions,
+                 stance=excluded.stance,
                  keywords=excluded.keywords, model=excluded.model,
                  prompt_hash=excluded.prompt_hash,
                  generated_at=excluded.generated_at""",
@@ -251,6 +252,7 @@ def collect(conn, batch_id: str) -> dict:
              json.dumps(record["themes"], ensure_ascii=False),
              json.dumps(record["situations"], ensure_ascii=False),
              json.dumps(record["emotions"], ensure_ascii=False),
+             json.dumps(record.get("stance", []), ensure_ascii=False),
              json.dumps(record["keywords"], ensure_ascii=False),
              model, phash, generated_at),
         )

@@ -690,6 +690,67 @@ textarea#q:focus {
   100% { background-position: -120% 0 }
 }
 
+/* ---------------- history controls, examples ---------------- */
+
+.histrow { display: flex; align-items: center; gap: 2px; }
+.histrow .row { flex: 1; min-width: 0; }
+/* Hidden until the row is hovered or the button itself has keyboard focus --
+   a delete control on every row at all times turns the sidebar into a wall of
+   crosses, but hiding it from the keyboard entirely would make the feature
+   mouse-only. */
+.delbtn {
+  flex: none; width: 22px; height: 22px; border: none; border-radius: 6px;
+  background: transparent; color: var(--gw-muted); cursor: pointer;
+  font-size: 15px; line-height: 1; opacity: 0;
+  transition: opacity .15s ease, color .15s ease, background-color .15s ease;
+}
+.histrow:hover .delbtn, .delbtn:focus-visible { opacity: 1; }
+.delbtn:hover { color: var(--gw-text); background: var(--gw-btn); }
+
+.clearall {
+  width: 100%; margin-top: 6px; padding: 5px 8px; border: none;
+  border-radius: 7px; background: transparent; color: var(--gw-muted);
+  font-family: inherit; font-size: 11.5px; text-align: left; cursor: pointer;
+}
+.clearall:hover { background: var(--gw-hover-row); color: var(--gw-text); }
+
+.examples { margin-top: 30px; max-width: 68ch; }
+.ex-lead { font-size: 13.5px; color: var(--gw-muted); margin-bottom: 12px; }
+.ex {
+  display: block; width: 100%; text-align: left; margin-bottom: 8px;
+  padding: 11px 14px; border-radius: 10px; cursor: pointer;
+  background: var(--gw-glass); border: 1px solid var(--gw-border);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--gw-text-3);
+  font-family: ui-serif, 'New York', Georgia, serif; font-size: 15.5px;
+  transition: background-color .16s ease, border-color .16s ease,
+              color .16s ease, transform .14s ease;
+}
+.ex:hover {
+  border-color: var(--gw-accent); color: var(--gw-text);
+  transform: translateX(3px);
+}
+
+/* Bars, not a number. The raw score's SCALE changes with configuration --
+   RRF fusion produces ~0.03 while unfused BM25 produces ~50 -- so the digits
+   were never comparable between states, and a reader has no use for either. */
+.provrow .score {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: -1px; color: var(--gw-accent); opacity: .65;
+}
+
+/* Only meaningful once the panels are drawers; hidden on desktop where both
+   are always visible and closing them is what the toolbar toggle is for. */
+.drawerclose {
+  display: none; position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--gw-border-strong); background: var(--gw-btn);
+  color: var(--gw-text-3); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.drawerclose.inline { position: static; margin-right: 4px; width: 26px; height: 26px;
+                      font-size: 16px; }
+.drawerclose:hover { color: var(--gw-text); border-color: var(--gw-accent); }
+
 /* ------------------------------------------------------------ responsive */
 /* The layout used to carry `min-width: 1120px`, which meant a phone got a
    desktop three-pane layout to pan around sideways, with the verse panel
@@ -716,6 +777,7 @@ textarea#q:focus {
 /* Verse panel off-canvas. It slides over the answer instead of squeezing it,
    because below this width there is not enough room for both to be legible. */
 @media (max-width: 1000px) {
+  #btnCloseInspector { display: inline-flex; align-items: center; justify-content: center; }
   .inspector {
     position: fixed; top: 0; right: 0; bottom: 0; z-index: 5;
     width: min(400px, 88vw);
@@ -732,6 +794,7 @@ textarea#q:focus {
 
 @media (max-width: 760px) {
   .menubtn { display: inline-flex; align-items: center; }
+  #btnCloseSidebar { display: block; }
 
   .titlebar { height: 58px; padding: 0 10px; gap: 6px; }
   .tagline { display: none; }
@@ -785,6 +848,14 @@ textarea#q:focus {
   .centre { display: block !important; }
   .centre-inner { max-width: 100% !important; padding: 0 !important; }
   .answer p { color: #111 !important; opacity: 1 !important; animation: none !important; }
+  /* The print stylesheet was written when the corpus was English-only. An
+     answer in Hindi or Gujarati needs a face that covers the script or it
+     prints as boxes. */
+  .answer, #printQuestion {
+    font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari',
+                 'Kohinoor Gujarati', 'Noto Serif Gujarati',
+                 ui-serif, Georgia, serif !important;
+  }
   .pill {
     border: 1px solid #999 !important; background: #f0f0f0 !important;
     color: #111 !important;

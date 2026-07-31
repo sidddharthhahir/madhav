@@ -118,6 +118,43 @@ miss. Multi-query fusion was tried and is WORSE (34 full at k=12 against 43)
 and flood the fusion with noise, so the concatenated query wins. Ranker
 weighting is within noise. Recorded so none of it is retried blind.
 
+### Valence / stance: tried, measured, did NOT work
+
+The audit's one actionable finding was that enrichment says what a verse is
+about but not which side of a feeling it addresses, so "I feel worthless next
+to everyone" and "I think I am better than everyone" pull the same
+comparison-and-status verses. A `stance` field was added to the enrichment
+schema and the whole corpus re-enriched to fill it ($1.30).
+
+The generated text is exactly right. BG.16.15 came back as "a warning to the
+arrogant and self-satisfied, NOT comfort for the humble... inflation of
+self-regard, not deflation". That is precisely the discrimination that was
+missing.
+
+Indexing it changed nothing:
+
+| index | full | partial | miss |
+|---|---|---|---|
+| with stance | 54 | 41 | 11 |
+| without stance | 55 | 39 | 12 |
+
+One question moving, inside run-to-run noise. Neither audited failure was
+fixed.
+
+**Why, and this is the part worth keeping:** neither ranker can represent
+negation. BM25 is bag-of-words, so "not comfort for the humble" contributes
+the tokens `comfort` and `humble` and ATTRACTS the query it was written to
+repel. A sentence embedding averages its tokens, so a negated clause lands
+near what it negates rather than away from it. Stance is a claim about which
+queries should NOT match, and neither method can express "not".
+
+The field is kept, generated and stored, but excluded from the index
+(`corpus.INDEXED_FIELDS`). It is the right input for a reranker -- a model
+reading the text can act on a negation that no bag-of-words or embedding
+can -- and that is the next thing to try, not another indexing variant.
+
+Do not re-add stance to the index expecting a different result.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are

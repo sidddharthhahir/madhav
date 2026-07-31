@@ -75,6 +75,7 @@ def main() -> int:
         "themes": ["t%d" % i for i in range(20)],        # max 12
         "situations": ["s%d" % i for i in range(25)],    # max 14
         "emotions": ["e%d" % i for i in range(15)],      # max 10
+        "stance": ["for x, not y", "to the a, not the b"],
         "keywords": ["k%d" % i for i in range(40)],      # max 20
     }
     record, notes = P.normalise_enrichment(overflow)
@@ -89,12 +90,12 @@ def main() -> int:
     for label, bad in (
         ("too-short summary", {"summary": "Short.", "themes": ["a", "b", "c"],
                                "situations": ["a", "b", "c", "d"],
-                               "emotions": ["a", "b"], "keywords": list("abcde")}),
+                               "emotions": ["a", "b"], "stance": ["s1", "s2"], "keywords": list("abcde")}),
         ("too few situations", {"summary": "x" * 60, "themes": ["a", "b", "c"],
                                "situations": ["only one"], "emotions": ["a", "b"],
-                               "keywords": list("abcde")}),
+                               "stance": ["s1", "s2"], "keywords": list("abcde")}),
         ("missing field", {"summary": "x" * 60, "themes": ["a", "b", "c"],
-                           "emotions": ["a", "b"], "keywords": list("abcde")}),
+                           "emotions": ["a", "b"], "stance": ["s1", "s2"], "keywords": list("abcde")}),
     ):
         rec2, _ = P.normalise_enrichment(bad)
         check("%s rejected" % label, bool(P.validate_enrichment(rec2)))
@@ -104,7 +105,7 @@ def main() -> int:
              "themes": ["Envy", "envy", "ENVY", "pride", "anger"],
              "situations": ["a", "a", "b", "c", "d"],
              "emotions": ["fear", "Fear", "dread"],
-             "keywords": ["k1", "k1", "k2", "k3", "k4", "k5"]}
+             "stance": ["s1", "s2"], "keywords": ["k1", "k1", "k2", "k3", "k4", "k5"]}
     rec3, _ = P.normalise_enrichment(dupes)
     check("case-insensitive dedupe on themes", len(rec3["themes"]) == 3,
           rec3["themes"])

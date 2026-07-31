@@ -62,6 +62,23 @@ ENRICHMENT_SCHEMA = {
                 "'resentment', 'restlessness', 'grief', 'dread'."
             ),
         },
+        "stance": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": (
+                "3-6 short phrases naming WHICH SIDE of a feeling this verse "
+                "addresses, from the reader's point of view. Retrieval cannot "
+                "currently tell 'I feel worthless next to everyone' from 'I "
+                "think I am better than everyone' -- both are about comparison "
+                "and status, so they pull the same verses even though one "
+                "needs consolation and the other a warning. Say which this "
+                "verse is for. e.g. 'for someone who feels small, not someone "
+                "who feels superior', 'a warning to the arrogant, not comfort "
+                "for the ashamed', 'for the person being envied', 'for the "
+                "one who has already lost something', 'addressed to someone "
+                "about to act, not someone regretting'."
+            ),
+        },
         "keywords": {
             "type": "array",
             "items": {"type": "string"},
@@ -72,7 +89,7 @@ ENRICHMENT_SCHEMA = {
             ),
         },
     },
-    "required": ["summary", "themes", "situations", "emotions", "keywords"],
+    "required": ["summary", "themes", "situations", "emotions", "stance", "keywords"],
     "additionalProperties": False,
 }
 
@@ -166,6 +183,7 @@ FIELD_BOUNDS = {
     "situations": (4, 14),
     "emotions": (2, 10),
     "keywords": (5, 20),
+    "stance": (2, 8),
 }
 
 MIN_SUMMARY_CHARS = 40

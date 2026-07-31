@@ -88,6 +88,25 @@ def main() -> int:
         ).fetchone()[0]
         check("%s coverage: %d / %d verses" % (label, n, total), n == total)
 
+    # Embeddings are built FROM the enrichment. Re-run enrichment and the
+    # vectors silently describe the previous text -- retrieval keeps working
+    # and keeps being subtly wrong, with nothing to indicate it. Compare
+    # counts and generation times so a stale index is loud instead.
+    emb = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0]
+    enr = conn.execute("SELECT COUNT(*) FROM enrichment").fetchone()[0]
+    if emb:
+        check("embeddings cover every enriched verse (%d/%d)" % (emb, enr),
+              emb >= enr, "%d embeddings for %d enrichments" % (emb, enr))
+        newest_enr = conn.execute(
+            "SELECT MAX(generated_at) FROM enrichment").fetchone()[0]
+        stale = conn.execute(
+            "SELECT COUNT(*) FROM enrichment WHERE generated_at = ?",
+            (newest_enr,)).fetchone()[0]
+        print("  [ -- ] newest enrichment %s (%d verse(s) at that timestamp)"
+              % (newest_enr, stale))
+        print("         if enrichment was re-run, rebuild with "
+              "scripts/build_embeddings.py --force")
+
     empty_sanskrit = conn.execute(
         "SELECT COUNT(*) FROM verses WHERE sanskrit IS NULL OR TRIM(sanskrit)=''"
     ).fetchone()[0]

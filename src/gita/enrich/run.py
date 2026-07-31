@@ -33,6 +33,12 @@ def main(argv=None) -> int:
     mode.add_argument("--status", action="store_true")
     mode.add_argument("--collect", action="store_true")
     ap.add_argument("--limit", type=int, help="cap the number of verses")
+    ap.add_argument("--all", action="store_true",
+                    help="re-enrich every verse, not just ones with no row. "
+                         "Needed after a prompt change: the existing rows were "
+                         "written to the old instructions and mixing the two "
+                         "leaves the corpus half-described one way and half "
+                         "another, which is worse than either alone.")
     ap.add_argument("--model", default=G.DEFAULT_MODEL)
     ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"],
                     help="output_config.effort; omit for the API default")
@@ -67,7 +73,7 @@ def main(argv=None) -> int:
                 print("      ... and %d more" % (len(items) - 10))
         return 0 if stats["written"] and not stats["errored"] else 1
 
-    pending = G.pending_verse_ids(conn, records)
+    pending = list(records) if args.all else G.pending_verse_ids(conn, records)
     if args.limit:
         pending = pending[: args.limit]
 

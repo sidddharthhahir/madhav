@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS enrichment (
     themes       TEXT,                      -- JSON array
     situations   TEXT,                      -- JSON array of modern scenarios
     emotions     TEXT,                      -- JSON array
+    stance       TEXT,                      -- JSON array; which side of a
+                                            -- feeling the verse speaks to
     keywords     TEXT,                      -- JSON array
     model        TEXT,
     prompt_hash  TEXT,
@@ -147,6 +149,30 @@ CREATE TABLE IF NOT EXISTS saved_verses (
     verse_id  TEXT PRIMARY KEY,
     note      TEXT,
     saved_at  TEXT NOT NULL
+);
+
+-- Response caches. Local, disposable, and personal-adjacent (they are keyed by
+-- what was asked), so they live here rather than in the corpus.
+--
+-- understand() runs on every question and is the slowest stage as well as a
+-- per-call charge, so asking the same thing twice paid twice and waited twice
+-- for an answer that cannot differ. Keyed on the normalised question plus the
+-- model, since a different model would plan differently.
+CREATE TABLE IF NOT EXISTS plan_cache (
+    key        TEXT PRIMARY KEY,      -- sha256(model + normalised question)
+    question   TEXT NOT NULL,
+    plan       TEXT NOT NULL,         -- JSON QueryPlan
+    cached_at  TEXT NOT NULL
+);
+
+-- Whole-answer cache. Keyed on the retrieval inputs AND the prompt hash, so a
+-- prompt change invalidates every entry rather than serving text written to
+-- older instructions.
+CREATE TABLE IF NOT EXISTS answer_cache (
+    key         TEXT PRIMARY KEY,     -- sha256(model + prompt + k + question)
+    question    TEXT NOT NULL,
+    result      TEXT NOT NULL,        -- JSON AnswerResult
+    cached_at   TEXT NOT NULL
 );
 """
 
@@ -250,6 +276,11 @@ def _migrate(conn) -> None:
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(history)")}
     if "answer" not in cols:
         conn.execute("ALTER TABLE history ADD COLUMN answer TEXT")
+        conn.commit()
+
+    ecols = {r["name"] for r in conn.execute("PRAGMA table_info(enrichment)")}
+    if ecols and "stance" not in ecols:
+        conn.execute("ALTER TABLE enrichment ADD COLUMN stance TEXT")
         conn.commit()
 
 

@@ -3,6 +3,18 @@
 
 const $ = (id) => document.getElementById(id);
 
+// The answer is written by JS after load, so without an explicit live region
+// a screen reader is silent through the entire stream and then silent again
+// when it completes. "polite" rather than "assertive" so it waits for a pause
+// instead of interrupting on every token.
+addEventListener("DOMContentLoaded", () => {
+  const a = $("answer");
+  a.setAttribute("aria-live", "polite");
+  a.setAttribute("aria-atomic", "false");
+  a.setAttribute("role", "region");
+  a.setAttribute("aria-label", "Answer");
+});
+
 const state = {
   pinned: [],          // verse records, newest first
   retrieved: [],
@@ -51,13 +63,18 @@ async function loadSidebar() {
   // answer that was already generated once.
   $("history").innerHTML = history.length
     ? history.map((h) => `
-        <button class="row" data-history-id="${h.id}" title="${
-          h.answer ? "Click to view this answer again — free, no new request"
-                    : "Click to ask this question again"}">
-          <span class="dot" style="background:${
-            h.status === "ok" ? "var(--gw-accent)" : "var(--gw-muted)"}"></span>
-          <span class="label">${escapeHtml(h.question)}</span>
-        </button>`).join("")
+        <div class="histrow">
+          <button class="row" data-history-id="${h.id}" title="${
+            h.answer ? "Click to view this answer again — free, no new request"
+                      : "Click to ask this question again"}">
+            <span class="dot" style="background:${
+              h.status === "ok" ? "var(--gw-accent)" : "var(--gw-muted)"}"></span>
+            <span class="label">${escapeHtml(h.question)}</span>
+          </button>
+          <button class="delbtn" data-del-history="${h.id}"
+                  aria-label="Delete this question" title="Delete">×</button>
+        </div>`).join("") +
+      `<button class="clearall" data-clear-history>Clear all history</button>`
     : `<div style="padding:4px 8px;font-size:12px;color:var(--gw-muted)">Nothing yet.</div>`;
 
   $("saved").innerHTML = saved.length
@@ -280,14 +297,16 @@ function renderProvenance(citable, out) {
     </div>
     ${state.retrieved.map((r) => `
       <button class="provrow" data-verse="${r.verse_id}"
-        title="Match strength ${r.score.toFixed(2)} — higher is a closer match">
+        title="Ranked ${r.rank} of ${state.retrieved.length} for this question">
         <span class="rank">${r.rank}</span>
         <span class="dot" style="background:${
           cited.has(r.verse_id) ? "var(--gw-accent)" : "var(--gw-rule)"}"></span>
         <span class="ref">BG ${r.verse_id.split(".").slice(1).join(".")}</span>
         <span style="font-size:12px;color:var(--gw-muted)">${
           cited.has(r.verse_id) ? "quoted in the answer" : ""}</span>
-        <span class="score">${r.score.toFixed(1)}</span>
+        <span class="score" aria-hidden="true">${
+          "\u2588".repeat(Math.max(1, 5 - Math.floor((r.rank - 1) /
+            Math.max(1, state.retrieved.length / 5))))}</span>
       </button>`).join("")}`;
 }
 
@@ -465,10 +484,26 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq]");
+  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history],[data-example]");
   if (!t) return;
 
+  if (t.dataset.example) {
+    $("q").value = t.dataset.example;
+    $("q").focus();
+    return ask({ retrieveOnly: false });
+  }
   if (t.dataset.newq !== undefined) return startNewQuestion();
+  if (t.dataset.delHistory) {
+    await api(`/history/${t.dataset.delHistory}`, { method: "DELETE" });
+    return loadSidebar();
+  }
+  if (t.dataset.clearHistory !== undefined) {
+    // Destructive and not undoable, so it asks first.
+    if (!confirm("Delete all saved questions and answers? This cannot be undone.")) return;
+    await api("/history", { method: "DELETE" });
+    startNewQuestion();
+    return loadSidebar();
+  }
   if (t.dataset.index !== undefined) return runPaletteRow(state.paletteRows[+t.dataset.index]);
   if (t.dataset.unpin) {
     state.pinned = state.pinned.filter((p) => p.verse_id !== t.dataset.unpin);
@@ -672,8 +707,17 @@ function exportPng() {
   const W = 960, PAD_X = 64, PAD_TOP = 56, PAD_BOTTOM = 48;
   const contentWidth = W - PAD_X * 2;
   const LINE_H = 30, TITLE_LINE_H = 30, PARA_GAP = 14, PILL_PAD_X = 8;
-  const BODY_FONT = "17px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
-  const TITLE_FONT = "600 22px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
+  // Answers can be Hindi or Gujarati -- the pipeline routes language and the
+  // corpus carries both. These stacks were English-only, so a Devanagari or
+  // Gujarati answer exported as tofu boxes or fell back to whatever the
+  // system picked, at the wrong metrics for the wrapping code that measures
+  // against them.
+  const SCRIPTS = "'Kohinoor Devanagari', 'Noto Sans Devanagari', "
+                + "'Kohinoor Gujarati', 'Noto Sans Gujarati', ";
+  const BODY_FONT = "17px -apple-system, 'SF Pro Text', " + SCRIPTS
+                  + "'Segoe UI', 'Helvetica Neue', sans-serif";
+  const TITLE_FONT = "600 22px -apple-system, 'SF Pro Text', " + SCRIPTS
+                   + "'Segoe UI', 'Helvetica Neue', sans-serif";
   const FOOT_FONT = "12px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
 
   const measure = document.createElement("canvas").getContext("2d");
@@ -771,10 +815,31 @@ $("btnCopy").addEventListener("click", copyMarkdown);
 $("btnExportPng").addEventListener("click", exportPng);
 $("btnExportPdf").addEventListener("click", exportPdf);
 $("btnInspector").addEventListener("click", toggleInspector);
+const EXAMPLES = [
+  "why do I get angry at people I love",
+  "I keep comparing myself to everyone else",
+  "how do I work hard without burning out",
+  "I am afraid of losing someone",
+];
+
+// A blank box gives a first-time user no idea what this answers well. These
+// are phrased the way the app works best -- a situation in your own words,
+// not a lookup like "verse 2.47".
+function renderExamples() {
+  if (state.answerText || $("q").value.trim()) return;
+  $("answer").innerHTML = `
+    <div class="examples">
+      <div class="ex-lead">Ask about something in your own life. For instance:</div>
+      ${EXAMPLES.map((e) => `<button class="ex" data-example="${escapeHtml(e)}"
+        >${escapeHtml(e)}</button>`).join("")}
+    </div>`;
+}
+
 function startNewQuestion() {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
   state.retrieved = []; state.citations = []; state.answerText = "";
   hideHistoryBanner();
+  renderExamples();
   $("q").focus();
 }
 
@@ -957,6 +1022,9 @@ function preloader() {
 }
 
 $("btnMenu").addEventListener("click", toggleSidebar);
+$("btnCloseSidebar").addEventListener("click", closeDrawers);
+$("btnCloseInspector").addEventListener("click",
+  () => $("app").classList.add("hide-inspector"));
 $("scrim").addEventListener("click", closeDrawers);
 
 $("btnTheme").addEventListener("click", () => {
@@ -985,5 +1053,6 @@ function applyInitialLayout() {
   await Promise.all([loadHealth(), loadSidebar()]);
   pre.step(92);
   pre.done();
+  renderExamples();
   $("q").focus();
 })();

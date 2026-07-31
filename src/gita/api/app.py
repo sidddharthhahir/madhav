@@ -5,6 +5,7 @@ rebuilding BM25 on every call would dominate latency and defeat the point of an
 in-process index.
 """
 
+import hmac
 import json
 import os
 import threading
@@ -71,6 +72,7 @@ class AskRequest(BaseModel):
 
 class AskResponse(BaseModel):
     ok: bool
+    cached: bool = False
     status: str
     question: str
     answer: str
@@ -98,9 +100,28 @@ def health():
 # spend guard, not a security control -- it will not stop someone determined,
 # and it is no substitute for authentication if this is ever exposed beyond
 # localhost.
+# Optional shared secret. Unset (the default) means no auth, which is right
+# for a single-user app bound to localhost -- demanding a token to talk to
+# your own machine is friction with no threat model behind it. Set it the
+# moment this listens on anything else: the rate limiter is a spend guard and
+# says so, it is not access control.
+#
+# Compared with compare_digest so a wrong token cannot be recovered by timing
+# how long the rejection takes.
+ASK_TOKEN = os.environ.get("MADHAV_TOKEN", "").strip()
+
 ASK_RATE_LIMIT = int(os.environ.get("MADHAV_ASK_PER_HOUR", "60"))
 _ask_calls: dict[str, deque] = {}
 _ask_lock = threading.Lock()
+
+
+def _require_token(request: Request) -> None:
+    if not ASK_TOKEN:
+        return
+    sent = request.headers.get("x-madhav-token", "")
+    if not hmac.compare_digest(sent, ASK_TOKEN):
+        raise HTTPException(status_code=401,
+                            detail="missing or invalid X-Madhav-Token")
 
 
 def _rate_limit_ask(request: Request) -> None:
@@ -126,9 +147,21 @@ def _rate_limit_ask(request: Request) -> None:
 
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest, request: Request):
+    _require_token(request)
     _rate_limit_ask(request)
     pipeline = get_pipeline()
+
+    # A repeat of the same question under the same model, prompt and k cannot
+    # produce a differently-validated answer, so serve the stored one rather
+    # than paying twice. Cache-served answers are not re-logged to history --
+    # the original ask is already there.
+    hit = pipeline.cached_answer(req.question, req.k or pipeline.max_verses)
+    if hit is not None:
+        hit["cached"] = True
+        return hit
+
     result = pipeline.ask(req.question, k=req.k)
+    pipeline.store_answer(req.question, req.k or pipeline.max_verses, result)
     # Recorded regardless of ok/failed -- the frontend's history row already
     # renders a status dot for both cases, so both were always meant to be
     # logged. This was previously never called at all: the history table,
@@ -151,6 +184,7 @@ def ask_stream(req: AskRequest, request: Request):
     payload of `done` as a checked answer. /ask remains for callers that want
     the simple all-or-nothing contract.
     """
+    _require_token(request)
     _rate_limit_ask(request)
     pipeline = get_pipeline()
 
@@ -222,6 +256,18 @@ def chapter_verses(chapter: int):
 @app.get("/history")
 def history(limit: int = 30):
     return get_pipeline().history(limit)
+
+
+@app.delete("/history/{entry_id}")
+def delete_history(entry_id: int):
+    if not get_pipeline().delete_history(entry_id):
+        raise HTTPException(status_code=404, detail="no such history entry")
+    return {"deleted": entry_id}
+
+
+@app.delete("/history")
+def clear_history():
+    return {"cleared": get_pipeline().clear_history()}
 
 
 @app.get("/saved")
