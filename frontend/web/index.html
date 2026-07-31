@@ -196,10 +196,38 @@
 
     <main class="centre">
       <div class="centre-inner">
-        <div class="asklabel">Question</div>
+        <div class="asklabel">
+          <span id="askLabelText">Question</span>
+          <!-- Dharma-sankata. The Mahabharata's subject is choices with no
+               clean answer, and the app could only answer questions. This
+               swaps the single box for two. Free: retrieval only. -->
+          <button class="modeswitch" id="btnMode" type="button"
+                  aria-pressed="false">Weighing two options?</button>
+        </div>
         <textarea id="q" rows="3" spellcheck="false"
           placeholder="Ask about your own life, in your own words."></textarea>
+
+        <div class="dilemma-input" id="dilemmaInput" hidden>
+          <div class="dilemma-pair">
+            <label class="dilemma-field">
+              <span class="dl-tag">One way</span>
+              <textarea id="optA" rows="2" spellcheck="false"
+                placeholder="take the job in another city"></textarea>
+            </label>
+            <span class="dilemma-or" aria-hidden="true">⟷</span>
+            <label class="dilemma-field">
+              <span class="dl-tag">The other</span>
+              <textarea id="optB" rows="2" spellcheck="false"
+                placeholder="stay near my parents as they age"></textarea>
+            </label>
+          </div>
+          <button class="dilemma-go" id="btnDilemma" type="button">
+            Hold both <span class="cpfree">free · no model call</span>
+          </button>
+        </div>
+
         <div id="notice"></div>
+        <div class="dilemma-result noprint" id="dilemmaResult"></div>
         <div class="historybanner noprint" id="historyBanner"></div>
         <div class="printonly" id="printQuestion"></div>
         <div class="answer measure" id="answer"></div>

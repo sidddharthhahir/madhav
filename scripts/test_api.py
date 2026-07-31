@@ -77,6 +77,22 @@ def main() -> int:
         check("unknown verse -> honest empty, not 500",
               r.status_code == 200 and not r.json()["ok"], r.text[:120])
 
+        print("\nPOST /dilemma (free -- must never call a model)")
+        r = client.post("/dilemma", json={"option_a": "leave the company i built",
+                                          "option_b": "stay and fight for it", "k": 4})
+        check("200", r.status_code == 200, r.text)
+        body = r.json()
+        check("both sides populated",
+              body["ok"] and body["a"]["verses"] and body["b"]["verses"],
+              body.get("reason"))
+        check("displayed sides are disjoint",
+              not ({v["verse_id"] for v in body["a"]["verses"]} &
+                   {v["verse_id"] for v in body["b"]["verses"]}), body)
+        check("overlap disclosed", "overlap" in body, list(body))
+        check("shared ground present", len(body["shared"]) > 0, body["shared"])
+        r = client.post("/dilemma", json={"option_a": "x", "option_b": ""})
+        check("empty side -> 422", r.status_code == 422, r.status_code)
+
         print("\nGET /verse/{id}")
         r = client.get("/verse/BG.2.47")
         check("200", r.status_code == 200, r.text)

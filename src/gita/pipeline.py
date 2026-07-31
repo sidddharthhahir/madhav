@@ -17,6 +17,7 @@ from .answer import context as C
 from .answer import generate as G
 from .answer import validate as V
 from .retrieval import corpus, counterpoint as CP, dense
+from .retrieval import dilemma as DL
 from .retrieval import rerank as RR
 from .retrieval.bm25 import reciprocal_rank_fusion
 
@@ -307,6 +308,17 @@ class Pipeline:
         corpus's own stance text, not from anything the user typed.
         """
         return CP.counterpoint(self.records, self.retrieve, verse_ids, k=k)
+
+    def dilemma(self, option_a: str, option_b: str, *, k: int = 5) -> dict:
+        """Both sides of an impossible choice. Free -- no model call.
+
+        Note what this does NOT do: expand the options through understand().
+        That is the paid step, and a dilemma is two short phrases the user
+        wrote deliberately, not one question to be interpreted. Retrieval runs
+        on their own words. See retrieval/dilemma.py for the measurement that
+        says the two sides genuinely separate.
+        """
+        return DL.dilemma(self.records, self.retrieve, option_a, option_b, k=k)
 
     # -- full pipeline -----------------------------------------------------
 

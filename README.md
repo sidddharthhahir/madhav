@@ -333,6 +333,7 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 | `POST /preview` | no | retrieval + grounding context, free |
 | `GET /verse/{id}` | no | one verse with translations and enrichment |
 | `POST /counterpoint` | no | verses whose stance points the other way, free |
+| `POST /dilemma` | no | both sides of a choice, plus the shared ground, free |
 | `POST /ask` | yes | the full pipeline, all-or-nothing |
 | `POST /ask/stream` | yes | same pipeline as server-sent events (see above) |
 
@@ -387,6 +388,31 @@ clauses, use them as a query, run ordinary free retrieval.
 This deliberately sidesteps rather than re-fights the negation problem below:
 the "not" is resolved by string surgery on a known sentence shape, and only the
 positive remainder is ever handed to a ranker.
+
+## Dharma-sankata — holding both sides
+
+The Mahabharata's subject is not war, it is choices with no clean answer:
+Yudhishthira's half-truth that kills Drona, Bhishma's vow binding him to the
+wrong side, Arjuna asked to kill his own teachers. The app could only *answer*.
+"Weighing two options?" makes it hold a tension instead — two options in,
+verses for each, and the verses that apply **whichever you choose**.
+
+The middle panel is the claim. Krishna never tells Arjuna which way to go; he
+changes what the choice means and then says *"do as you will"* (18.63).
+
+Free — two local retrievals, no model call.
+
+Two measurements make it honest rather than decorative:
+
+- **The sides genuinely separate.** Over five realistic dilemmas at k=10 the
+  Jaccard overlap was 0.00–0.05. A split screen is showing different counsel on
+  each side, not the same list twice. Each result discloses its own overlap,
+  and says so when it is high.
+- **Shared ground is scarce and must be dug for.** The sides shared 0–1 verses
+  in the top 10, but 3 at k=20, 5 at k=30, 13 at k=50. So both sides retrieve
+  to a pool of 50 and the intersection is mined from that — intersecting the
+  handful of displayed verses would nearly always be empty and would make the
+  best panel look broken.
 
 ## Reranking (off by default, unmeasured)
 

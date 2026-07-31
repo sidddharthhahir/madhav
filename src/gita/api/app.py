@@ -248,6 +248,24 @@ def counterpoint(req: CounterpointRequest):
     return get_pipeline().counterpoint(req.verse_ids, k=req.k)
 
 
+class DilemmaRequest(BaseModel):
+    option_a: str = Field(..., min_length=1, max_length=400,
+                          examples=["take the job in another city"])
+    option_b: str = Field(..., min_length=1, max_length=400,
+                          examples=["stay near my parents as they age"])
+    k: int = Field(5, ge=1, le=10)
+
+
+@app.post("/dilemma")
+def dilemma(req: DilemmaRequest):
+    """Dharma-sankata: verses for each side of a choice, and for both.
+
+    Free, like /counterpoint and /preview -- two local retrievals, no model
+    call, so it sits outside the spend guard and the rate limiter.
+    """
+    return get_pipeline().dilemma(req.option_a, req.option_b, k=req.k)
+
+
 @app.get("/verse/{verse_id}")
 def verse(verse_id: str):
     record = get_pipeline().verse(verse_id)

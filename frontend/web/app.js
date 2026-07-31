@@ -28,6 +28,7 @@ const state = {
   savedIds: new Set(),
   lastQuestion: "",
   historyById: new Map(),
+  dilemmaMode: false,
 };
 
 async function api(path, opts) {
@@ -390,6 +391,113 @@ function renderAnswer(text) {
   $("answer").innerHTML = html;
 }
 
+// ----------------------------------------------------------- dharma-sankata
+//
+// Two options in, verses for each side, and the verses that hold whichever
+// you choose. Free -- /dilemma makes no model call.
+//
+// The middle column is the point. Krishna never tells Arjuna which way to go;
+// he changes what the choice means and then says "do as you will" (18.63). A
+// split screen alone would just be two searches next to each other.
+
+function setMode(dilemmaOn) {
+  state.dilemmaMode = dilemmaOn;
+  $("q").hidden = dilemmaOn;
+  $("dilemmaInput").hidden = !dilemmaOn;
+  $("btnMode").setAttribute("aria-pressed", String(dilemmaOn));
+  $("btnMode").textContent = dilemmaOn ? "Ask one question instead"
+                                       : "Weighing two options?";
+  $("askLabelText").textContent = dilemmaOn ? "The choice" : "Question";
+  // Leaving one mode clears the other's output, so a stale answer never sits
+  // under a question that is no longer on screen.
+  $("dilemmaResult").innerHTML = "";
+  if (dilemmaOn) {
+    $("answer").innerHTML = "";
+    $("provenance").innerHTML = "";
+    $("counterpoint").innerHTML = "";
+    $("optA").focus();
+  } else {
+    $("q").focus();
+  }
+}
+
+async function runDilemma() {
+  const a = $("optA").value.trim(), b = $("optB").value.trim();
+  const el = $("dilemmaResult");
+  if (!a || !b) {
+    el.innerHTML = `<div class="cpwait">Fill in both sides — the point is the tension between them.</div>`;
+    return;
+  }
+  if (state.busy) return;
+  state.busy = true;
+  el.innerHTML = `<div class="cpwait">holding both…</div>`;
+
+  let res;
+  try {
+    res = await api("/dilemma", {
+      method: "POST",
+      body: JSON.stringify({ option_a: a, option_b: b, k: 5 }),
+    });
+  } catch (err) {
+    el.innerHTML = `<div class="cpwait">Request failed: ${escapeHtml(err.message)}</div>`;
+    state.busy = false;
+    return;
+  }
+  state.busy = false;
+
+  if (!res.ok) {
+    const why = res.reason === "options_identical"
+      ? "Both sides say the same thing — there is no dilemma to hold."
+      : "Nothing retrieved for either side. Try describing each option as a situation.";
+    el.innerHTML = `<div class="cpwait">${escapeHtml(why)}</div>`;
+    return;
+  }
+
+  const col = (side, tag) => `
+    <div class="dl-col">
+      <div class="dl-colhead"><span class="dl-tag">${tag}</span>
+        <span class="dl-opt">${escapeHtml(side.text)}</span></div>
+      ${side.verses.map(verseCard).join("") ||
+        `<div class="cpwait">nothing distinct to this side</div>`}
+    </div>`;
+
+  el.innerHTML = `
+    <div class="dl-head">
+      <span class="t">Dharma-sankata</span>
+      <span class="n">the Gita does not choose for you</span>
+    </div>
+    <div class="dl-cols">
+      ${col(res.a, "One way")}
+      ${col(res.b, "The other")}
+    </div>
+    ${res.shared.length ? `
+      <div class="dl-shared">
+        <div class="dl-sharedhead">
+          <span class="t">Whichever you choose</span>
+          <span class="n">retrieved for both sides</span>
+        </div>
+        ${res.shared.map(verseCard).join("")}
+      </div>` : ""}
+    <p class="dl-note">${
+      res.overlap >= 0.4
+        ? `These two options retrieve <strong>${Math.round(res.overlap * 100)}%</strong>
+           the same verses — they may be closer to one option than two.`
+        : `The two sides share ${Math.round(res.overlap * 100)}% of their verses,
+           so this is genuinely different counsel on each side.`}</p>`;
+}
+
+function verseCard(v) {
+  return `
+    <button class="dl-verse" data-verse="${v.verse_id}">
+      <span class="ref">BG ${v.verse_id.split(".").slice(1).join(".")}</span>
+      <span class="body">
+        <span class="sum">${escapeHtml(v.summary)}</span>
+        ${v.stance && v.stance.length
+          ? `<span class="stance">${escapeHtml(v.stance[0])}</span>` : ""}
+      </span>
+    </button>`;
+}
+
 // ------------------------------------------------------------- counterpoint
 //
 // The verses that face the other way. An answer is grounded in verses that
@@ -666,10 +774,12 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("#btnCounterpoint,[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
+  const t = e.target.closest("#btnCounterpoint,#btnMode,#btnDilemma,[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
   if (!t) return;
 
   if (t.id === "btnCounterpoint") return loadCounterpoint();
+  if (t.id === "btnMode") return setMode(!state.dilemmaMode);
+  if (t.id === "btnDilemma") return runDilemma();
   if (t.dataset.newq !== undefined) return startNewQuestion();
   if (t.dataset.delHistory) {
     await api(`/history/${t.dataset.delHistory}`, { method: "DELETE" });
@@ -812,6 +922,8 @@ $("btnInspector").addEventListener("click", toggleInspector);
 function startNewQuestion() {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
   $("counterpoint").innerHTML = "";
+  $("dilemmaResult").innerHTML = "";
+  $("optA").value = ""; $("optB").value = "";
   state.retrieved = []; state.citations = []; state.answerText = "";
   hideHistoryBanner();
   $("q").focus();

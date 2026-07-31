@@ -168,6 +168,58 @@ Do not re-add stance to the index expecting a different result.
    -> k=20 could win at most 10 of 106; pool 60 -> k=20 at most 29. Settle it
    with `eval_sweep.py --rerank` before believing anything about it.
 
+### Free query expansion from the corpus's own vocabulary: DON'T
+
+Raw user text retrieves much worse than a model-expanded query (39/106 full vs
+53/106, hybrid at k=20). That gap is what `understand()` buys, and it is the
+only reason /ask costs money before it even writes anything. Since the free
+surfaces -- /preview, /dilemma -- cannot pay for that call, the obvious idea is
+to expand queries locally instead, using the 11,266 distinct enrichment phrases
+already in the store. Two forms were built and measured. Both were embedded
+locally with Ollama (65s, free).
+
+**Form A -- add the nearest phrases to the query as extra text.**
+
+| configuration | full | partial | miss |
+|---|---|---|---|
+| raw question text | 39 | 37 | 30 |
+| raw + 5 phrases | 45 | 33 | 28 |
+| raw + 10 phrases | 41 | 40 | 25 |
+| raw + 20 phrases | 47 | 31 | 28 |
+| model expansion (ceiling) | 53 | 34 | 19 |
+
+Looks like it recovers half the gap. Treat with suspicion: the run is fully
+deterministic (cached plans, fixed embeddings, no model calls), yet the result
+is NOT monotonic in the one parameter -- 45, then 41, then 47. A 6-point swing
+on a monotonic knob means the effect is unstable and the true size is smaller
+than the best row suggests. Nobody has swept it properly. Do that before
+believing it.
+
+**Form B -- route to the verses that OWN the nearest phrases (a third ranker
+fused by RRF alongside BM25 and dense).**
+
+| configuration | full | partial | miss |
+|---|---|---|---|
+| raw text, bm25+dense | 39 | 37 | 30 |
+| + phrase-routing (10) | 40 | 36 | 30 |
+| + phrase-routing (25) | 36 | 44 | 26 |
+| phrase-routing alone | 19 | 48 | 39 |
+
+**Worth nothing.** Not shipped.
+
+The part worth remembering is *why it looked good*. The motivating failure was
+"stay near my parents as they age", where both rankers latch onto `age` and
+return metaphysics about the self not being born or dying. Form B fixed it
+beautifully -- top hit became BG.18.7, "you cannot rightfully abandon the
+duties you actually have". One perfect anecdote, and the aggregate says the
+technique does nothing. (Form A, meanwhile, moved the aggregate and did NOT fix
+that query at all: the matched phrases contain "aging parents", so they
+amplified the very vocabulary that was already dominating.)
+
+This is the third time in this project that a plausible retrieval idea has
+survived eyeballing and died on the eval, after multi-query fusion and stance
+indexing. Do not ship a retrieval change on the strength of a query you liked.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are
@@ -427,6 +479,10 @@ python scripts/demo_enrichment.py --revert
 # "show me the opposite" -- free, no model call
 curl -s -X POST localhost:8000/counterpoint -H 'content-type: application/json' \
   -d '{"verse_ids":["BG.16.18","BG.16.13"],"k":4}'
+
+# dharma-sankata: both sides of a choice -- free, no model call
+curl -s -X POST localhost:8000/dilemma -H 'content-type: application/json' \
+  -d '{"option_a":"leave the company i built","option_b":"stay and fight for it","k":4}'
 
 # the reranker: off by default, and unmeasured until this is run
 MADHAV_RERANK=1 uvicorn --app-dir src gita.api.app:app

@@ -201,6 +201,42 @@ def main() -> int:
     check("reason is specific", res["reason"] == "no_contrastive_stance",
           res["reason"])
 
+    print("\n12. dharma-sankata: the two sides retrieve differently")
+    # The feature's whole claim. If both sides returned the same verses the
+    # split screen would be two identical lists with different headings, so
+    # this is the assertion that stops it being decorative.
+    res = pipe.dilemma("leave the company i built", "stay and fight for it", k=4)
+    check("produced both sides", res["ok"] and res["a"]["verses"]
+          and res["b"]["verses"], str(res["reason"]))
+    ids_a = {v["verse_id"] for v in res["a"]["verses"]}
+    ids_b = {v["verse_id"] for v in res["b"]["verses"]}
+    check("the displayed sides are disjoint", not (ids_a & ids_b),
+          str(ids_a & ids_b))
+    check("overlap is measured and low", res["overlap"] < 0.4,
+          str(res["overlap"]))
+    check("stance travels with each verse",
+          all("stance" in v for v in res["a"]["verses"]), "")
+
+    print("\n13. shared ground is mined from depth, not from the shown verses")
+    # Shared verses were measured at 0-1 within the top 10 but 13 by k=50,
+    # so intersecting the displayed lists would nearly always be empty.
+    check("found common ground", len(res["shared"]) > 0, str(res["shared"]))
+    check("shared verses appear on neither side's list",
+          not ({v["verse_id"] for v in res["shared"]} & (ids_a | ids_b)), "")
+    check("shared verses report their rank on both sides",
+          all(v["rank_a"] and v["rank_b"] for v in res["shared"]),
+          str(res["shared"][:1]))
+
+    print("\n14. dharma-sankata rejects non-dilemmas instead of faking one")
+    for label, a, b, reason in (
+        ("identical options", "stay", "stay", "options_identical"),
+        ("identical but for case/space", "Stay ", " stay", "options_identical"),
+        ("empty side", "leave", "   ", "both_options_required"),
+    ):
+        r = pipe.dilemma(a, b, k=3)
+        check("%s: refused" % label, not r["ok"], str(r["reason"]))
+        check("%s: reason is specific" % label, r["reason"] == reason, r["reason"])
+
     pipe.close()
     shutil.rmtree(_TMPDIR, ignore_errors=True)
 
