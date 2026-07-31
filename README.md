@@ -392,7 +392,17 @@ concrete vocabulary for retrieval to grab onto.
   by a thematically adjacent but differently-specific verse) for about 50%
   more context tokens per answer. A real but small cost increase; the
   citation validator still only allows citing what the model was shown.
-- 20 real misses remain at k=12. Mostly abstract/existential questions
+- **`k` is now 20 and the browser no longer overrides it.** The frontend sent
+  `k: 8` on every request, which silently overrode the server default -- so
+  the earlier 8 -> 12 tuning never reached the UI at all. Removing it, and
+  raising the default to 20, takes the shipped app from ~35 to **54/106 full**
+  (11 misses). Measured on `Pipeline.retrieve` itself, not a reimplementation.
+- Fusion now draws from a pool of 30 candidates per ranker rather than exactly
+  `k`. At `pool == k`, RRF could only reorder verses both rankers already
+  agreed on; a verse ranked 15th by BM25 and 3rd by dense was invisible.
+  Depth here costs local sorting and no tokens, since only the top `k` are
+  sent to the model.
+- 11 real misses remain at k=20. Mostly abstract/existential questions
   ("am I my thoughts or something underneath them") where the phrasing itself
   carries little concrete vocabulary, unlike the concrete-situation questions
   dense retrieval handles well. Some are also a confirmed artifact of the

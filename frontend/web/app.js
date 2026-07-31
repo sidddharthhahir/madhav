@@ -106,7 +106,7 @@ async function ask({ retrieveOnly }) {
     if (retrieveOnly) {
       const out = await api("/preview", {
         method: "POST",
-        body: JSON.stringify({ question, k: 8 }),
+        body: JSON.stringify({ question }),
       });
       state.retrieved = out.retrieved;
       state.answerText = "";
@@ -143,7 +143,7 @@ async function askStreaming(question) {
   const res = await fetch("/ask/stream", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ question, k: 8 }),
+    body: JSON.stringify({ question }),
   });
 
   if (res.status === 429) {

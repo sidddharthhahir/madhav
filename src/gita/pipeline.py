@@ -47,17 +47,18 @@ class AnswerResult:
 
 
 class Pipeline:
-    # 12, not 8: many eval misses turned out to be verses ranked 8-12,
-    # displaced just past the old cutoff by a thematically adjacent but
-    # differently-specific verse (e.g. "attached to outcomes" pulls in the
-    # famous nishkama-karma cluster ahead of the more specific dwelling ->
-    # attachment -> craving chain in BG.2.62, which sits at dense rank 42).
-    # Widening the pool recovered a third of full recall on the free
-    # raw-text eval (17/106 -> 26/106) for ~50% more context tokens per
-    # answer -- a real cost increase, but a small one, and the citation
-    # validator still only allows citing what the model was actually shown.
+    # 20, not 12. Measured over the 106-question eval against cached real
+    # query expansions (scripts/eval_sweep.py): k=12 gives 43 full / 23 miss,
+    # k=20 gives 54 full / 11 miss -- a quarter more complete answers and
+    # half the misses. The earlier 8 -> 12 move was the same finding at
+    # smaller scale: expected verses cluster just past whatever cutoff is in
+    # force. Costs ~67% more context tokens per answer (roughly 7k -> 11.5k),
+    # which is the real price of this and the reason it is not higher still;
+    # the API caps k at 20 regardless. The citation validator still only
+    # permits citing what was actually shown, so a wider pool cannot make
+    # citations less trustworthy -- only give the model more good material.
     def __init__(self, db_path=None, *, client=None, model: str = G.DEFAULT_MODEL,
-                 max_verses: int = 12, threaded: bool = False, use_dense: bool = False,
+                 max_verses: int = 20, threaded: bool = False, use_dense: bool = False,
                  local_db_path=None):
         self.conn = db.connect(db_path or db.DEFAULT_DB,
                                check_same_thread=not threaded)
@@ -213,17 +214,27 @@ class Pipeline:
 
     # -- retrieval only (no API key required) ------------------------------
 
+    # The fusion pool is deliberately deeper than the number of verses that
+    # end up in the context. Asking each ranker for exactly k meant fusion
+    # could only reorder k candidates -- a verse ranked 15th by BM25 and 3rd
+    # by dense was invisible to RRF at k=12, even though agreement across the
+    # two rankers is exactly the signal RRF exists to find. Depth here is
+    # free: it costs a little local sorting and no tokens, because only the
+    # top k are ever sent to the model.
+    FUSION_POOL_MIN = 30
+
     def retrieve(self, query: str, k: int | None = None):
         k = k or self.max_verses
-        bm25_hits = self.index.search(query, k=k)
+        pool = max(self.FUSION_POOL_MIN, k)
+        bm25_hits = self.index.search(query, k=pool)
         if self.dense_index is None:
-            return bm25_hits
+            return bm25_hits[:k]
         try:
-            dense_hits = self.dense_index.search(query, k=k)
+            dense_hits = self.dense_index.search(query, k=pool)
         except RuntimeError:
             # Ollama unreachable at query time -- degrade to BM25 alone rather
             # than fail the whole answer over an optional enhancement.
-            return bm25_hits
+            return bm25_hits[:k]
         return reciprocal_rank_fusion(bm25_hits, dense_hits)[:k]
 
     def preview(self, question: str, k: int | None = None) -> dict:

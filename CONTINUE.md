@@ -61,7 +61,8 @@ FastAPI (dense-retrieval-backed by default), desktop UI on live data,
 | BM25 + Haiku enrichment | 7/106 | 41 | 58 |
 | BM25 + enrichment + dense, raw question text, k=8 | 17/106 | 44 | 45 |
 | Same, through real query understanding, k=8 | 34-40/106 | 44 | 22-28 |
-| **Same, through real query understanding, k=12 (current default)** | **45/106 (42%)** | **41** | **20** |
+| Same, through real query understanding, k=12 | 45/106 (42%) | 41 | 20 |
+| **Same, k=20 + fusion pool of 30 (current default)** | **54/106 (51%)** | **41** | **11** |
 
 The `k=8 -> k=12` row is the real fix for most of what was previously read as
 "retrieval architecture problem": a lot of misses were verses ranked 8-12,
@@ -91,7 +92,33 @@ question. Use plain `--eval --hybrid` for fast, free retrieval-only iteration
 `--eval --hybrid --real` (costs ~$0.55, calls the real understanding LLM per
 question) for the number that actually describes the product.
 
-20 real misses remain at k=12. A quick read of them: mostly abstract/
+### On "get it to 106/106"
+
+Asked for directly, and worth writing down because the honest answer is not
+"yes". recall@k reaches 100% at k=701 by handing back the entire corpus, so
+the number means nothing without its k. `scripts/eval_sweep.py --ranks` shows
+where the ceiling actually sits: the worst-placed expected verse has median
+rank 23, p90 114, and max 258. So 106/106 needs k around 258 -- roughly a
+third of the Gita in every prompt. That is not retrieval, it is giving up on
+retrieval, and it would cost about 20x the current per-answer tokens while
+making the answer stage worse, not better.
+
+The other route to 106/106 is tuning until this particular 106-question
+answer key is satisfied, which is overfitting to the ruler. The eval exists
+to estimate generalisation; optimising against it directly destroys the only
+thing it is for. And some misses are known to be label artifacts rather than
+retrieval failures (BG.2.62 vs the nishkama-karma cluster, documented above),
+so a perfect score would partly mean having taught retrieval to prefer
+narrower answers than the text supports.
+
+What was done instead: measure honestly, then take the gains that are real.
+k=12 -> k=20 and decoupling the fusion pool moved 43 -> 54 full and 23 -> 11
+miss. Multi-query fusion was tried and is WORSE (34 full at k=12 against 43)
+-- individual themes are short generic phrases that match many verses weakly
+and flood the fusion with noise, so the concatenated query wins. Ranker
+weighting is within noise. Recorded so none of it is retried blind.
+
+11 real misses remain at k=20. A quick read of them: mostly abstract/
 existential questions ("am I my thoughts or something underneath them",
 "does anything actually care whether I exist") where the phrase itself
 carries little concrete vocabulary for either BM25 or embeddings to grab
