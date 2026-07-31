@@ -143,19 +143,20 @@
       </svg>
       </span>
       <span class="wordmark">Madhav</span>
-      <span class="tagline" id="tagline">the Gita, answered and cited</span>
     </div>
     <div style="flex:1"></div>
-    <button class="btn" id="btnPalette" aria-label="Find a verse">
-      Find a verse <span class="kbd">⌘K</span>
+    <!-- Icon-only. The labels were spelling out what the glyph and the
+         tooltip already say, and three of them together took more of the bar
+         than the brand did. Each keeps an aria-label so the meaning is not
+         carried by the icon alone. -->
+    <button class="btn iconbtn-t" id="btnPalette" aria-label="Find a verse (Command K)"
+            title="Find a verse  ⌘K">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 L18 18"/></svg>
     </button>
-    <button class="btn ghost" id="btnCopy">Copy answer</button>
-    <button class="btn ghost noprint" id="btnExportPng" title="Save this answer as a PNG image">Export PNG</button>
-    <button class="btn ghost noprint" id="btnExportPdf" title="Save this answer as a PDF (via your browser's print dialog)">Export PDF</button>
-    <button class="btn ghost" id="btnTheme" title="Switch between light and dark"
-            aria-label="Switch theme"></button>
-    <button class="btn ghost" id="btnInspector" title="Show or hide the verse panel (⌘\)">
-      Hide verse panel
+    <button class="btn iconbtn-t" id="btnTheme" aria-label="Switch theme"></button>
+    <button class="btn iconbtn-t" id="btnInspector" aria-label="Show or hide the verse panel"
+            title="Verse panel  ⌘\">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M12.5 3.5 L12.5 16.5"/></svg>
     </button>
   </div>
 

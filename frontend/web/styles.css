@@ -308,11 +308,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
   background: linear-gradient(112deg, var(--gw-text) 26%, var(--gw-accent) 74%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.tagline {
-  font-size: 11px; color: var(--gw-muted);
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  letter-spacing: .02em;
-}
 
 .btn {
   height: 30px; padding: 0 12px; background: var(--gw-btn);
@@ -341,6 +336,30 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
               0 12px 30px -8px rgba(212,162,76,.9);
 }
 .btn.primary:active { transform: translateY(0); }
+/* Square, glyph-only toolbar buttons. Sized to a comfortable hit target
+   rather than to the icon, so they stay tappable on a phone. */
+.iconbtn-t {
+  width: 34px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.iconbtn-t svg {
+  width: 17px; height: 17px; fill: none;
+  stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Chapter picker. Native <select> on purpose: it brings keyboard type-ahead,
+   platform scrolling and a real mobile picker that a custom listbox would
+   have to reimplement badly. */
+.chapsel {
+  width: 100%; padding: 7px 9px; border-radius: 8px;
+  background: var(--gw-btn); color: var(--gw-text-3);
+  border: 1px solid var(--gw-border-strong);
+  font-family: inherit; font-size: 13px; cursor: pointer;
+}
+.chapsel:hover { background: var(--gw-btn-hover); color: var(--gw-text); }
+.chapsel:focus-visible { outline: 2px solid var(--gw-accent); outline-offset: 2px; }
+
 .kbd {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px; color: var(--gw-muted);
@@ -797,15 +816,9 @@ textarea#q:focus {
   #btnCloseSidebar { display: block; }
 
   .titlebar { height: 58px; padding: 0 10px; gap: 6px; }
-  .tagline { display: none; }
   .wordmark { font-size: 17px; }
   .logochip { width: 38px; height: 38px; }
   .feather { width: 28px; height: 35px; }
-  /* Export and the palette hint are desktop affordances; the phone keeps
-     asking, copying and the two panel toggles. */
-  #btnExportPng, #btnExportPdf, #btnPalette .kbd { display: none; }
-  #btnInspector { font-size: 0; padding: 0 10px; }
-  #btnInspector::after { content: "◫"; font-size: 14px; }
 
   .sidebar {
     position: fixed; top: 0; bottom: 0; left: 0; z-index: 6;
@@ -824,7 +837,6 @@ textarea#q:focus {
 
 @media (max-width: 420px) {
   .titlebar { gap: 4px; }
-  #btnCopy { display: none; }
   .centre-inner { padding: 16px 12px 48px; }
 }
 

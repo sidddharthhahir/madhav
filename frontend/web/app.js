@@ -50,12 +50,23 @@ async function loadSidebar() {
   state.savedIds = new Set(saved.map((s) => s.verse_id));
   state.historyById = new Map(history.map((h) => [h.id, h]));
 
-  $("chapters").innerHTML = chapters.map((c) => `
-    <button class="row" data-chapter="${c.chapter}">
-      <span class="num">${c.chapter}</span>
-      <span class="label">${escapeHtml(c.title)}</span>
-      <span class="count">${c.verse_count}</span>
-    </button>`).join("");
+  // A dropdown, not 18 rows: the list was two thirds of the sidebar and is
+  // the least-used of the three sections. A native <select> also gets
+  // keyboard type-ahead and the platform's own scrolling for free.
+  $("chapters").innerHTML = `
+    <select id="chapterSelect" class="chapsel" aria-label="Jump to a chapter">
+      <option value="">Choose a chapter…</option>
+      ${chapters.map((c) => `<option value="${c.chapter}">${c.chapter}. ${
+        escapeHtml(c.title)} (${c.verse_count})</option>`).join("")}
+    </select>`;
+  $("chapterSelect").addEventListener("change", async (e) => {
+    const ch = e.target.value;
+    if (!ch) return;
+    const verses = await api(`/chapters/${ch}`);
+    if (verses.length) showVerse(verses[0].verse_id);
+    closeDrawers();
+    e.target.value = "";        // reset so the same chapter can be picked twice
+  });
 
   // data-history-id, not data-question: clicking a past question restores its
   // saved answer instantly from what's already in `history` (free), rather
@@ -91,7 +102,6 @@ async function loadSidebar() {
 async function loadHealth() {
   const h = await api("/health");
   state.health = h;
-  $("tagline").textContent = "the Gita, answered and cited";
 
   // Search runs on the plain-meaning notes, not the verse text. If they don't
   // exist the results are noticeably worse, so say that in words a reader
@@ -339,6 +349,11 @@ function setInspectorStages(retrieveOnly, active) {
 async function showVerse(verseId) {
   try {
     const v = await api(`/verse/${verseId}`);
+    // Opening a verse has to reveal the panel it opens into. Without this,
+    // clicking a citation pill or picking a chapter while the panel is closed
+    // does nothing a user can see -- the verse loads into a hidden element and
+    // the click reads as broken.
+    $("app").classList.remove("hide-inspector");
     state.pinned = [v, ...state.pinned.filter((p) => p.verse_id !== verseId)].slice(0, 6);
     renderInspector();
   } catch { /* 404 on an unknown reference is not worth interrupting for */ }
@@ -484,14 +499,9 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history],[data-example]");
+  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
   if (!t) return;
 
-  if (t.dataset.example) {
-    $("q").value = t.dataset.example;
-    $("q").focus();
-    return ask({ retrieveOnly: false });
-  }
   if (t.dataset.newq !== undefined) return startNewQuestion();
   if (t.dataset.delHistory) {
     await api(`/history/${t.dataset.delHistory}`, { method: "DELETE" });
@@ -596,6 +606,14 @@ function closeDrawers() {
   $("app").classList.remove("show-sidebar");
 }
 
+// The copy and print buttons are gone from the toolbar; both still work from
+// the keyboard, so this reports success somewhere other than a button label.
+function flashStatus(msg) {
+  const el = $("notice");
+  el.innerHTML = `<div class="notice">${escapeHtml(msg)}</div>`;
+  setTimeout(() => { el.innerHTML = ""; }, 1600);
+}
+
 async function copyMarkdown() {
   const q = $("q").value.trim();
   const body = state.answerText || "(no answer generated)";
@@ -603,11 +621,9 @@ async function copyMarkdown() {
   const md = `## ${q}\n\n${body}\n\n### Cited\n${refs || "- none"}\n`;
   try {
     await navigator.clipboard.writeText(md);
-    $("btnCopy").textContent = "Copied";
-    setTimeout(() => ($("btnCopy").textContent = "Copy as Markdown"), 1400);
+    flashStatus("Answer copied");
   } catch {
-    $("btnCopy").textContent = "Copy blocked";
-    setTimeout(() => ($("btnCopy").textContent = "Copy as Markdown"), 1400);
+    flashStatus("Copy blocked by the browser");
   }
 }
 
@@ -698,148 +714,12 @@ function wrapPlainText(ctx, text, maxWidth) {
   return lines.length ? lines : [""];
 }
 
-function exportPng() {
-  if (!state.answerText) return;
-  const btn = $("btnExportPng");
-  const prevLabel = btn.textContent;
-  btn.textContent = "Rendering…";
-
-  const W = 960, PAD_X = 64, PAD_TOP = 56, PAD_BOTTOM = 48;
-  const contentWidth = W - PAD_X * 2;
-  const LINE_H = 30, TITLE_LINE_H = 30, PARA_GAP = 14, PILL_PAD_X = 8;
-  // Answers can be Hindi or Gujarati -- the pipeline routes language and the
-  // corpus carries both. These stacks were English-only, so a Devanagari or
-  // Gujarati answer exported as tofu boxes or fell back to whatever the
-  // system picked, at the wrong metrics for the wrapping code that measures
-  // against them.
-  const SCRIPTS = "'Kohinoor Devanagari', 'Noto Sans Devanagari', "
-                + "'Kohinoor Gujarati', 'Noto Sans Gujarati', ";
-  const BODY_FONT = "17px -apple-system, 'SF Pro Text', " + SCRIPTS
-                  + "'Segoe UI', 'Helvetica Neue', sans-serif";
-  const TITLE_FONT = "600 22px -apple-system, 'SF Pro Text', " + SCRIPTS
-                   + "'Segoe UI', 'Helvetica Neue', sans-serif";
-  const FOOT_FONT = "12px -apple-system, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif";
-
-  const measure = document.createElement("canvas").getContext("2d");
-  measure.font = BODY_FONT;
-  const spaceWidth = measure.measureText(" ").width;
-
-  const question = $("q").value.trim();
-  const paragraphs = state.answerText.split(/\n{2,}/).filter(Boolean);
-  const paraLines = paragraphs.map((p) =>
-    layoutParagraph(measure, p, contentWidth, spaceWidth, PILL_PAD_X));
-
-  measure.font = TITLE_FONT;
-  const titleLines = wrapPlainText(measure, question, contentWidth);
-  const citedText = state.citations.length ? `Cited: ${citedList()}` : "";
-
-  let totalHeight = PAD_TOP + titleLines.length * TITLE_LINE_H + 20;
-  for (const lines of paraLines) totalHeight += lines.length * LINE_H + PARA_GAP;
-  if (citedText) totalHeight += 30;
-  totalHeight += 64 + PAD_BOTTOM; // divider + footer
-
-  const scale = 2; // crisp on retina displays
-  const canvas = document.createElement("canvas");
-  canvas.width = W * scale;
-  canvas.height = totalHeight * scale;
-  const ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, W, totalHeight);
-
-  let y = PAD_TOP;
-  ctx.fillStyle = "#111";
-  ctx.font = TITLE_FONT;
-  for (const line of titleLines) { ctx.fillText(line, PAD_X, y + 18); y += TITLE_LINE_H; }
-  y += 20;
-
-  ctx.font = BODY_FONT;
-  for (const lines of paraLines) {
-    for (const line of lines) {
-      let x = PAD_X;
-      for (const tok of line) {
-        if (tok.type === "word") {
-          ctx.fillStyle = "#222";
-          ctx.fillText(tok.text, x, y);
-          x += ctx.measureText(tok.text).width + spaceWidth;
-        } else {
-          const w = ctx.measureText(tok.text).width + PILL_PAD_X * 2;
-          ctx.fillStyle = "#f2ece0";
-          ctx.beginPath();
-          ctx.roundRect(x, y - 15, w, 22, 5);
-          ctx.fill();
-          ctx.strokeStyle = "#c9a35a";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.fillStyle = "#8a6320";
-          ctx.fillText(tok.text, x + PILL_PAD_X, y - 1);
-          x += w + spaceWidth;
-        }
-      }
-      y += LINE_H;
-    }
-    y += PARA_GAP;
-  }
-
-  if (citedText) {
-    ctx.font = FOOT_FONT;
-    ctx.fillStyle = "#666";
-    ctx.fillText(citedText, PAD_X, y + 4);
-    y += 30;
-  }
-
-  y += 20;
-  ctx.strokeStyle = "#ddd";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD_X, y);
-  ctx.lineTo(W - PAD_X, y);
-  ctx.stroke();
-  y += 24;
-  ctx.font = FOOT_FONT;
-  ctx.fillStyle = "#888";
-  ctx.fillText("Madhav — the Gita, answered and cited", PAD_X, y);
-
-  const a = document.createElement("a");
-  a.href = canvas.toDataURL("image/png");
-  a.download = `madhav-${(question || "answer").toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "answer"}.png`;
-  a.click();
-
-  btn.textContent = prevLabel;
-}
-
 $("btnPalette").addEventListener("click", openPalette);
-$("btnCopy").addEventListener("click", copyMarkdown);
-$("btnExportPng").addEventListener("click", exportPng);
-$("btnExportPdf").addEventListener("click", exportPdf);
 $("btnInspector").addEventListener("click", toggleInspector);
-const EXAMPLES = [
-  "why do I get angry at people I love",
-  "I keep comparing myself to everyone else",
-  "how do I work hard without burning out",
-  "I am afraid of losing someone",
-];
-
-// A blank box gives a first-time user no idea what this answers well. These
-// are phrased the way the app works best -- a situation in your own words,
-// not a lookup like "verse 2.47".
-function renderExamples() {
-  if (state.answerText || $("q").value.trim()) return;
-  $("answer").innerHTML = `
-    <div class="examples">
-      <div class="ex-lead">Ask about something in your own life. For instance:</div>
-      ${EXAMPLES.map((e) => `<button class="ex" data-example="${escapeHtml(e)}"
-        >${escapeHtml(e)}</button>`).join("")}
-    </div>`;
-}
-
 function startNewQuestion() {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
   state.retrieved = []; state.citations = []; state.answerText = "";
   hideHistoryBanner();
-  renderExamples();
   $("q").focus();
 }
 
@@ -903,10 +783,17 @@ function resolvedTheme() {
   return matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
+const SUN = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4"/>'
+  + '<path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M16 4l-1.4 1.4M5.4 14.6L4 16"/></svg>';
+const MOON = '<svg viewBox="0 0 20 20" aria-hidden="true">'
+  + '<path d="M16 12.3A7 7 0 0 1 7.7 4a7 7 0 1 0 8.3 8.3z"/></svg>';
+
 function paintThemeButton() {
   const next = resolvedTheme() === "dark" ? "light" : "dark";
-  $("btnTheme").textContent = next === "light" ? "☾ Light" : "☀ Dark";
+  // Shows the theme you would switch TO, not the one you are in.
+  $("btnTheme").innerHTML = next === "light" ? SUN : MOON;
   $("btnTheme").title = "Switch to the " + next + " theme";
+  $("btnTheme").setAttribute("aria-label", "Switch to the " + next + " theme");
 }
 
 function applyTheme(theme) {
@@ -1053,6 +940,5 @@ function applyInitialLayout() {
   await Promise.all([loadHealth(), loadSidebar()]);
   pre.step(92);
   pre.done();
-  renderExamples();
   $("q").focus();
 })();
