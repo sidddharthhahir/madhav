@@ -333,6 +333,7 @@ python scripts/test_validator.py  # 15 citation-validator cases
 python scripts/test_pipeline.py   # 22 end-to-end checks against a stub client
 python scripts/test_api.py        # 21 HTTP contract checks
 python scripts/test_api_ui.py     # confirms the desktop UI's app.js calls the routes it needs
+python scripts/eval_answers.py     # answer-shape regressions (costs ~25c, real API calls)
 ```
 
 Run all seven in sequence:
