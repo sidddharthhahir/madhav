@@ -429,6 +429,23 @@ textarea#q:focus {
   animation-delay: calc(var(--i, 0) * 90ms);
 }
 
+/* Streamed, not yet verified. Deliberately not styled like a finished answer:
+   dimmer, and marked with a standing rule down the left plus a live "checking
+   citations" note, so text that has not passed the citation check is never
+   mistaken for text that has. Citation markers stay plain here -- they only
+   become pills once validation succeeds. */
+.draft {
+  font-family: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  font-size: 17.5px; line-height: 1.72; color: var(--gw-text-3);
+  max-width: 68ch; margin-top: 28px;
+  padding-left: 14px; border-left: 2px dashed var(--gw-border-strong);
+}
+.draft p { margin: 0 0 16px; }
+.draftnote {
+  max-width: 68ch; margin-top: 4px; padding-left: 16px;
+  font-size: 12px; letter-spacing: .04em;
+}
+
 .pill {
   display: inline-block; padding: 1px 7px; margin: 0 1px;
   background: var(--gw-pill-bg); border: 1px solid var(--gw-pill-border);

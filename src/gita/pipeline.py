@@ -327,3 +327,119 @@ class Pipeline:
             detail=generated.validation.summary(), attempts=generated.attempts,
             usage=generated.usage, timings=timings, plan=asdict(plan),
         )
+
+    # -- streaming ---------------------------------------------------------
+
+    def ask_stream(self, question: str, *, k: int | None = None):
+        """ask() as a sequence of events, so the UI can show work in progress.
+
+        Emits (event_name, payload) pairs:
+            stage      {"name": ...}          which phase is running
+            retrieved  {"verses": [...]}      the grounding set, already
+                                              verified, safe to show at once
+            delta      {"text": ...}          PROVISIONAL answer text
+            reset      {"reason": ...}        discard every delta so far
+            done       AnswerResult           validated; safe to present
+            failed     AnswerResult           withheld, same as ask()
+
+        The caller MUST render deltas as unverified and MUST clear them on
+        reset. See answer_stream() for why streaming cannot validate as it
+        goes, and what is preserved regardless.
+        """
+        question = (question or "").strip()
+        timings: list[Stage] = []
+        if not question:
+            yield ("failed", AnswerResult(question, "", "en", [], ok=False,
+                                          status="empty_question",
+                                          detail="no question was provided"))
+            return
+
+        yield ("stage", {"name": "understanding"})
+        t0 = time.perf_counter()
+        try:
+            plan = G.understand(question, client=self.client, model=self.model)
+        except G.MissingCredentialsError as exc:
+            yield ("failed", AnswerResult(question, "", "en", [], ok=False,
+                                          status="no_credentials", detail=str(exc)))
+            return
+        except G.RefusedError as exc:
+            yield ("failed", AnswerResult(question, "", "en", [], ok=False,
+                                          status="refused", detail=str(exc)))
+            return
+        timings.append(Stage("understand", int((time.perf_counter() - t0) * 1000)))
+
+        if not plan.on_topic:
+            yield ("failed", AnswerResult(
+                question, "", plan.language, [], ok=False, status="off_topic",
+                detail="the Gita does not speak to this question",
+                plan=asdict(plan), timings=timings))
+            return
+
+        yield ("stage", {"name": "retrieving"})
+        t0 = time.perf_counter()
+        hits = self.retrieve(plan.retrieval_query, k)
+        ctx = C.build(self.records, hits, max_verses=k or self.max_verses)
+        timings.append(Stage("retrieve", int((time.perf_counter() - t0) * 1000)))
+
+        if not ctx.verses:
+            yield ("failed", AnswerResult(
+                question, "", plan.language, [], ok=False, status="no_verses",
+                detail="retrieval returned nothing for this question",
+                plan=asdict(plan), timings=timings))
+            return
+
+        retrieved = [
+            {"verse_id": v.verse_id, "rank": v.rank,
+             "score": round(v.score, 3), "enriched": v.enriched}
+            for v in ctx.verses
+        ]
+        yield ("retrieved", {"verses": retrieved})
+
+        yield ("stage", {"name": "writing"})
+        t0 = time.perf_counter()
+        generated = None
+        try:
+            for kind, payload in G.answer_stream(
+                question, ctx, language=plan.language, valid_ids=self.valid_ids,
+                client=self.client, model=self.model,
+            ):
+                if kind == "delta":
+                    yield ("delta", {"text": payload})
+                elif kind == "reset":
+                    # A draft was rejected. Tell the client to drop it before
+                    # the retry starts writing.
+                    yield ("reset", {"reason": payload})
+                    yield ("stage", {"name": "rewriting"})
+                else:
+                    generated = payload
+        except G.MissingCredentialsError as exc:
+            yield ("failed", AnswerResult(question, "", plan.language, [], ok=False,
+                                          status="no_credentials", detail=str(exc),
+                                          plan=asdict(plan), timings=timings))
+            return
+        except G.RefusedError as exc:
+            yield ("failed", AnswerResult(question, "", plan.language, [], ok=False,
+                                          status="refused", detail=str(exc),
+                                          plan=asdict(plan), timings=timings))
+            return
+        timings.append(Stage("answer", int((time.perf_counter() - t0) * 1000)))
+
+        if generated is None or not generated.ok:
+            result = AnswerResult(
+                question, "", plan.language, [], retrieved=retrieved, ok=False,
+                status="citation_validation_failed",
+                detail=" | ".join(generated.rejected) if generated else "no output",
+                attempts=generated.attempts if generated else 0,
+                usage=generated.usage if generated else {},
+                timings=timings, plan=asdict(plan))
+            self.record_history(result)
+            yield ("failed", result)
+            return
+
+        result = AnswerResult(
+            question, generated.text, plan.language, generated.citations,
+            retrieved=retrieved, ok=True, status="ok",
+            detail=generated.validation.summary(), attempts=generated.attempts,
+            usage=generated.usage, timings=timings, plan=asdict(plan))
+        self.record_history(result)
+        yield ("done", result)

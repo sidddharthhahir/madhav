@@ -117,20 +117,7 @@ async function ask({ retrieveOnly }) {
       renderProvenance(out.citable);
       if (out.retrieved.length) await showVerse(out.retrieved[0].verse_id);
     } else {
-      const out = await api("/ask", {
-        method: "POST",
-        body: JSON.stringify({ question, k: 8 }),
-      });
-      state.retrieved = out.retrieved || [];
-      state.citations = out.citations || [];
-
-      if (!out.ok) {
-        renderFailure(out);
-      } else {
-        state.answerText = out.answer;
-        renderAnswer(out.answer);
-      }
-      renderProvenance(null, out);
+      await askStreaming(question);
       await loadSidebar();
     }
   } catch (err) {
@@ -139,6 +126,97 @@ async function ask({ retrieveOnly }) {
   } finally {
     state.busy = false;
     if (!state.pinned.length) renderInspector();
+  }
+}
+
+// Streams /ask/stream and renders as it arrives.
+//
+// Deltas are PROVISIONAL. Citations can only be checked once an answer is
+// finished, so streamed text has not been verified yet -- it is shown in a
+// visibly unverified state, with a standing "checking citations" note, and
+// citation markers are left as plain text rather than becoming pills. Only
+// when `done` arrives is the answer re-rendered as the checked article. If a
+// draft is rejected, `reset` clears it completely before the retry starts, so
+// a rejected draft never survives on screen. `failed` withholds the text
+// exactly as the non-streaming path does.
+async function askStreaming(question) {
+  const res = await fetch("/ask/stream", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ question, k: 8 }),
+  });
+
+  if (res.status === 429) {
+    const body = await res.json().catch(() => ({}));
+    $("answer").innerHTML =
+      `<p style="color:var(--gw-text);font-size:16px;margin-bottom:8px">Hourly limit reached.</p>
+       <p style="color:var(--gw-muted);font-size:14px">${escapeHtml(body.detail || "")}</p>`;
+    return;
+  }
+  if (!res.ok || !res.body) throw new Error(`POST /ask/stream → ${res.status}`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "", draft = "";
+
+  const paintDraft = () => {
+    $("answer").innerHTML =
+      `<div class="draft">${escapeHtml(draft).replace(/\n{2,}/g, "</p><p>")
+        .replace(/^/, "<p>").replace(/$/, "</p>")}</div>
+       <div class="draftnote"><span class="spin">checking citations…</span></div>`;
+    $("answer").scrollIntoView({ block: "nearest" });
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+
+    // SSE frames are separated by a blank line; a chunk can split one.
+    let sep;
+    while ((sep = buf.indexOf("\n\n")) !== -1) {
+      const frame = buf.slice(0, sep);
+      buf = buf.slice(sep + 2);
+      const ev = /^event: (.+)$/m.exec(frame);
+      const dt = /^data: (.+)$/m.exec(frame);
+      if (!ev || !dt) continue;
+      const payload = JSON.parse(dt[1]);
+
+      switch (ev[1]) {
+        case "stage":
+          if (!draft) setInspectorStages(false, payload.name);
+          break;
+        case "retrieved":
+          // Already verified, so it can be shown immediately -- this is the
+          // part that makes the wait feel like progress rather than a hang.
+          state.retrieved = payload.verses || [];
+          renderProvenance(null, { ok: false });
+          break;
+        case "delta":
+          draft += payload.text;
+          paintDraft();
+          break;
+        case "reset":
+          draft = "";
+          $("answer").innerHTML =
+            `<p style="color:var(--gw-muted);font-size:13px">A draft cited a verse it
+             wasn't given, so it was discarded. Rewriting…</p>`;
+          break;
+        case "done":
+          state.retrieved = payload.retrieved || [];
+          state.citations = payload.citations || [];
+          state.answerText = payload.answer;
+          renderAnswer(payload.answer);
+          renderProvenance(null, payload);
+          break;
+        case "failed":
+          state.retrieved = payload.retrieved || [];
+          state.answerText = "";
+          renderFailure(payload);
+          if (state.retrieved.length) renderProvenance(null, payload);
+          break;
+      }
+    }
   }
 }
 
@@ -215,13 +293,27 @@ function renderProvenance(citable, out) {
 
 // ---------------------------------------------------------------- inspector
 
-function setInspectorStages(retrieveOnly) {
+// `active` comes from the stream's stage events, so the list tracks what is
+// actually happening. It used to hard-highlight the first row for the whole
+// request, which read as "understanding your question" for fifteen seconds
+// no matter what the pipeline was really doing.
+const STAGE_LABELS = [
+  ["understanding", "understanding your question"],
+  ["retrieving", "retrieving verses"],
+  ["writing", "writing"],
+  ["rewriting", "rewriting after a rejected citation"],
+];
+
+function setInspectorStages(retrieveOnly, active) {
   const stages = retrieveOnly
-    ? ["retrieving verses"]
-    : ["understanding your question", "retrieving verses", "writing", "verifying citations"];
+    ? [["retrieving", "retrieving verses"]]
+    : STAGE_LABELS;
+  const at = Math.max(0, stages.findIndex(([k]) => k === active));
   $("inspscroll").innerHTML = `<div class="empty">
-    ${stages.map((s, i) => `<span class="${i === 0 ? "spin" : ""}"
-      style="color:${i === 0 ? "var(--gw-accent)" : "var(--gw-muted)"}">${s}…</span>`).join("")}
+    ${stages.map(([, label], i) => `<span class="${i === at ? "spin" : ""}"
+      style="color:${i === at ? "var(--gw-accent)"
+                   : i < at ? "var(--gw-text-3)" : "var(--gw-muted)"}"
+      >${i < at ? "✓ " : ""}${label}${i === at ? "…" : ""}</span>`).join("")}
   </div>`;
 }
 

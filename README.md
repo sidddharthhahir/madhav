@@ -278,6 +278,32 @@ explicitly (a generic "follow the rules" retry reproduces the same error), up to
 two retries. If it still fails, the pipeline **returns a failure and withholds
 the text** rather than serving unverified output.
 
+### What streaming changes, and what it doesn't
+
+Citations can only be checked against a *finished* answer — a half-written
+sentence has nothing to verify. So `/ask/stream` (what the UI uses) necessarily
+shows text before it has been validated, which `/ask` never does. That is a
+real difference, and it is why they are separate endpoints rather than one
+endpoint with a flag: `/ask` keeps the strict all-or-nothing contract for any
+caller that wants it.
+
+What the streaming path preserves:
+
+- Streamed text is rendered as visibly **unverified** — dimmed, behind a dashed
+  rule, under a live "checking citations…" note — and citation markers stay
+  plain text instead of becoming clickable pills.
+- If a draft fails validation, a `reset` event fires and the client **discards
+  everything shown so far** before the retry begins. A rejected draft is never
+  left standing.
+- Nothing is presented as a checked answer until `done` arrives. Only then is
+  the text re-rendered as a finished article with citation pills.
+- If every attempt fails, `failed` arrives and the text is withheld, exactly as
+  in `/ask`.
+
+Both properties — retracting a rejected draft, and withholding text that never
+validates — are asserted in `scripts/test_pipeline.py` (cases 11 and 12) against
+a stub client, since neither runs on the happy path.
+
 ## HTTP API
 
 ```bash
@@ -290,7 +316,8 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 | `GET /search?q=` | no | raw lexical search with matched terms |
 | `POST /preview` | no | retrieval + grounding context, free |
 | `GET /verse/{id}` | no | one verse with translations and enrichment |
-| `POST /ask` | yes | the full pipeline |
+| `POST /ask` | yes | the full pipeline, all-or-nothing |
+| `POST /ask/stream` | yes | same pipeline as server-sent events (see above) |
 
 `/ask` returns HTTP 200 with `ok: false` and a machine-readable `status`
 (`no_credentials`, `off_topic`, `no_verses`, `citation_validation_failed`,

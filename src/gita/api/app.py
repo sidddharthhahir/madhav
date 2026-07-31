@@ -5,6 +5,7 @@ rebuilding BM25 on every call would dominate latency and defeat the point of an
 in-process index.
 """
 
+import json
 import os
 import threading
 import time
@@ -14,7 +15,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -137,6 +138,42 @@ def ask(req: AskRequest, request: Request):
     out = result.to_dict()
     out.pop("plan", None)             # internal; not part of the contract
     return out
+
+
+@app.post("/ask/stream")
+def ask_stream(req: AskRequest, request: Request):
+    """Server-sent events version of /ask.
+
+    Same cost and the same rate limit -- this is the identical pipeline, just
+    reported as it goes. `delta` frames are PROVISIONAL: citations cannot be
+    validated until an answer is complete, so a client must render them as
+    unverified, must clear everything on `reset`, and must only treat the
+    payload of `done` as a checked answer. /ask remains for callers that want
+    the simple all-or-nothing contract.
+    """
+    _rate_limit_ask(request)
+    pipeline = get_pipeline()
+
+    def frames():
+        try:
+            for kind, payload in pipeline.ask_stream(req.question, k=req.k):
+                if kind in ("done", "failed"):
+                    body = payload.to_dict()
+                    body.pop("plan", None)
+                else:
+                    body = payload
+                yield "event: %s\ndata: %s\n\n" % (kind, json.dumps(body))
+        except Exception as exc:                      # noqa: BLE001
+            # The response has already begun, so a raised exception would just
+            # truncate the stream with no explanation. Report it in-band.
+            yield "event: failed\ndata: %s\n\n" % json.dumps(
+                {"ok": False, "status": "error", "detail": str(exc)})
+
+    return StreamingResponse(
+        frames(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/preview")

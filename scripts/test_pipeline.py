@@ -45,11 +45,43 @@ class _Message:
     stop_details: object = None
 
 
+class _StubStream:
+    """Mimics the SDK's streaming context manager closely enough to test.
+
+    Chunks the text rather than yielding it whole, so the consumer's
+    reassembly is actually exercised -- a client that only worked when the
+    answer arrived in one piece would pass a single-chunk fake.
+    """
+
+    def __init__(self, text: str, message):
+        self._text = text
+        self._message = message
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    @property
+    def text_stream(self):
+        for i in range(0, len(self._text), 17):
+            yield self._text[i:i + 17]
+
+    def get_final_message(self):
+        return self._message
+
+
 class StubMessages:
     def __init__(self, plan: dict, answers: list[str]):
         self.plan = plan
         self.answers = list(answers)
         self.calls: list[str] = []
+
+    def stream(self, **kwargs):
+        self.calls.append("answer")
+        text = self.answers.pop(0) if self.answers else "No answer."
+        return _StubStream(text, _Message([_Block("text", text)], _Usage()))
 
     def create(self, **kwargs):
         # Query understanding is the call carrying a json_schema output_config.
@@ -225,6 +257,44 @@ def main() -> int:
     pipeline.local.execute("DELETE FROM history WHERE question = ?", (QUESTION,))
     pipeline.local.commit()
     pipeline.close()
+
+    # 11. Streaming keeps the citation guarantee -------------------------
+    # Streaming necessarily shows text before it can be validated, so the
+    # guarantee rests on two things: a rejected draft must be retracted, and
+    # a never-validated answer must still be withheld. Both are asserted
+    # here against the stub, since neither runs on the happy path.
+    print("\n11. streaming emits deltas and retracts a rejected draft")
+    client = StubClient(PLAN, [
+        "This is explained in [BG 2.99].",                    # bad, triggers retry
+        "Desire denied becomes anger [%s]." % good,           # good
+    ])
+    events = list(Pipeline(client=client).ask_stream(QUESTION, k=5))
+    kinds = [k for k, _ in events]
+    check("deltas were emitted", "delta" in kinds, str(kinds))
+    check("verses arrive before the answer",
+          kinds.index("retrieved") < kinds.index("delta"), str(kinds))
+    check("rejected draft is retracted with reset",
+          "reset" in kinds, str(kinds))
+    check("reset precedes the final answer",
+          kinds.index("reset") < kinds.index("done"), str(kinds))
+    final = events[-1]
+    check("ends with a validated answer", final[0] == "done", final[0])
+    check("final text is the accepted draft, not the rejected one",
+          "2.99" not in final[1].answer, final[1].answer)
+
+    print("\n12. streaming withholds text when no draft ever validates")
+    client = StubClient(PLAN, ["[BG 2.99]"] * 4)
+    events = list(Pipeline(client=client).ask_stream(QUESTION, k=5))
+    kind, result = events[-1]
+    check("ends failed", kind == "failed", kind)
+    check("answer withheld", result.answer == "", repr(result.answer))
+    check("status is citation_validation_failed",
+          result.status == "citation_validation_failed", result.status)
+
+    # Both streaming cases record history, same as /ask -- clean up.
+    p = Pipeline()
+    p.local.execute("DELETE FROM history WHERE question = ?", (QUESTION,))
+    p.local.commit(); p.close()
 
     print()
     if failures:
