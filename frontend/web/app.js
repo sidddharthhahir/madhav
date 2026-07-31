@@ -50,23 +50,7 @@ async function loadSidebar() {
   state.savedIds = new Set(saved.map((s) => s.verse_id));
   state.historyById = new Map(history.map((h) => [h.id, h]));
 
-  // A dropdown, not 18 rows: the list was two thirds of the sidebar and is
-  // the least-used of the three sections. A native <select> also gets
-  // keyboard type-ahead and the platform's own scrolling for free.
-  $("chapters").innerHTML = `
-    <select id="chapterSelect" class="chapsel" aria-label="Jump to a chapter">
-      <option value="">Choose a chapter…</option>
-      ${chapters.map((c) => `<option value="${c.chapter}">${c.chapter}. ${
-        escapeHtml(c.title)} (${c.verse_count})</option>`).join("")}
-    </select>`;
-  $("chapterSelect").addEventListener("change", async (e) => {
-    const ch = e.target.value;
-    if (!ch) return;
-    const verses = await api(`/chapters/${ch}`);
-    if (verses.length) showVerse(verses[0].verse_id);
-    closeDrawers();
-    e.target.value = "";        // reset so the same chapter can be picked twice
-  });
+  renderChapters(chapters);
 
   // data-history-id, not data-question: clicking a past question restores its
   // saved answer instantly from what's already in `history` (free), rather
@@ -95,6 +79,108 @@ async function loadSidebar() {
           <span class="label">saved</span>
         </button>`).join("")
     : `<div style="padding:4px 8px;font-size:12px;color:var(--gw-muted)">No saved verses.</div>`;
+}
+
+// Custom listbox rather than <select>. A native select's popup is drawn by the
+// OS and cannot be themed, so it arrived as a grey system menu in the middle
+// of a parchment sidebar. Owning the panel means owning the keyboard
+// behaviour a select gave for free, so all of it is here: arrows, Home/End,
+// Enter/Space, Escape, and type-ahead.
+function renderChapters(chapters) {
+  const wrap = $("chapters");
+  wrap.innerHTML = `
+    <div class="chapwrap" id="chapWrap">
+      <button class="chaptrigger" id="chapTrigger" aria-haspopup="listbox"
+              aria-expanded="false" aria-controls="chapList">
+        <span id="chapLabel">Choose a chapter…</span><span class="caret">▼</span>
+      </button>
+      <div class="chaplist" id="chapList" role="listbox" tabindex="-1"
+           aria-label="Chapters">
+        ${chapters.map((c, i) => `
+          <button class="chapopt" role="option" aria-selected="false"
+                  data-chapter="${c.chapter}" data-idx="${i}">
+            <span class="num">${c.chapter}</span>
+            <span class="label">${escapeHtml(c.title)}</span>
+            <span class="cnt">${c.verse_count}</span>
+          </button>`).join("")}
+      </div>
+    </div>`;
+
+  const wrapEl = $("chapWrap"), trigger = $("chapTrigger"), list = $("chapList");
+  const opts = [...list.querySelectorAll(".chapopt")];
+  let active = -1, typed = "", typedAt = 0;
+
+  const setActive = (i) => {
+    if (active >= 0) opts[active].setAttribute("aria-selected", "false");
+    active = Math.max(0, Math.min(opts.length - 1, i));
+    opts[active].setAttribute("aria-selected", "true");
+    opts[active].scrollIntoView({ block: "nearest" });
+  };
+  const open = () => {
+    wrapEl.classList.add("open");
+    trigger.setAttribute("aria-expanded", "true");
+    setActive(active < 0 ? 0 : active);
+  };
+  const close = () => {
+    wrapEl.classList.remove("open");
+    trigger.setAttribute("aria-expanded", "false");
+  };
+  const choose = async (i) => {
+    const ch = opts[i].dataset.chapter;
+    $("chapLabel").textContent = opts[i].querySelector(".label").textContent;
+    close();
+    trigger.focus();
+    const verses = await api(`/chapters/${ch}`);
+    if (verses.length) showVerse(verses[0].verse_id);
+    closeDrawers();
+  };
+
+  trigger.addEventListener("click", () =>
+    wrapEl.classList.contains("open") ? close() : open());
+  opts.forEach((o, i) => {
+    o.addEventListener("click", () => choose(i));
+    o.addEventListener("mouseenter", () => setActive(i));
+  });
+
+  wrapEl.addEventListener("keydown", (e) => {
+    const isOpen = wrapEl.classList.contains("open");
+    if (!isOpen && (e.key === "Enter" || e.key === " " || e.key === "ArrowDown")) {
+      e.preventDefault(); return open();
+    }
+    if (!isOpen) return;
+    if (e.key === "Escape") { e.preventDefault(); close(); return trigger.focus(); }
+    if (e.key === "ArrowDown") { e.preventDefault(); return setActive(active + 1); }
+    if (e.key === "ArrowUp") { e.preventDefault(); return setActive(active - 1); }
+    if (e.key === "Home") { e.preventDefault(); return setActive(0); }
+    if (e.key === "End") { e.preventDefault(); return setActive(opts.length - 1); }
+    if (e.key === "Enter") { e.preventDefault(); return choose(active); }
+    // Type-ahead: letters within a second of each other build one prefix, so
+    // "dh" reaches Dhyana rather than jumping to every d- then every h-.
+    if (e.key.length === 1 && /\S/.test(e.key)) {
+      const now = Date.now();
+      typed = (now - typedAt < 1000 ? typed : "") + e.key.toLowerCase();
+      typedAt = now;
+      const hit = opts.findIndex((o) =>
+        o.querySelector(".label").textContent.toLowerCase().startsWith(typed));
+      if (hit >= 0) setActive(hit);
+    }
+  });
+
+  // Any click outside closes it, the way a real menu behaves. Registered once
+  // for the lifetime of the page, not per render: renderChapters() runs on
+  // every loadSidebar(), so attaching here would add a listener after every
+  // question, each one holding a reference to a by-then-detached wrapper.
+  if (!renderChapters._outsideBound) {
+    document.addEventListener("click", (e) => {
+      const w = $("chapWrap");
+      if (w && !w.contains(e.target)) {
+        w.classList.remove("open");
+        const tr = $("chapTrigger");
+        if (tr) tr.setAttribute("aria-expanded", "false");
+      }
+    });
+    renderChapters._outsideBound = true;
+  }
 }
 
 // ---------------------------------------------------------------- health
@@ -499,7 +585,7 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-verse],[data-chapter],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
+  const t = e.target.closest("[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
   if (!t) return;
 
   if (t.dataset.newq !== undefined) return startNewQuestion();
@@ -542,11 +628,6 @@ document.addEventListener("click", async (e) => {
     if (!entry) return;
     renderHistoryEntry(entry);
     return $("q").focus();
-  }
-  if (t.dataset.chapter) {
-    const verses = await api(`/chapters/${t.dataset.chapter}`);
-    if (verses.length) showVerse(verses[0].verse_id);
-    return;
   }
   if (t.dataset.verse) return showVerse(t.dataset.verse);
 });

@@ -158,11 +158,22 @@ body::before {
 .chakra-wrap {
   position: fixed; top: 50%; left: 62%; transform: translate(-50%,-50%);
   width: min(78vh, 900px); height: min(78vh, 900px);
-  pointer-events: none; z-index: 0; opacity: .05;
+  pointer-events: none; z-index: 0; opacity: .085;
 }
-.chakra { width: 100%; height: 100%; animation: chakra-spin 190s linear infinite; }
-.ck-ring { fill: none; stroke: var(--gw-accent); stroke-width: .6; }
-.ck-spokes path { fill: none; stroke: var(--gw-accent); stroke-width: .5; }
+/* Sudarshana chakra, turning continuously. 110s per revolution is about
+   3.3 degrees a second: too slow to draw the eye, fast enough that the
+   position is visibly different whenever you look back. At the previous
+   190s and 5% opacity it was technically animating and effectively
+   invisible, which is the same as not animating.
+   will-change promotes it to its own layer so the rotation is composited
+   rather than repainting the SVG every frame underneath the whole app. */
+.chakra {
+  width: 100%; height: 100%;
+  animation: chakra-spin 110s linear infinite;
+  will-change: transform;
+}
+.ck-ring { fill: none; stroke: var(--gw-accent); stroke-width: .75; }
+.ck-spokes path { fill: none; stroke: var(--gw-accent); stroke-width: .6; }
 @keyframes chakra-spin { to { transform: rotate(360deg); } }
 
 /* ---------------- preloader ---------------- */
@@ -351,14 +362,56 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
 /* Chapter picker. Native <select> on purpose: it brings keyboard type-ahead,
    platform scrolling and a real mobile picker that a custom listbox would
    have to reimplement badly. */
-.chapsel {
-  width: 100%; padding: 7px 9px; border-radius: 8px;
+/* A native <select> was the first attempt. Its closed state themed fine, but
+   the OPEN popup is drawn by the operating system -- grey panel, blue system
+   highlight -- and no CSS can reach it, so it looked pasted in from another
+   application. This is a real listbox instead: the panel is ours, so it
+   matches, and the keyboard behaviour a <select> gave for free (arrows,
+   Home/End, type-ahead, Escape, Enter) is implemented explicitly below. */
+.chapwrap { position: relative; }
+
+.chaptrigger {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
   background: var(--gw-btn); color: var(--gw-text-3);
   border: 1px solid var(--gw-border-strong);
-  font-family: inherit; font-size: 13px; cursor: pointer;
+  font-family: inherit; font-size: 13px; text-align: left;
 }
-.chapsel:hover { background: var(--gw-btn-hover); color: var(--gw-text); }
-.chapsel:focus-visible { outline: 2px solid var(--gw-accent); outline-offset: 2px; }
+.chaptrigger:hover { background: var(--gw-btn-hover); color: var(--gw-text); }
+.chaptrigger .caret {
+  margin-left: auto; font-size: 10px; color: var(--gw-muted);
+  transition: transform .18s ease;
+}
+.chapwrap.open .chaptrigger .caret { transform: rotate(180deg); }
+.chapwrap.open .chaptrigger { border-color: var(--gw-accent); color: var(--gw-text); }
+
+.chaplist {
+  display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+  z-index: 20; max-height: 340px; overflow-y: auto; padding: 6px;
+  border-radius: 10px; background: var(--gw-palette);
+  border: 1px solid var(--gw-palette-border);
+  box-shadow: var(--gw-shadow-lg);
+  animation: palette-in .14s cubic-bezier(.2,.9,.3,1);
+}
+.chapwrap.open .chaplist { display: block; }
+.chapopt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 9px; border: none; border-radius: 7px; cursor: pointer;
+  background: transparent; color: var(--gw-text-3);
+  font-family: inherit; font-size: 13px; text-align: left;
+}
+.chapopt:hover, .chapopt[aria-selected="true"] {
+  background: var(--gw-btn); color: var(--gw-text);
+  box-shadow: inset 2px 0 0 var(--gw-accent);
+}
+.chapopt .num {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px; color: var(--gw-muted); width: 18px; text-align: right; flex: none;
+}
+.chapopt .cnt {
+  margin-left: auto; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10px; color: var(--gw-muted);
+}
 
 .kbd {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
