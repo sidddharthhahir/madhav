@@ -220,6 +220,19 @@ This is the third time in this project that a plausible retrieval idea has
 survived eyeballing and died on the eval, after multi-query fusion and stance
 indexing. Do not ship a retrieval change on the strength of a query you liked.
 
+### The contrast checker earned its keep immediately
+
+`scripts/check_contrast.py` was written to support four prahar palettes instead
+of two. On its first run it failed the *existing, already-shipped* light theme:
+`--gw-on-accent` (#FFFDF7) on `--gw-accent-fill` (#B98A22) was **3.07:1**
+against a required 4.5. That is the "New question" button, and at 13px the
+large-text allowance does not apply. Fixed by darkening the fill to #946D19.
+
+This is the same trap CONTINUE.md already warned about, caught a second time,
+which is the argument for the check being a script rather than a habit. It
+tests 51 text/surface pairs per prahar, parsed out of the real stylesheet. Run
+it after touching any colour.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are

@@ -345,6 +345,7 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 
 ```bash
 python scripts/verify_store.py    # 16 corpus integrity checks
+python scripts/check_contrast.py  # WCAG AA across all four prahars, 51 pairs each
 python scripts/validate_eval.py   # eval-set sanity (verses exist, no over-used verse)
 python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
 python scripts/test_validator.py  # 15 citation-validator cases
@@ -355,11 +356,11 @@ python scripts/test_rerank.py     # 32 reranker/counterpoint checks against a st
 python scripts/eval_answers.py     # answer-shape regressions (costs ~25c, real API calls)
 ```
 
-Run all eight in sequence:
+Run all nine in sequence:
 
 ```bash
-for s in verify_store test_validator test_pipeline test_api test_api_ui \
-         test_prefixes test_rerank validate_eval; do python scripts/$s.py; done
+for s in verify_store check_contrast test_validator test_pipeline test_api \
+         test_api_ui test_prefixes test_rerank validate_eval; do python scripts/$s.py; done
 ```
 
 `test_pipeline.py` stubs the Anthropic client, so the reject-and-regenerate
@@ -388,6 +389,58 @@ clauses, use them as a query, run ordinary free retrieval.
 This deliberately sidesteps rather than re-fights the negation problem below:
 the "not" is resolved by string surgery on a known sentence shape, and only the
 positive remainder is ever handed to a ranker.
+
+## The Mahabharata in the interface
+
+The design constraint first: people use this to ask why they feel worthless or
+why they cannot stop being angry. Swords, blood-red and arrow rain would land
+badly against that. The Gita's own move is that Kurukshetra **is** the inner
+battlefield — so the interface takes the epic's geometry, formations, banners,
+light and time, and none of its gore.
+
+**The four prahars.** The war stopped at sunset and resumed at sunrise, and
+that rhythm organises a palette better than "light/dark" — a bright screen at
+midnight and a dark one at noon are both wrong. Four themes follow the clock:
+`dawn` (05–09, rose over pale indigo), `noon` (09–17, parchment and ochre),
+`dusk` (17–20, the cosmic dark), `night` (20–05, near-black and dim
+silver-gold). The toolbar button cycles auto → dawn → noon → dusk → night →
+auto. Auto stays inside the dark family when the OS asks for dark: that is an
+accessibility signal, not a style preference.
+
+Only two base palettes exist; dawn and night are override blocks of a dozen
+tokens each. `scripts/check_contrast.py` verifies 51 text/surface pairs in
+every prahar — and found a real failure that had already shipped (white button
+text at 3.07:1 on the light accent fill).
+
+**Chakravyuha.** The preloader is the spiral formation Abhimanyu could enter
+and not leave: concentric broken rings, adjacent ones counter-rotating at
+mutually non-dividing periods so the gaps never settle into a pattern. The
+Sudarshana chakra still presides over the app; the vyuha is what you pass
+through to get in.
+
+**Tāḍapatra.** The light prahars are not parchment — the epic was incised on
+palm leaf. Verse cards get the ruled lines, the lengthwise grain, and the cord
+hole punched at the binding edge.
+
+**The field.** The dilemma's two options face each other across a gold seam —
+*dharmakṣetre kurukṣetre* — and the "whichever you choose" panel straddles it,
+because that counsel belongs to neither side.
+
+**Sanjaya's hand.** The whole Gita is Sanjaya reporting what he sees to a blind
+king. The unverified streaming draft carries his attribution (सञ्जय उवाच) and a
+dashed rule; when the citations check out it resolves to a solid gold rule.
+That gold is a claim, so it is set statically and never animated.
+
+**Dhvaja.** Each chapter flies a standard drawn from its own subject — the
+dropped bow (1.47), the fire of knowledge (4.37), the lotus unwetted (5.10),
+beads on a thread (7.7), the inverted aśvattha (15.1), the parted fetter. Not
+warrior banners: mapping eighteen chapters onto eighteen warriors would be
+invention.
+
+**Viśvarūpa.** Opening a chapter-11 verse briefly widens and brightens the
+watermark — the one place the text stops explaining and shows. Once per
+session, no flash, and it degrades to a plain brightening under
+`prefers-reduced-motion`.
 
 ## Dharma-sankata — holding both sides
 

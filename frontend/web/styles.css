@@ -7,11 +7,18 @@
    temple lamps. Sacred geometry (the Sudarshana chakra) and Devanagari
    carry the theme; the glass, glow and starfield carry the futurism.
 
-   Every text/surface pair below was checked for WCAG AA (4.5:1) against
-   EVERY background it actually appears on, not just the canvas -- the trap
+   Every text/surface pair is checked for WCAG AA (4.5:1) against EVERY
+   background it actually appears on, not just the canvas -- the trap
    documented in CONTINUE.md, where #8A857D passed on the page but failed on
-   the lighter button surface. Worst case in this palette is 5.31:1 (dark
-   muted on the button surface) and 4.83:1 (light muted on the page).
+   the lighter button surface. That check is no longer done by hand:
+   scripts/check_contrast.py parses this file and tests 51 pairs in each of
+   the four prahars. Worst cases are 5.31 (dusk), 4.63 (noon), 4.86 (dawn)
+   and 5.82 (night).
+
+   Running it for the first time found a real failure that had already
+   shipped: white .btn.primary text on the light accent fill was 3.07:1, and
+   at 13px the large-text allowance does not apply. Fixed here, not papered
+   over.
    =========================================================================== */
 
 :root {
@@ -57,7 +64,7 @@
    the suite rather than silently breaking one path. The media-query copy
    is what a no-JS visitor gets. */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
+  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) {
     --gw-page: #DED7C6;
     --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
     --gw-input: #FFFDF7;
@@ -67,7 +74,7 @@
     --gw-border: #DED7C6; --gw-border-strong: #CDC5AF; --gw-rule: #D8D0BC;
     --gw-text: #1A1710; --gw-text-2: #2A251C; --gw-text-3: #3D372B;
     --gw-text-4: #4E4739; --gw-muted: #5E5748;
-    --gw-accent: #75540E; --gw-accent-fill: #B98A22; --gw-accent-hover: #8A6512;
+    --gw-accent: #75540E; --gw-accent-fill: #946D19; --gw-accent-hover: #8A6512;
     --gw-on-accent: #FFFDF7;
     --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
     --gw-heart: #16306E; --gw-heart-spec: #6E90D8;
@@ -89,7 +96,9 @@
   }
 }
 
-:root[data-theme="light"] {
+:root[data-theme="light"],
+:root[data-theme="noon"],
+:root[data-theme="dawn"] {
     --gw-page: #DED7C6;
     --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
     --gw-input: #FFFDF7;
@@ -99,7 +108,7 @@
     --gw-border: #DED7C6; --gw-border-strong: #CDC5AF; --gw-rule: #D8D0BC;
     --gw-text: #1A1710; --gw-text-2: #2A251C; --gw-text-3: #3D372B;
     --gw-text-4: #4E4739; --gw-muted: #5E5748;
-    --gw-accent: #75540E; --gw-accent-fill: #B98A22; --gw-accent-hover: #8A6512;
+    --gw-accent: #75540E; --gw-accent-fill: #946D19; --gw-accent-hover: #8A6512;
     --gw-on-accent: #FFFDF7;
     --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
     --gw-heart: #16306E; --gw-heart-spec: #6E90D8;
@@ -120,10 +129,88 @@
     --gw-nebula-b: rgba(90,130,140,.14);
 }
 
+/* ---------------- the four prahars of Kurukshetra ----------------
+
+   The war stopped at sunset every day and both armies stood down; fighting
+   resumed at sunrise. That daily rhythm is the epic's actual structure, and
+   it is a better organising idea for a theme than "light and dark", because
+   a bright screen at midnight and a dark one at noon are both wrong.
+
+     dawn   05:00-08:59   before the conches -- rose over pale indigo
+     noon   09:00-16:59   the hard hours     -- parchment, deep ochre
+     dusk   17:00-19:59   fighting ends      -- the cosmic dark, temple gold
+     night  20:00-04:59   the camps          -- near-black, dim silver-gold
+
+   Only two BASE palettes exist: the dark one on :root and the light one
+   above. dawn and noon ride on the light base, dusk and night on the dark
+   one, and the two blocks below override only what actually differs -- about
+   a dozen tokens each instead of a fourth and fifth copy of forty. That
+   matters: the light palette already has to be written out twice because CSS
+   cannot share a declaration block across a media-query boundary, and a test
+   asserts the two copies stay identical. Four full palettes would be eight
+   blocks to keep in sync by hand.
+
+   Every colour here is verified by scripts/check_contrast.py, which checks
+   each text token against every surface it can actually land on, in all four
+   prahars. That script exists because of the trap recorded in CONTINUE.md:
+   a muted grey that passed against the page and failed against the slightly
+   lighter button sitting on it. */
+
+:root[data-theme="dawn"] {
+  /* First light: the sky still holds night's indigo, the horizon does not. */
+  --gw-page: #DCD3CE;
+  --gw-bg: #F6EDE9; --gw-panel: #F1E7E3; --gw-card: #FFF9F5; --gw-card-alt: #F7EDE8;
+  --gw-input: #FFF9F5;
+  --gw-sidebar: rgba(241,231,227,.78);
+  --gw-titlebar-a: #F3E9E5; --gw-titlebar-b: #E9DED9; --gw-titlebar-border: #D6C9C2;
+  --gw-btn: #EDE2DD; --gw-btn-hover: #E3D6D0; --gw-hover-row: #EFE4DF;
+  --gw-border: #DCD0C9; --gw-border-strong: #C9BAB2; --gw-rule: #D6C9C2;
+  --gw-accent: #7A4A22; --gw-accent-fill: #99612C; --gw-accent-hover: #8E5829;
+  --gw-teal: #1B5566; --gw-teal-dim: #276E82;
+  --gw-pill-bg: #F8E6DA; --gw-pill-border: #DDB795; --gw-pill-hover: #F1DACA;
+  --gw-warn-bg: #FBEFE6; --gw-warn-border: #DDB795;
+  --gw-glass: rgba(255,249,245,.72);
+  --gw-glass-edge: rgba(122,74,34,.18);
+  --gw-glow: 0 0 0 3px rgba(122,74,34,.20);
+  --gw-star: rgba(122,74,34,.42);
+  --gw-star-2: rgba(27,85,102,.36);
+  --gw-nebula-a: rgba(170,130,140,.20);
+  --gw-nebula-b: rgba(120,120,160,.16);
+}
+
+:root[data-theme="night"] {
+  /* The camps after the day's fighting. Darker ground than dusk and a gold
+     pulled back toward silver -- lamplight, not the sun. */
+  --gw-page: #010207;
+  --gw-bg: #03040A; --gw-panel: #070912; --gw-card: #0B0D18; --gw-card-alt: #0E111F;
+  --gw-input: #080A13;
+  --gw-sidebar: rgba(7,9,18,.76);
+  --gw-titlebar-a: #080A15; --gw-titlebar-b: #04050D; --gw-titlebar-border: #171C31;
+  --gw-btn: #141829; --gw-btn-hover: #1C2138; --gw-hover-row: #111524;
+  --gw-border: #151A2B; --gw-border-strong: #222941; --gw-rule: #1B2036;
+  --gw-accent: #D8C48C; --gw-accent-fill: #B49F68; --gw-accent-hover: #E8D6A4;
+  --gw-teal: #7FC8C0; --gw-teal-dim: #2A6F6A;
+  --gw-pill-bg: #14141A; --gw-pill-border: #3E361F; --gw-pill-hover: #1D1B26;
+  --gw-warn-bg: #14110B; --gw-warn-border: #3A3020;
+  --gw-glass: rgba(11,13,24,.66);
+  --gw-glass-edge: rgba(216,196,140,.12);
+  --gw-glow: 0 0 0 3px rgba(216,196,140,.20);
+  --gw-star: rgba(232,222,196,.80);
+  --gw-star-2: rgba(127,200,192,.55);
+  --gw-nebula-a: rgba(40,30,80,.26);
+  --gw-nebula-b: rgba(10,60,75,.18);
+}
+
 :root { color-scheme: dark; }
-:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="light"],
+:root[data-theme="noon"],
+:root[data-theme="dawn"] { color-scheme: light; }
+:root[data-theme="dusk"],
+:root[data-theme="night"] { color-scheme: dark; }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) { color-scheme: light; }
+  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) {
+    color-scheme: light;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -186,6 +273,28 @@ body::before {
 .ck-navel circle { fill: var(--gw-accent); stroke: none; }
 @keyframes chakra-spin { to { transform: rotate(360deg); } }
 
+/* Vishvarupa. Chapter 11 is the one place the text stops explaining and shows:
+   Krishna opens the cosmic form, "of many mouths and eyes... radiance like a
+   thousand suns rising at once", and Arjuna asks him to stop. It is the most
+   visually extreme passage in the Gita and the app was rendering it exactly
+   like chapter 4.
+   So opening a verse from chapter 11 briefly widens and brightens the chakra
+   -- the watermark that presides over everything -- and lets it settle back.
+   Deliberately restrained: no flash, no colour shift, nothing that grabs at
+   the eye, and it fires once per session. `alternate` on an even count
+   guarantees it returns exactly where it started, so the 110s rotation is
+   never left displaced. */
+.chakra-wrap.vishvarupa { animation: vishvarupa 1.5s ease-in-out 2 alternate; }
+@keyframes vishvarupa {
+  from { opacity: .085; transform: translate(-50%,-50%) scale(1); }
+  to   { opacity: .30;  transform: translate(-50%,-50%) scale(1.11); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The point survives without the movement: it still brightens, it just
+     does not grow or pulse. */
+  .chakra-wrap.vishvarupa { animation: none; opacity: .22; }
+}
+
 /* ---------------- preloader ---------------- */
 
 #preloader {
@@ -208,13 +317,24 @@ body::before {
   transition: stroke-dashoffset .25s ease;
   filter: drop-shadow(0 0 6px rgba(224,180,87,.55));
 }
-/* The chakra body sits inside the progress ring and turns as a unit. The
-   animation is on the group, not on its paths -- the group now holds circles
-   (rings, hub, navels) as well, and those have to travel with the spokes or
-   the navels sit still while the wheel turns around them. */
-.pre-spokes {
-  opacity: .34;
-  transform-origin: 60px 60px; animation: chakra-spin 24s linear infinite;
+/* Chakravyuha. Each ring turns against the one outside it -- that opposition
+   is the formation's actual defence, not decoration, so the alternating
+   directions and the differing periods are the point. Periods are chosen to
+   be mutually non-dividing (13/9/17/7) so the gaps never settle into a
+   repeating pattern.
+   transform-box/transform-origin are set per-path because an SVG child's
+   default origin is the viewport corner, not the shape's centre. */
+.pre-vyuha { opacity: .5; }
+.pre-vyuha .vy {
+  fill: none; stroke: var(--gw-accent); stroke-linecap: round;
+  transform-origin: 60px 60px;
+}
+.vy0 { stroke-width: 2.2; animation: chakra-spin 13s linear infinite; }
+.vy1 { stroke-width: 1.9; animation: chakra-spin 9s linear infinite reverse; }
+.vy2 { stroke-width: 1.6; animation: chakra-spin 17s linear infinite; }
+.vy3 { stroke-width: 1.3; animation: chakra-spin 7s linear infinite reverse; }
+.vy-hub {
+  fill: none; stroke: var(--gw-accent); stroke-width: 1.2; opacity: .8;
 }
 .pre-pct {
   margin-top: -84px; margin-bottom: 58px;
@@ -240,7 +360,7 @@ body::before {
 /* Motion is decorative here. Anyone who has asked the system to reduce it
    gets the same information with the movement removed. */
 @media (prefers-reduced-motion: reduce) {
-  .chakra, .pre-spokes { animation: none; }
+  .chakra, .pre-vyuha .vy { animation: none; }
   .pre-deva, .pre-gloss { animation: none; opacity: 1; }
   *, *::before, *::after {
     animation-duration: .01ms !important; animation-iteration-count: 1 !important;
@@ -418,6 +538,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
   background: var(--gw-btn); color: var(--gw-text);
   box-shadow: inset 2px 0 0 var(--gw-accent);
 }
+
+/* The chapter's standard. Stroke-only and currentColor so it takes the row's
+   own colour -- muted at rest, accent on the active row -- rather than
+   needing a second palette. */
+.dhvaja {
+  width: 18px; height: 18px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.4;
+  stroke-linecap: round; stroke-linejoin: round;
+  color: var(--gw-muted); transition: color .15s ease;
+}
+.chapopt:hover .dhvaja,
+.chapopt[aria-selected="true"] .dhvaja { color: var(--gw-accent); }
+.chaptrigger .dhvaja { color: var(--gw-accent); }
+#chapLabel { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#chapLabel span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chapopt .num {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 11px; color: var(--gw-muted); width: 18px; text-align: right; flex: none;
@@ -523,16 +658,49 @@ textarea#q:focus,
    citations" note, so text that has not passed the citation check is never
    mistaken for text that has. Citation markers stay plain here -- they only
    become pills once validation succeeds. */
+/* Sanjaya's hand. The entire Gita is Sanjaya reporting to a blind king what
+   he can see on a field he is not standing on, and chapter 2 opens with the
+   words below. That is exactly the state of a streamed draft: witnessed and
+   relayed, but not yet checked. Marking it with his own attribution says
+   "someone is telling you this" rather than "this is established", which is
+   the distinction the citation guarantee rests on. */
 .draft {
   font-family: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
   font-size: 17.5px; line-height: 1.72; color: var(--gw-text-3);
   max-width: 68ch; margin-top: 28px;
   padding-left: 14px; border-left: 2px dashed var(--gw-border-strong);
 }
+.draft::before {
+  content: "सञ्जय उवाच";
+  display: block; margin-bottom: 10px;
+  font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT', serif;
+  font-size: 12.5px; letter-spacing: .04em; color: var(--gw-muted); opacity: .85;
+}
 .draft p { margin: 0 0 16px; }
 .draftnote {
   max-width: 68ch; margin-top: 4px; padding-left: 16px;
   font-size: 12px; letter-spacing: .04em;
+}
+
+/* When validation passes, the dashed witness rule resolves into a solid gold
+   one and the text settles to full weight. The transition is the moment the
+   guarantee is met, so it is worth seeing. */
+/* The gold rule is a CLAIM -- these citations were checked -- so it is set
+   statically and never animated. An earlier version tweened border-left-color
+   from the unverified grey, which meant that whenever the animation did not
+   advance (a background tab, a throttled timeline) the element stayed pinned
+   at the keyframe's `from` colour: a validated answer wearing the unverified
+   rule, indefinitely, with no error. A running animation outranks the static
+   rule even when its clock is frozen, so fill-mode was not the fix.
+   Only opacity is animated now. If that never runs, the answer is simply
+   already at full strength, which is the correct resting state anyway. */
+.answer.settled {
+  padding-left: 14px; border-left: 2px solid var(--gw-accent);
+  animation: settle .5s ease;
+}
+@keyframes settle {
+  from { opacity: .82; }
+  to   { opacity: 1; }
 }
 
 .pill {
@@ -548,7 +716,16 @@ textarea#q:focus,
   box-shadow: 0 0 18px -4px rgba(224,180,87,.6);
 }
 
+/* The double danda closes a verse in a Devanagari manuscript, exactly where
+   this app closes an answer and begins showing its workings. Cheaper and
+   more apt than a rule. Hidden when there is nothing below it to divide. */
 .provenance { margin-top: 34px; max-width: 68ch; }
+.provenance:not(:empty)::before {
+  content: "॥";
+  display: block; margin: 0 0 26px; text-align: center;
+  font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT', serif;
+  font-size: 19px; color: var(--gw-accent); opacity: .42; letter-spacing: .3em;
+}
 .provhead {
   display: flex; align-items: center; gap: 10px;
   padding-bottom: 8px; border-bottom: 1px solid var(--gw-rule);
@@ -630,17 +807,42 @@ textarea#q:focus,
 .dl-head .n, .dl-sharedhead .n {
   font-size: 12px; color: var(--gw-muted); margin-left: auto;
 }
-.dl-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 16px; }
+/* The field. Two armies drawn up facing each other across it -- the Gita's
+   first two words are dharmakshetre kurukshetre, "on the field of dharma, the
+   field of the Kurus", and the seam is that field. It fades at both ends
+   because a battle line has no drawn border, and it is what the shared panel
+   below straddles. */
+.dl-cols {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 16px;
+  position: relative;
+}
+.dl-cols::before {
+  content: ""; position: absolute; top: 4px; bottom: 4px; left: 50%;
+  width: 1px; transform: translateX(-.5px);
+  background: linear-gradient(to bottom,
+    transparent, var(--gw-accent) 12%, var(--gw-accent) 88%, transparent);
+  opacity: .34;
+}
 .dl-col { min-width: 0; }
 .dl-colhead { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
 .dl-opt { font-size: 13.5px; color: var(--gw-text); line-height: 1.45; }
 
-/* The shared column is the feature's actual claim, so it is set apart rather
-   than being a third equal column -- it is not a third option. */
+/* The shared panel is the feature's actual claim, so it is set apart rather
+   than being a third equal column -- it is not a third option.
+   It straddles the seam deliberately: this counsel belongs to neither side,
+   which is the whole point, and a short length of the field runs up into it
+   to say so. */
 .dl-shared {
-  margin-top: 30px; padding: 16px 18px 10px;
+  position: relative;
+  margin-top: 34px; padding: 18px 18px 10px;
   border: 1px solid var(--gw-border-strong); border-radius: 12px;
   background: var(--gw-warn-bg);
+}
+.dl-shared::before {
+  content: ""; position: absolute; left: 50%; top: -34px; height: 34px;
+  width: 1px; transform: translateX(-.5px);
+  background: linear-gradient(to bottom, transparent, var(--gw-accent));
+  opacity: .34;
 }
 .dl-note { font-size: 12px; color: var(--gw-muted); margin-top: 16px; line-height: 1.6; }
 
@@ -670,6 +872,9 @@ textarea#q:focus,
   .dilemma-pair { grid-template-columns: 1fr; gap: 10px; }
   .dilemma-or { padding-top: 0; text-align: center; transform: rotate(90deg); }
   .dl-cols { grid-template-columns: 1fr; gap: 22px; }
+  /* Stacked, the seam would run down the middle of the text rather than
+     between two armies, so the field is withdrawn rather than rotated. */
+  .dl-cols::before, .dl-shared::before { display: none; }
 }
 
 /* ---------------- counterpoint ("show me the opposite") ---------------- */
@@ -801,6 +1006,65 @@ textarea#q:focus,
   background: linear-gradient(var(--gw-card), var(--gw-panel));
   animation: rise-in .4s ease;
 }
+/* ---------------- tadapatra: the palm-leaf manuscript ----------------
+
+   The light prahars are not "parchment" -- parchment is European, and the
+   Mahabharata was not written on it. It was incised on tadapatra: narrow
+   strips of palm leaf, ruled horizontally, with two holes punched through
+   the folio for the cord that bound the stack together.
+
+   So in dawn and noon the verse card becomes a leaf: faint rule lines behind
+   the text, the binding hole at the left margin, and the grain of the leaf
+   running with the writing. The hole sits level with the card's header rather
+   than at its centre: folios were punched near the binding edge, and on a
+   tall card a mid-height hole reads as an accident rather than a detail.
+   Scoped to the light prahars only -- on the dark ones the card is the night
+   sky and none of this applies.
+
+   All of it is background-image and border-radius on an element that already
+   exists, so it costs one paint and no markup. */
+
+:root[data-theme="noon"] .vcard,
+:root[data-theme="dawn"] .vcard,
+:root[data-theme="light"] .vcard {
+  background:
+    /* the cord hole, punched through the left margin */
+    radial-gradient(circle at 21px 26px,
+      rgba(120,96,52,.24) 0 3.5px, rgba(120,96,52,.11) 3.5px 5px, transparent 5px),
+    /* ruled lines, at the text's own rhythm */
+    repeating-linear-gradient(to bottom,
+      transparent 0 27px, rgba(120,96,52,.055) 27px 28px),
+    /* the leaf's lengthwise grain */
+    repeating-linear-gradient(to right,
+      rgba(150,125,80,.030) 0 2px, transparent 2px 5px),
+    linear-gradient(var(--gw-card), var(--gw-card-alt));
+  border-radius: 3px 10px 10px 3px;
+  border-left: 2px solid rgba(120,96,52,.20);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) .vcard {
+    background:
+      radial-gradient(circle at 21px 26px,
+        rgba(120,96,52,.24) 0 3.5px, rgba(120,96,52,.11) 3.5px 5px, transparent 5px),
+      repeating-linear-gradient(to bottom,
+        transparent 0 27px, rgba(120,96,52,.055) 27px 28px),
+      repeating-linear-gradient(to right,
+        rgba(150,125,80,.030) 0 2px, transparent 2px 5px),
+      linear-gradient(var(--gw-card), var(--gw-card-alt));
+    border-radius: 3px 10px 10px 3px;
+    border-left: 2px solid rgba(120,96,52,.20);
+  }
+}
+/* The hole sits at x=22px, so the card's contents start clear of it. */
+:root[data-theme="noon"] .vtop,
+:root[data-theme="dawn"] .vtop,
+:root[data-theme="light"] .vtop { padding-left: 38px; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) .vtop {
+    padding-left: 38px;
+  }
+}
+
 .vtop { display: flex; align-items: center; gap: 8px; padding: 13px 15px 9px; }
 .vref {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;

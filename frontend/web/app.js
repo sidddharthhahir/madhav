@@ -29,6 +29,7 @@ const state = {
   lastQuestion: "",
   historyById: new Map(),
   dilemmaMode: false,
+  vishvarupaShown: false,
 };
 
 async function api(path, opts) {
@@ -83,6 +84,96 @@ async function loadSidebar() {
     : `<div style="padding:4px 8px;font-size:12px;color:var(--gw-muted)">No saved verses.</div>`;
 }
 
+// ------------------------------------------------------------------ dhvaja
+//
+// Every warrior at Kurukshetra fought under a standard -- Hanuman on Arjuna's
+// chariot, a serpent for Duryodhana, a palm for Bhishma -- and the chapters
+// had nothing but a number.
+//
+// These are NOT warrior banners: mapping eighteen chapters onto eighteen
+// warriors would be invention, and most of those warriors have no attested
+// device anyway. Each mark is taken from its own chapter's subject, so it
+// says something true about what is inside:
+//
+//   1  the dropped bow -- Arjuna lays down Gandiva (1.47)
+//   2  self within body -- the discrimination Sankhya draws
+//   3  the wheel -- action, and the wheel set turning (3.16)
+//   4  fire -- "the fire of knowledge burns action to ash" (4.37)
+//   5  lotus above water -- untouched as a lotus leaf by water (5.10)
+//   6  the steady lamp -- "a lamp in a windless place" (6.19)
+//   7  beads on a thread -- "strung on me as pearls on a string" (7.7)
+//   8  the syllable -- om, the one imperishable (8.13)
+//   9  the crown -- raja-vidya, the sovereign knowledge
+//  10  the sun -- "of lights I am the sun" (10.21)
+//  11  the burst -- the cosmic form, a thousand suns at once (11.12)
+//  12  the leaf -- what devotion offers (9.26), and bhakti's own chapter
+//  13  field and knower -- the ksetra, and the one who knows it
+//  14  three bands -- the three gunas
+//  15  the inverted tree -- the ashvattha, roots above (15.1)
+//  16  two opposed -- the divine and the demonic natures
+//  17  three flames -- the three kinds of faith
+//  18  the parted ring -- moksha, the fetter opened
+//
+// 24x24, stroke-only, currentColor, so they inherit the prahar and stay
+// legible at 18px in the dropdown.
+const DHVAJA = [
+  // 1 dropped bow: limb bowed, string gone slack
+  '<path d="M8 4.5A9 9 0 0 1 8 19.5"/><path d="M8 4.5Q11.5 12 8 19.5"/>',
+  // 2 the self within the body
+  '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+  // 3 the wheel of action
+  '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.6"/>'
+  + '<path d="M12 4.5v15M4.5 12h15M6.7 6.7l10.6 10.6M17.3 6.7L6.7 17.3"/>',
+  // 4 the fire of knowledge
+  '<path d="M12 3.5c3.6 4.7 5.2 6.9 5.2 9.6a5.2 5.2 0 0 1-10.4 0c0-2.7 1.6-4.9 5.2-9.6z"/>',
+  // 5 the lotus, unwetted
+  '<path d="M12 4.5c3.6 3.2 3.6 8.2 0 11-3.6-2.8-3.6-7.8 0-11z"/><path d="M3.5 18.5h17"/>',
+  // 6 the lamp in a windless place
+  '<path d="M12 4.5c2.4 3.2 3.4 4.7 3.4 6.5a3.4 3.4 0 0 1-6.8 0c0-1.8 1-3.3 3.4-6.5z"/>'
+  + '<path d="M5.5 16.5q6.5 4.5 13 0"/><path d="M12 16.5v-2"/>',
+  // 7 beads strung on a thread
+  '<path d="M2.5 12h19"/><circle cx="7" cy="12" r="2.3"/><circle cx="12" cy="12" r="2.3"/>'
+  + '<circle cx="17" cy="12" r="2.3"/>',
+  // 8 the one imperishable syllable
+  '<circle cx="12" cy="14.5" r="6"/><path d="M7.5 6.2a5.4 5.4 0 0 1 9 0"/>'
+  + '<circle cx="12" cy="3.2" r="1.1"/>',
+  // 9 the sovereign knowledge
+  '<path d="M4 18h16"/><path d="M4 18L5.6 8l3.6 4L12 5.5l2.8 6.5 3.6-4L20 18"/>',
+  // 10 of lights, the sun
+  '<circle cx="12" cy="12" r="4"/>'
+  + '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/>',
+  // 11 a thousand suns at once
+  '<circle cx="12" cy="12" r="2.6"/>'
+  + '<path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5'
+  + 'M4.4 4.4l3.5 3.5M16.1 16.1l3.5 3.5M19.6 4.4l-3.5 3.5M7.9 16.1l-3.5 3.5'
+  + 'M7 2.3l1.7 4.1M15.3 17.6l1.7 4.1M2.3 17l4.1-1.7M17.6 8.7l4.1-1.7'
+  + 'M2.3 7l4.1 1.7M17.6 15.3l4.1 1.7M7 21.7l1.7-4.1M15.3 6.4l1.7-4.1"/>',
+  // 12 what devotion offers
+  '<path d="M12 21c-6-3.6-6-11.4 0-18 6 6.6 6 14.4 0 18z"/><path d="M12 3v18"/>',
+  // 13 the field, and the one who knows it
+  '<path d="M4.5 11h15v8.5h-15z"/><path d="M4.5 15h15"/><circle cx="12" cy="6" r="2"/>',
+  // 14 the three gunas
+  '<path d="M3.5 7.5h17" stroke-width="3"/><path d="M3.5 12h17" stroke-width="1.9"/>'
+  + '<path d="M3.5 16.5h17" stroke-width="1"/>',
+  // 15 the ashvattha, roots above
+  '<path d="M12 21V8"/>'
+  + '<path d="M12 8C9.4 6 7.6 4.6 6 3M12 8c2.6-2 4.4-3.4 6-5M12 8V2.6"/>'
+  + '<path d="M12 13.5c-2.4 1.4-3.6 3-4.6 5M12 13.5c2.4 1.4 3.6 3 4.6 5"/>',
+  // 16 the two natures, facing
+  '<path d="M9.5 4.5L3 12l6.5 7.5z"/><path d="M14.5 4.5L21 12l-6.5 7.5z"/>',
+  // 17 the three kinds of faith
+  '<path d="M6 19c-1.7-1.6-2-2.7-2-3.8 0-1.3.9-2.4 2-4 1.1 1.6 2 2.7 2 4 0 1.1-.3 2.2-2 3.8z"/>'
+  + '<path d="M12 19c-2.2-2.1-2.6-3.5-2.6-5 0-1.7 1.2-3.2 2.6-5.3 1.4 2.1 2.6 3.6 2.6 5.3 0 1.5-.4 2.9-2.6 5z"/>'
+  + '<path d="M18 19c-1.7-1.6-2-2.7-2-3.8 0-1.3.9-2.4 2-4 1.1 1.6 2 2.7 2 4 0 1.1-.3 2.2-2 3.8z"/>',
+  // 18 the fetter opened
+  '<path d="M13.6 4.6a8 8 0 0 1 0 14.8"/><path d="M10.4 4.6a8 8 0 0 0 0 14.8"/>',
+];
+
+function dhvaja(chapter) {
+  return '<svg class="dhvaja" viewBox="0 0 24 24" aria-hidden="true">'
+    + (DHVAJA[chapter - 1] || "") + "</svg>";
+}
+
 // Custom listbox rather than <select>. A native select's popup is drawn by the
 // OS and cannot be themed, so it arrived as a grey system menu in the middle
 // of a parchment sidebar. Owning the panel means owning the keyboard
@@ -101,6 +192,7 @@ function renderChapters(chapters) {
         ${chapters.map((c, i) => `
           <button class="chapopt" role="option" aria-selected="false"
                   data-chapter="${c.chapter}" data-idx="${i}">
+            ${dhvaja(c.chapter)}
             <span class="num">${c.chapter}</span>
             <span class="label">${escapeHtml(c.title)}</span>
             <span class="cnt">${c.verse_count}</span>
@@ -129,7 +221,9 @@ function renderChapters(chapters) {
   };
   const choose = async (i) => {
     const ch = opts[i].dataset.chapter;
-    $("chapLabel").textContent = opts[i].querySelector(".label").textContent;
+    // The chosen chapter keeps flying its standard in the closed trigger.
+    $("chapLabel").innerHTML = dhvaja(+ch)
+      + `<span>${escapeHtml(opts[i].querySelector(".label").textContent)}</span>`;
     close();
     trigger.focus();
     const verses = await api(`/chapters/${ch}`);
@@ -213,6 +307,7 @@ async function ask({ retrieveOnly }) {
 
   state.busy = true;
   $("answer").innerHTML = "";
+  $("answer").classList.remove("settled");
   $("provenance").innerHTML = "";
   $("counterpoint").innerHTML = "";
   hideHistoryBanner();
@@ -370,6 +465,7 @@ const FAILURE_COPY = {
 };
 
 function renderFailure(out) {
+  $("answer").classList.remove("settled");
   const [head, body] = FAILURE_COPY[out.status] || [out.status, out.detail || ""];
   $("answer").innerHTML = `
     <p style="color:var(--gw-text);font-size:16px;margin-bottom:8px">${escapeHtml(head)}</p>
@@ -389,6 +485,12 @@ function renderAnswer(text) {
                           role="button" tabindex="0">BG ${c}.${v}</span>`)}</p>`)
     .join("");
   $("answer").innerHTML = html;
+  // Sanjaya's dashed witness rule resolves to solid gold: this text has
+  // passed the citation check. Removed first so re-rendering the same answer
+  // (restoring from history) replays it rather than silently doing nothing.
+  $("answer").classList.remove("settled");
+  void $("answer").offsetWidth;
+  $("answer").classList.add("settled");
 }
 
 // ----------------------------------------------------------- dharma-sankata
@@ -413,6 +515,7 @@ function setMode(dilemmaOn) {
   $("dilemmaResult").innerHTML = "";
   if (dilemmaOn) {
     $("answer").innerHTML = "";
+    $("answer").classList.remove("settled");
     $("provenance").innerHTML = "";
     $("counterpoint").innerHTML = "";
     $("optA").focus();
@@ -631,7 +734,22 @@ async function showVerse(verseId) {
     $("app").classList.remove("hide-inspector");
     state.pinned = [v, ...state.pinned.filter((p) => p.verse_id !== verseId)].slice(0, 6);
     renderInspector();
+    if (v.chapter === 11) vishvarupa();
   } catch { /* 404 on an unknown reference is not worth interrupting for */ }
+}
+
+// Chapter 11 is the one place the Gita stops explaining and shows. Marked, but
+// only once a session: an effect that fires on every chapter-11 verse stops
+// being the cosmic form and becomes a tic.
+function vishvarupa() {
+  if (state.vishvarupaShown) return;
+  state.vishvarupaShown = true;
+  const el = document.querySelector(".chakra-wrap");
+  if (!el) return;
+  el.classList.add("vishvarupa");
+  // Cleared after the animation so the class cannot linger and pin the
+  // watermark at the brightened opacity for the rest of the session.
+  setTimeout(() => el.classList.remove("vishvarupa"), 3200);
 }
 
 function renderInspector() {
@@ -921,6 +1039,7 @@ $("btnPalette").addEventListener("click", openPalette);
 $("btnInspector").addEventListener("click", toggleInspector);
 function startNewQuestion() {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
+  $("answer").classList.remove("settled");
   $("counterpoint").innerHTML = "";
   $("dilemmaResult").innerHTML = "";
   $("optA").value = ""; $("optB").value = "";
@@ -987,34 +1106,126 @@ function hideHistoryBanner() {
 // Three states, not two: "system" is a real choice and the default, so the
 // app follows the OS until someone actively picks a side. The button label
 // shows what clicking will DO, not what is currently active.
-function resolvedTheme() {
-  const set = document.documentElement.dataset.theme;
-  if (set === "light" || set === "dark") return set;
-  return matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+// The four prahars of Kurukshetra. The war stopped at sunset and resumed at
+// sunrise, and that rhythm organises the palette better than "light/dark":
+// a bright screen at midnight and a dark one at noon are both wrong.
+//
+// "auto" is the default and follows the clock. Clicking cycles through the
+// four explicitly and then back to auto, so the button is a five-state cycle
+// rather than a toggle -- but the label always names the state you are in and
+// the one you are going to, so nothing has to be guessed.
+const PRAHARS = ["dawn", "noon", "dusk", "night"];
+const PRAHAR_LABEL = {
+  dawn: "Dawn — before the conches",
+  noon: "Noon — the hard hours",
+  dusk: "Dusk — fighting ends",
+  night: "Night — the camps",
+  auto: "Following the hour",
+};
+
+// Boundaries in local time. Night wraps midnight, so it is the fallthrough.
+function praharForHour(h) {
+  if (h >= 5 && h < 9) return "dawn";
+  if (h >= 9 && h < 17) return "noon";
+  if (h >= 17 && h < 20) return "dusk";
+  return "night";
 }
 
-const SUN = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4"/>'
-  + '<path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M16 4l-1.4 1.4M5.4 14.6L4 16"/></svg>';
-const MOON = '<svg viewBox="0 0 20 20" aria-hidden="true">'
-  + '<path d="M16 12.3A7 7 0 0 1 7.7 4a7 7 0 1 0 8.3 8.3z"/></svg>';
+// "light" and "dark" are the values this app stored before the prahars
+// existed, and they are still valid CSS selectors. Map them on read so an
+// existing localStorage entry keeps working instead of falling back to auto.
+const LEGACY = { light: "noon", dark: "dusk" };
+
+function storedTheme() {
+  let v = null;
+  try { v = localStorage.getItem("madhav-theme"); } catch (e) { /* private mode */ }
+  return LEGACY[v] || (PRAHARS.includes(v) ? v : null);
+}
+
+// "auto", or a pinned prahar. Held here rather than read back off the DOM:
+// in auto mode a concrete prahar IS written to data-theme (the stylesheet has
+// no way to consult a clock), so the attribute cannot also encode "auto".
+let themeMode = "auto";
+
+// Which prahar auto should paint right now.
+//
+// The clock decides -- that is the whole feature -- with one exception. An
+// OS-level dark preference is an accessibility signal, often set by people
+// who find bright screens painful, and overriding it at 10am to show a
+// parchment theme would be user-hostile. So when the system asks for dark,
+// auto stays inside the dark family and the clock picks which one.
+function autoPrahar() {
+  const byClock = praharForHour(new Date().getHours());
+  if (!matchMedia("(prefers-color-scheme: dark)").matches) return byClock;
+  return byClock === "night" ? "night" : "dusk";
+}
+
+// The concrete prahar currently painted, whatever route selected it.
+function resolvedTheme() {
+  return themeMode === "auto" ? autoPrahar() : themeMode;
+}
+
+const GLYPH = {
+  // Sun on the horizon: half disc with rays, sitting on the ground line.
+  dawn: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 15h16"/>'
+    + '<path d="M6.2 15a3.8 3.8 0 0 1 7.6 0"/>'
+    + '<path d="M10 4.5v2M3.6 7.6l1.4 1.4M16.4 7.6L15 9"/></svg>',
+  noon: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4"/>'
+    + '<path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16'
+    + 'M16 4l-1.4 1.4M5.4 14.6L4 16"/></svg>',
+  // Setting sun: disc below the line, rays above only.
+  dusk: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 14h16"/>'
+    + '<circle cx="10" cy="14" r="3.6"/>'
+    + '<path d="M10 3v2.2M4.2 5.2l1.5 1.5M15.8 5.2l-1.5 1.5"/></svg>',
+  night: '<svg viewBox="0 0 20 20" aria-hidden="true">'
+    + '<path d="M16 12.3A7 7 0 0 1 7.7 4a7 7 0 1 0 8.3 8.3z"/></svg>',
+};
 
 function paintThemeButton() {
-  const next = resolvedTheme() === "dark" ? "light" : "dark";
-  // Shows the theme you would switch TO, not the one you are in.
-  $("btnTheme").innerHTML = next === "light" ? SUN : MOON;
-  $("btnTheme").title = "Switch to the " + next + " theme";
-  $("btnTheme").setAttribute("aria-label", "Switch to the " + next + " theme");
+  const now = resolvedTheme();
+  const next = nextTheme();
+  const label = (themeMode === "auto" ? PRAHAR_LABEL[now] + " (following the hour)"
+                                      : PRAHAR_LABEL[now])
+    + " · next: " + (next === "auto" ? PRAHAR_LABEL.auto : PRAHAR_LABEL[next]);
+  $("btnTheme").innerHTML = GLYPH[now];
+  $("btnTheme").title = label;
+  $("btnTheme").setAttribute("aria-label", label);
 }
 
-function applyTheme(theme) {
-  if (theme) {
-    document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem("madhav-theme", theme); } catch (e) { /* private mode */ }
-  }
+// Advance the cycle: auto -> dawn -> noon -> dusk -> night -> auto.
+function nextTheme() {
+  if (themeMode === "auto") return PRAHARS[0];
+  const i = PRAHARS.indexOf(themeMode);
+  return i === PRAHARS.length - 1 ? "auto" : PRAHARS[i + 1];
+}
+
+// `mode` is "auto", a prahar, or null to repaint the current mode.
+function applyTheme(mode) {
+  if (mode) themeMode = mode;
+  try {
+    if (themeMode === "auto") localStorage.removeItem("madhav-theme");
+    else localStorage.setItem("madhav-theme", themeMode);
+  } catch (e) { /* private mode */ }
+  // A concrete prahar is always written, including in auto: CSS cannot read a
+  // clock. The no-JS path still gets the plain light/dark media query, which
+  // is why that rule has to keep working on its own.
+  document.documentElement.dataset.theme = resolvedTheme();
   paintThemeButton();
   // The starfield samples its colours once at init, so a theme change has to
   // hand it the new ones or the stars keep the old palette until reload.
   if (window.__cosmosRecolour) window.__cosmosRecolour();
+}
+
+// In auto mode the prahar has to change when the hour does -- otherwise a tab
+// left open through sunset keeps painting noon. Checked once a minute; a
+// no-op unless a boundary was actually crossed.
+function watchPrahar() {
+  let last = resolvedTheme();
+  setInterval(() => {
+    if (themeMode !== "auto") return;
+    const now = resolvedTheme();
+    if (now !== last) { last = now; applyTheme(null); }
+  }, 60000);
 }
 
 // ------------------------------------------------------------- starfield
@@ -1124,14 +1335,13 @@ $("btnCloseInspector").addEventListener("click",
   () => $("app").classList.add("hide-inspector"));
 $("scrim").addEventListener("click", closeDrawers);
 
-$("btnTheme").addEventListener("click", () => {
-  applyTheme(resolvedTheme() === "dark" ? "light" : "dark");
-});
+$("btnTheme").addEventListener("click", () => applyTheme(nextTheme()));
 
-// While the app is still following the system, track it live -- otherwise the
-// button label goes stale the moment the OS flips at sunset.
-matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-  if (!document.documentElement.dataset.theme) applyTheme(null);
+// While the app is still following the clock, track the OS too: a system
+// flip to dark is an accessibility signal that clamps auto to the dark
+// prahars, so the painted theme can change without the hour changing.
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (themeMode === "auto") applyTheme(null);
 });
 
 // Below the drawer breakpoint the verse panel covers the answer, so it starts
@@ -1144,7 +1354,9 @@ function applyInitialLayout() {
 (async function boot() {
   const pre = preloader();
   startCosmos();
+  themeMode = storedTheme() || "auto";
   applyTheme(null);
+  watchPrahar();
   applyInitialLayout();
   pre.step(35);
   await Promise.all([loadHealth(), loadSidebar()]);

@@ -86,21 +86,40 @@ def main() -> int:
         check("css respects reduced motion", "prefers-reduced-motion" in css)
 
         # The light palette is declared twice -- once for the system
-        # preference, once for an explicit [data-theme="light"] -- because CSS
+        # preference, once for the explicit prahar selectors -- because CSS
         # cannot share a declaration block across a media-query boundary. They
         # are generated from one source; this catches the two drifting apart,
         # which would otherwise break exactly one of the paths silently.
+        # Matched on the first declaration rather than the selector text: the
+        # selectors now carry the prahar exclusions and grow whenever one is
+        # added, and a test that has to be edited every time is a test that
+        # gets edited into passing.
         import re as _re
-        blocks = _re.findall(
-            r'(?::root:not\(\[data-theme="dark"\]\)|:root\[data-theme="light"\])\s*\{([^}]*)\}',
-            css)
-        palettes = [set(_re.findall(r'(--gw-[\w-]+)\s*:', b)) for b in blocks
-                    if "--gw-" in b]
+        blocks = _re.findall(r"\{\s*(--gw-page: #DED7C6;.*?)\}", css, _re.S)
+        palettes = [set(_re.findall(r"(--gw-[\w-]+)\s*:", b)) for b in blocks]
         check("light palette declared for both system and explicit choice",
               len(palettes) == 2, "found %d blocks" % len(palettes))
         check("both light palettes declare identical variables",
               len(palettes) == 2 and palettes[0] == palettes[1],
               "differ: %s" % (palettes[0] ^ palettes[1] if len(palettes) == 2 else "n/a"))
+        # Both copies must also exclude the dark prahars, or pinning dusk or
+        # night on a machine set to light mode silently repaints it parchment.
+        media = _re.search(r"@media \(prefers-color-scheme: light\) \{\s*([^\{]*)\{",
+                           css).group(1)
+        check("system-preference copy defers to a pinned dark prahar",
+              'not([data-theme="dusk"])' in media and 'not([data-theme="night"])' in media,
+              media.strip()[:120])
+
+        # The four prahars, and the two that ride on the dark base.
+        for prahar in ("dawn", "noon", "dusk", "night"):
+            check("prahar %s is selectable in CSS" % prahar,
+                  '[data-theme="%s"]' % prahar in css)
+        # Asserted on the values, not by counting selectors: "dawn" appears in
+        # the light block's selector list too, so a count is only measuring
+        # how the file happens to be laid out. These two page colours exist
+        # nowhere else, so finding them proves the override blocks are real.
+        check("dawn overrides the light base", "--gw-page: #DCD3CE" in css)
+        check("night overrides the dark base", "--gw-page: #010207" in css)
 
         js = client.get("/static/app.js").text
         check("theme choice persists", "madhav-theme" in js)
