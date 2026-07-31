@@ -27,6 +27,8 @@
   --gw-accent: #E0B457; --gw-accent-fill: #D4A24C; --gw-accent-hover: #F0C874;
   --gw-on-accent: #120E05;
   --gw-teal: #4FD1C5; --gw-teal-dim: #2C8C86;
+  /* The eye of the peacock feather: deep blue heart, pale highlight. */
+  --gw-heart: #1E3A8A; --gw-heart-spec: #7C9CE0;
   --gw-pill-bg: #1B1B22; --gw-pill-border: #4A3D22; --gw-pill-hover: #262232;
   --gw-palette: #0E1220; --gw-palette-border: #2A3252; --gw-overlay: rgba(3,4,10,.72);
   --gw-warn-bg: #1C1710; --gw-warn-border: #4A3A2A;
@@ -58,6 +60,7 @@
     --gw-accent: #75540E; --gw-accent-fill: #B98A22; --gw-accent-hover: #8A6512;
     --gw-on-accent: #FFFDF7;
     --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
+    --gw-heart: #16306E; --gw-heart-spec: #6E90D8;
     --gw-pill-bg: #F5EAD0; --gw-pill-border: #DCC08A; --gw-pill-hover: #EFE0BC;
     --gw-palette: #FFFDF7; --gw-palette-border: #CDC5AF; --gw-overlay: rgba(70,62,45,.32);
     --gw-warn-bg: #FAF2DF; --gw-warn-border: #DCC08A;
@@ -224,18 +227,30 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
 
 .brand { display: flex; align-items: center; gap: 11px; }
 
+/* The raster mark was drawn on an opaque white square, so on a dark UI it had
+   to sit on its own white tile -- a bright chip stuck onto a night sky. The
+   feather is inlined SVG instead: it inherits `color`, so the barbs and the
+   ocellus body track the theme, the ring and heart pull from the palette,
+   and it stays sharp at any size for ~3KB. The tile is gone; the mark now
+   sits in a soft gold halo that belongs to the same light source as the
+   rest of the shell. */
 .logochip {
   display: flex; align-items: center; justify-content: center; flex: none;
-  width: 46px; height: 46px; border-radius: 13px;
-  background: #FFFFFF;
-  box-shadow: 0 0 0 1px var(--gw-glass-edge), 0 4px 16px rgba(0,0,0,.45),
-              0 0 22px -6px rgba(224,180,87,.5);
-  overflow: hidden;
+  width: 46px; height: 46px; border-radius: 50%;
+  color: var(--gw-text);
+  background: radial-gradient(circle at 50% 42%,
+              rgba(224,180,87,.16), rgba(224,180,87,.04) 62%, transparent 72%);
+  box-shadow: 0 0 0 1px var(--gw-glass-edge), 0 0 26px -8px rgba(224,180,87,.55);
+  transition: transform .5s cubic-bezier(.2,.9,.3,1), box-shadow .3s ease;
 }
-.logochip img { display: block; width: 40px; height: 40px; }
-@media (prefers-color-scheme: light) {
-  .logochip { background: transparent; box-shadow: none; }
+.logochip:hover {
+  transform: rotate(-8deg) scale(1.06);
+  box-shadow: 0 0 0 1px rgba(224,180,87,.4), 0 0 34px -6px rgba(224,180,87,.85);
 }
+.feather { display: block; width: 34px; height: 42px; overflow: visible; }
+.feather .oc-ring { fill: var(--gw-accent); }
+.feather .oc-heart { fill: var(--gw-heart); }
+.feather .oc-spec { fill: var(--gw-heart-spec); }
 
 .wordmark {
   font-size: 19px; font-weight: 700; letter-spacing: .012em;
