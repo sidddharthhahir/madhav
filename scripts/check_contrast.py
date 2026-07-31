@@ -1,4 +1,4 @@
-"""WCAG AA contrast check across every prahar, every text/surface pair.
+"""WCAG AA contrast check over every text/surface pair in the palette.
 
 This exists because of a specific trap, recorded in CONTINUE.md: a muted grey
 was verified against the page background, passed, and shipped -- while failing
@@ -6,9 +6,13 @@ against the slightly lighter button surface that actually sat under it. Checking
 text against "the background" is not enough when an app has eleven surfaces.
 
 So this enumerates the surfaces each text token can genuinely land on and
-checks the whole cross product, for all four prahars plus both light bases.
-It parses the real stylesheet rather than a copy, so it cannot drift from
-what ships.
+checks the whole cross product. It parses the real stylesheet rather than a
+copy, so it cannot drift from what ships.
+
+The app has one theme. This script previously covered four time-of-day
+palettes; that check is gone with them, but it is exactly the check that
+caught a 3.07:1 failure in the light theme before it was removed, so it stays
+pointed at the one palette that remains.
 
     python scripts/check_contrast.py
     python scripts/check_contrast.py --verbose    # print every pair
@@ -48,15 +52,7 @@ PAIRS = {
     "--gw-on-accent": ["--gw-accent-fill"],
 }
 
-# Themes to check, as (label, selectors-to-merge-in-order). Later blocks
-# override earlier ones, mirroring how the cascade actually resolves: dawn is
-# the light base plus its own overrides, night is the dark base plus its own.
-THEMES = [
-    ("dusk  (dark base, :root)",        [":root"]),
-    ("noon  (light base)",              [":root", "LIGHT"]),
-    ("dawn  (light base + overrides)",  [":root", "LIGHT", 'DAWN']),
-    ("night (dark base + overrides)",   [":root", 'NIGHT']),
-]
+THEMES = [("the palette (:root)", [":root"])]
 
 
 def srgb(c):
@@ -90,18 +86,7 @@ def main() -> int:
     verbose = "--verbose" in sys.argv
     css = CSS.read_text()
 
-    blocks = {
-        ":root": parse_block(css, r"^:root\s*\{(.*?)^\}"),
-        # The explicit-choice copy of the light palette; the media-query copy
-        # is asserted identical to it by test_api_ui.py.
-        "LIGHT": parse_block(css, r'^:root\[data-theme="light"\],\n.*?\{(.*?)^\}'),
-        # Anchored on the blank line before the block. "dawn" also appears as
-        # the third selector of the light block above, and an unanchored match
-        # silently returned THAT -- so dawn's own overrides were never applied
-        # and it was being reported as plain noon.
-        "DAWN": parse_block(css, r'\n\n:root\[data-theme="dawn"\]\s*\{(.*?)^\}'),
-        "NIGHT": parse_block(css, r'\n\n:root\[data-theme="night"\]\s*\{(.*?)^\}'),
-    }
+    blocks = {":root": parse_block(css, r"^:root\s*\{(.*?)^\}")}
     for name, blk in blocks.items():
         if not blk:
             print("FAIL: could not parse the %s palette from styles.css" % name)
@@ -143,7 +128,7 @@ def main() -> int:
         for f in failures:
             print("  - %s" % f)
         return 1
-    print("All prahars pass WCAG AA (%.1f:1) on every text/surface pair." % AA)
+    print("Palette passes WCAG AA (%.1f:1) on every text/surface pair." % AA)
     return 0
 
 

@@ -223,15 +223,25 @@ indexing. Do not ship a retrieval change on the strength of a query you liked.
 ### The contrast checker earned its keep immediately
 
 `scripts/check_contrast.py` was written to support four prahar palettes instead
-of two. On its first run it failed the *existing, already-shipped* light theme:
+of two. Those palettes have since been removed -- the app is dark-only now, by
+request -- but the script had already paid for itself. On its first run it
+failed the *existing, already-shipped* light theme:
 `--gw-on-accent` (#FFFDF7) on `--gw-accent-fill` (#B98A22) was **3.07:1**
 against a required 4.5. That is the "New question" button, and at 13px the
 large-text allowance does not apply. Fixed by darkening the fill to #946D19.
 
 This is the same trap CONTINUE.md already warned about, caught a second time,
-which is the argument for the check being a script rather than a habit. It
-tests 51 text/surface pairs per prahar, parsed out of the real stylesheet. Run
-it after touching any colour.
+which is the argument for the check being a script rather than a habit. It now
+tests 51 text/surface pairs against the single palette, parsed out of the real
+stylesheet. Run it after touching any colour.
+
+**On the removed light mode.** Do not add one back on a hunch. It was built in
+full -- dawn/noon/dusk/night, clock-driven, contrast-verified -- and cut
+because the cosmic dark *is* the product's identity and the parchment variant
+read as a different, weaker app. The deletion was total: no toggle, no
+localStorage key, no `prefers-color-scheme` branch, no `data-theme` attribute.
+`test_api_ui.py` asserts each of those absences, so a half-restored theme
+fails the suite rather than shipping as a dead switch.
 
 ### Audit of the 11 misses (done, question by question)
 

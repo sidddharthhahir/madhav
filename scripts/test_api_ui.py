@@ -71,60 +71,27 @@ def main() -> int:
             a = client.get(asset)
             check("%s 200" % asset, a.status_code == 200, a.status_code)
         css = client.get("/static/styles.css").text
-        # These assert the contrast-checked muted values for the current
-        # cosmic palette. The point of the check is not the specific hex --
-        # it is that --gw-muted is a value someone actually measured against
-        # every surface it lands on, which is the trap CONTINUE.md records
-        # (#8A857D passed on the canvas and failed on the lighter button
-        # surface). Worst measured case here: 5.31:1 dark, 4.83:1 light,
-        # both above the 4.5:1 AA floor. If the palette changes again,
-        # re-measure and update these -- do not delete the check.
-        check("css has contrast-checked dark muted", "#9A9484" in css)
-        check("css has contrast-checked light muted", "#5E5748" in css)
-        check("css has light theme", "prefers-color-scheme: light" in css)
+        # Asserts the contrast-checked muted value for the cosmic palette.
+        # The point is not the specific hex -- it is that --gw-muted is a
+        # value someone actually measured against every surface it lands on,
+        # which is the trap CONTINUE.md records (#8A857D passed on the canvas
+        # and failed on the lighter button surface). Worst measured case is
+        # 5.31:1, above the 4.5:1 AA floor. If the palette changes again,
+        # re-measure with check_contrast.py -- do not delete the check.
+        check("css has contrast-checked muted", "#9A9484" in css)
         check("css has focus-visible", "focus-visible" in css)
         check("css respects reduced motion", "prefers-reduced-motion" in css)
 
-        # The light palette is declared twice -- once for the system
-        # preference, once for the explicit prahar selectors -- because CSS
-        # cannot share a declaration block across a media-query boundary. They
-        # are generated from one source; this catches the two drifting apart,
-        # which would otherwise break exactly one of the paths silently.
-        # Matched on the first declaration rather than the selector text: the
-        # selectors now carry the prahar exclusions and grow whenever one is
-        # added, and a test that has to be edited every time is a test that
-        # gets edited into passing.
-        import re as _re
-        blocks = _re.findall(r"\{\s*(--gw-page: #DED7C6;.*?)\}", css, _re.S)
-        palettes = [set(_re.findall(r"(--gw-[\w-]+)\s*:", b)) for b in blocks]
-        check("light palette declared for both system and explicit choice",
-              len(palettes) == 2, "found %d blocks" % len(palettes))
-        check("both light palettes declare identical variables",
-              len(palettes) == 2 and palettes[0] == palettes[1],
-              "differ: %s" % (palettes[0] ^ palettes[1] if len(palettes) == 2 else "n/a"))
-        # Both copies must also exclude the dark prahars, or pinning dusk or
-        # night on a machine set to light mode silently repaints it parchment.
-        media = _re.search(r"@media \(prefers-color-scheme: light\) \{\s*([^\{]*)\{",
-                           css).group(1)
-        check("system-preference copy defers to a pinned dark prahar",
-              'not([data-theme="dusk"])' in media and 'not([data-theme="night"])' in media,
-              media.strip()[:120])
-
-        # The four prahars, and the two that ride on the dark base.
-        for prahar in ("dawn", "noon", "dusk", "night"):
-            check("prahar %s is selectable in CSS" % prahar,
-                  '[data-theme="%s"]' % prahar in css)
-        # Asserted on the values, not by counting selectors: "dawn" appears in
-        # the light block's selector list too, so a count is only measuring
-        # how the file happens to be laid out. These two page colours exist
-        # nowhere else, so finding them proves the override blocks are real.
-        check("dawn overrides the light base", "--gw-page: #DCD3CE" in css)
-        check("night overrides the dark base", "--gw-page: #010207" in css)
+        # One theme. The light palettes, the four prahars and the toggle were
+        # all removed; these assert the removal stayed complete rather than
+        # leaving a half-wired switch behind.
+        check("no light palette remains", "prefers-color-scheme: light" not in css)
+        check("no theme variants remain", "data-theme" not in css)
+        check("colour scheme is pinned dark", ":root { color-scheme: dark; }" in css)
 
         js = client.get("/static/app.js").text
-        check("theme choice persists", "madhav-theme" in js)
-        check("starfield recolours on theme change", "__cosmosRecolour" in js)
-        js = client.get("/static/app.js").text
+        check("no theme preference is stored", "madhav-theme" not in js)
+        check("no theme toggle remains", "btnTheme" not in js)
         for path in ("/preview", "/ask", "/verse/", "/chapters", "/health", "/search"):
             check("app.js calls %s" % path, path in js)
 

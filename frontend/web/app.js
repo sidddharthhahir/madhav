@@ -114,8 +114,8 @@ async function loadSidebar() {
 //  17  three flames -- the three kinds of faith
 //  18  the parted ring -- moksha, the fetter opened
 //
-// 24x24, stroke-only, currentColor, so they inherit the prahar and stay
-// legible at 18px in the dropdown.
+// 24x24, stroke-only, currentColor, so they take the row's own colour and
+// stay legible at 18px in the dropdown.
 const DHVAJA = [
   // 1 dropped bow: limb bowed, string gone slack
   '<path d="M8 4.5A9 9 0 0 1 8 19.5"/><path d="M8 4.5Q11.5 12 8 19.5"/>',
@@ -1103,131 +1103,6 @@ function hideHistoryBanner() {
 
 // ----------------------------------------------------------------- theme
 
-// Three states, not two: "system" is a real choice and the default, so the
-// app follows the OS until someone actively picks a side. The button label
-// shows what clicking will DO, not what is currently active.
-// The four prahars of Kurukshetra. The war stopped at sunset and resumed at
-// sunrise, and that rhythm organises the palette better than "light/dark":
-// a bright screen at midnight and a dark one at noon are both wrong.
-//
-// "auto" is the default and follows the clock. Clicking cycles through the
-// four explicitly and then back to auto, so the button is a five-state cycle
-// rather than a toggle -- but the label always names the state you are in and
-// the one you are going to, so nothing has to be guessed.
-const PRAHARS = ["dawn", "noon", "dusk", "night"];
-const PRAHAR_LABEL = {
-  dawn: "Dawn — before the conches",
-  noon: "Noon — the hard hours",
-  dusk: "Dusk — fighting ends",
-  night: "Night — the camps",
-  auto: "Following the hour",
-};
-
-// Boundaries in local time. Night wraps midnight, so it is the fallthrough.
-function praharForHour(h) {
-  if (h >= 5 && h < 9) return "dawn";
-  if (h >= 9 && h < 17) return "noon";
-  if (h >= 17 && h < 20) return "dusk";
-  return "night";
-}
-
-// "light" and "dark" are the values this app stored before the prahars
-// existed, and they are still valid CSS selectors. Map them on read so an
-// existing localStorage entry keeps working instead of falling back to auto.
-const LEGACY = { light: "noon", dark: "dusk" };
-
-function storedTheme() {
-  let v = null;
-  try { v = localStorage.getItem("madhav-theme"); } catch (e) { /* private mode */ }
-  return LEGACY[v] || (PRAHARS.includes(v) ? v : null);
-}
-
-// "auto", or a pinned prahar. Held here rather than read back off the DOM:
-// in auto mode a concrete prahar IS written to data-theme (the stylesheet has
-// no way to consult a clock), so the attribute cannot also encode "auto".
-let themeMode = "auto";
-
-// Which prahar auto should paint right now.
-//
-// The clock decides -- that is the whole feature -- with one exception. An
-// OS-level dark preference is an accessibility signal, often set by people
-// who find bright screens painful, and overriding it at 10am to show a
-// parchment theme would be user-hostile. So when the system asks for dark,
-// auto stays inside the dark family and the clock picks which one.
-function autoPrahar() {
-  const byClock = praharForHour(new Date().getHours());
-  if (!matchMedia("(prefers-color-scheme: dark)").matches) return byClock;
-  return byClock === "night" ? "night" : "dusk";
-}
-
-// The concrete prahar currently painted, whatever route selected it.
-function resolvedTheme() {
-  return themeMode === "auto" ? autoPrahar() : themeMode;
-}
-
-const GLYPH = {
-  // Sun on the horizon: half disc with rays, sitting on the ground line.
-  dawn: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 15h16"/>'
-    + '<path d="M6.2 15a3.8 3.8 0 0 1 7.6 0"/>'
-    + '<path d="M10 4.5v2M3.6 7.6l1.4 1.4M16.4 7.6L15 9"/></svg>',
-  noon: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4"/>'
-    + '<path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16'
-    + 'M16 4l-1.4 1.4M5.4 14.6L4 16"/></svg>',
-  // Setting sun: disc below the line, rays above only.
-  dusk: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 14h16"/>'
-    + '<circle cx="10" cy="14" r="3.6"/>'
-    + '<path d="M10 3v2.2M4.2 5.2l1.5 1.5M15.8 5.2l-1.5 1.5"/></svg>',
-  night: '<svg viewBox="0 0 20 20" aria-hidden="true">'
-    + '<path d="M16 12.3A7 7 0 0 1 7.7 4a7 7 0 1 0 8.3 8.3z"/></svg>',
-};
-
-function paintThemeButton() {
-  const now = resolvedTheme();
-  const next = nextTheme();
-  const label = (themeMode === "auto" ? PRAHAR_LABEL[now] + " (following the hour)"
-                                      : PRAHAR_LABEL[now])
-    + " · next: " + (next === "auto" ? PRAHAR_LABEL.auto : PRAHAR_LABEL[next]);
-  $("btnTheme").innerHTML = GLYPH[now];
-  $("btnTheme").title = label;
-  $("btnTheme").setAttribute("aria-label", label);
-}
-
-// Advance the cycle: auto -> dawn -> noon -> dusk -> night -> auto.
-function nextTheme() {
-  if (themeMode === "auto") return PRAHARS[0];
-  const i = PRAHARS.indexOf(themeMode);
-  return i === PRAHARS.length - 1 ? "auto" : PRAHARS[i + 1];
-}
-
-// `mode` is "auto", a prahar, or null to repaint the current mode.
-function applyTheme(mode) {
-  if (mode) themeMode = mode;
-  try {
-    if (themeMode === "auto") localStorage.removeItem("madhav-theme");
-    else localStorage.setItem("madhav-theme", themeMode);
-  } catch (e) { /* private mode */ }
-  // A concrete prahar is always written, including in auto: CSS cannot read a
-  // clock. The no-JS path still gets the plain light/dark media query, which
-  // is why that rule has to keep working on its own.
-  document.documentElement.dataset.theme = resolvedTheme();
-  paintThemeButton();
-  // The starfield samples its colours once at init, so a theme change has to
-  // hand it the new ones or the stars keep the old palette until reload.
-  if (window.__cosmosRecolour) window.__cosmosRecolour();
-}
-
-// In auto mode the prahar has to change when the hour does -- otherwise a tab
-// left open through sunset keeps painting noon. Checked once a minute; a
-// no-op unless a boundary was actually crossed.
-function watchPrahar() {
-  let last = resolvedTheme();
-  setInterval(() => {
-    if (themeMode !== "auto") return;
-    const now = resolvedTheme();
-    if (now !== last) { last = now; applyTheme(null); }
-  }, 60000);
-}
-
 // ------------------------------------------------------------- starfield
 
 // Canvas 2D rather than WebGL/Three.js: a few hundred drifting points is
@@ -1239,14 +1114,11 @@ function startCosmos() {
   const cv = $("cosmos");
   if (!cv || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const ctx = cv.getContext("2d");
-  let warm = "", cool = "";
-  const readColours = () => {
-    const cs = getComputedStyle(document.documentElement);
-    warm = cs.getPropertyValue("--gw-star").trim();
-    cool = cs.getPropertyValue("--gw-star-2").trim();
-  };
-  readColours();
-  window.__cosmosRecolour = readColours;
+  // Sampled once. There is only one palette now, so there is nothing that
+  // could later change these.
+  const cs = getComputedStyle(document.documentElement);
+  const warm = cs.getPropertyValue("--gw-star").trim();
+  const cool = cs.getPropertyValue("--gw-star-2").trim();
 
   let stars = [], w = 0, h = 0;
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -1335,15 +1207,6 @@ $("btnCloseInspector").addEventListener("click",
   () => $("app").classList.add("hide-inspector"));
 $("scrim").addEventListener("click", closeDrawers);
 
-$("btnTheme").addEventListener("click", () => applyTheme(nextTheme()));
-
-// While the app is still following the clock, track the OS too: a system
-// flip to dark is an accessibility signal that clamps auto to the dark
-// prahars, so the painted theme can change without the hour changing.
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  if (themeMode === "auto") applyTheme(null);
-});
-
 // Below the drawer breakpoint the verse panel covers the answer, so it starts
 // closed. Without this the first mobile load opens straight into the panel
 // with the scrim over everything, since "no class" means "open" on desktop.
@@ -1354,9 +1217,6 @@ function applyInitialLayout() {
 (async function boot() {
   const pre = preloader();
   startCosmos();
-  themeMode = storedTheme() || "auto";
-  applyTheme(null);
-  watchPrahar();
   applyInitialLayout();
   pre.step(35);
   await Promise.all([loadHealth(), loadSidebar()]);

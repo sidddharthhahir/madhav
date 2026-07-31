@@ -14,16 +14,6 @@
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="apple-touch-icon" href="/static/logo-mark.png">
 <link rel="stylesheet" href="/static/styles.css">
-<script>
-  // Inline and synchronous on purpose: applying the stored choice from
-  // app.js would repaint after the shell had already drawn, flashing the
-  // wrong theme. No stored choice means no attribute, which leaves the
-  // CSS media query in charge.
-  try {
-    var t = localStorage.getItem("madhav-theme");
-    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-  } catch (e) { /* private mode: fall back to the system preference */ }
-</script>
 </head>
 <body>
 
@@ -172,7 +162,6 @@
             title="Find a verse  ⌘K">
       <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 L18 18"/></svg>
     </button>
-    <button class="btn iconbtn-t" id="btnTheme" aria-label="Switch theme"></button>
     <button class="btn iconbtn-t" id="btnInspector" aria-label="Show or hide the verse panel"
             title="Verse panel  ⌘\">
       <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M12.5 3.5 L12.5 16.5"/></svg>

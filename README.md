@@ -345,7 +345,7 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 
 ```bash
 python scripts/verify_store.py    # 16 corpus integrity checks
-python scripts/check_contrast.py  # WCAG AA across all four prahars, 51 pairs each
+python scripts/check_contrast.py  # WCAG AA over all 51 text/surface pairs
 python scripts/validate_eval.py   # eval-set sanity (verses exist, no over-used verse)
 python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
 python scripts/test_validator.py  # 15 citation-validator cases
@@ -398,19 +398,12 @@ badly against that. The Gita's own move is that Kurukshetra **is** the inner
 battlefield — so the interface takes the epic's geometry, formations, banners,
 light and time, and none of its gore.
 
-**The four prahars.** The war stopped at sunset and resumed at sunrise, and
-that rhythm organises a palette better than "light/dark" — a bright screen at
-midnight and a dark one at noon are both wrong. Four themes follow the clock:
-`dawn` (05–09, rose over pale indigo), `noon` (09–17, parchment and ochre),
-`dusk` (17–20, the cosmic dark), `night` (20–05, near-black and dim
-silver-gold). The toolbar button cycles auto → dawn → noon → dusk → night →
-auto. Auto stays inside the dark family when the OS asks for dark: that is an
-accessibility signal, not a style preference.
-
-Only two base palettes exist; dawn and night are override blocks of a dozen
-tokens each. `scripts/check_contrast.py` verifies 51 text/surface pairs in
-every prahar — and found a real failure that had already shipped (white button
-text at 3.07:1 on the light accent fill).
+**One theme.** Dark, always. A light mode existed — four time-of-day palettes
+following the clock — and was removed: this palette is the product's identity,
+and a parchment variant of it was a different, weaker app. There is no toggle,
+no stored preference, and no `prefers-color-scheme` branch, so the app looks
+the same on a machine set to light mode. `scripts/check_contrast.py` verifies
+all 51 text/surface pairs; worst case is 5.31:1 against a 4.5:1 floor.
 
 **Chakravyuha.** The preloader is the spiral formation Abhimanyu could enter
 and not leave: concentric broken rings, adjacent ones counter-rotating at
@@ -418,9 +411,9 @@ mutually non-dividing periods so the gaps never settle into a pattern. The
 Sudarshana chakra still presides over the app; the vyuha is what you pass
 through to get in.
 
-**Tāḍapatra.** The light prahars are not parchment — the epic was incised on
-palm leaf. Verse cards get the ruled lines, the lengthwise grain, and the cord
-hole punched at the binding edge.
+**Tāḍapatra.** The epic was incised on palm leaf. Verse cards get the ruled
+lines, the lengthwise grain, and the cord hole punched at the binding edge —
+drawn in light strokes over the dark card.
 
 **The field.** The dilemma's two options face each other across a gold seam —
 *dharmakṣetre kurukṣetre* — and the "whichever you choose" panel straddles it,

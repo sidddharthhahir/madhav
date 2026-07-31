@@ -7,18 +7,17 @@
    temple lamps. Sacred geometry (the Sudarshana chakra) and Devanagari
    carry the theme; the glass, glow and starfield carry the futurism.
 
+   One theme, deliberately. A light mode existed briefly -- four time-of-day
+   palettes, in fact -- and was removed: this palette is the product's
+   identity, and a parchment variant of it was a different, weaker app. There
+   is no toggle, no stored preference, and no prefers-color-scheme branch.
+
    Every text/surface pair is checked for WCAG AA (4.5:1) against EVERY
    background it actually appears on, not just the canvas -- the trap
    documented in CONTINUE.md, where #8A857D passed on the page but failed on
    the lighter button surface. That check is no longer done by hand:
-   scripts/check_contrast.py parses this file and tests 51 pairs in each of
-   the four prahars. Worst cases are 5.31 (dusk), 4.63 (noon), 4.86 (dawn)
-   and 5.82 (night).
-
-   Running it for the first time found a real failure that had already
-   shipped: white .btn.primary text on the light accent fill was 3.07:1, and
-   at 13px the large-text allowance does not apply. Fixed here, not papered
-   over.
+   scripts/check_contrast.py parses this file and tests all 51 pairs. Worst
+   case is 5.31:1 (muted on the button surface).
    =========================================================================== */
 
 :root {
@@ -53,165 +52,7 @@
   --gw-nebula-b: rgba(14,90,110,.22);
 }
 
-/* Theme resolution, in priority order:
-     1. an explicit choice on <html data-theme="...">, set by the toggle
-     2. the operating system preference
-     3. dark, the :root default above
-   The light palette below is emitted twice because CSS cannot share one
-   declaration block across a media-query boundary. Both copies are
-   generated from a single source and MUST stay identical -- scripts/
-   test_api_ui.py asserts they declare the same variables, so drift fails
-   the suite rather than silently breaking one path. The media-query copy
-   is what a no-JS visitor gets. */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) {
-    --gw-page: #DED7C6;
-    --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
-    --gw-input: #FFFDF7;
-    --gw-sidebar: rgba(242,237,224,.78);
-    --gw-titlebar-a: #F4EFE2; --gw-titlebar-b: #EBE5D5; --gw-titlebar-border: #D8D0BC;
-    --gw-btn: #EDE7D8; --gw-btn-hover: #E3DCC9; --gw-hover-row: #EFE9DA;
-    --gw-border: #DED7C6; --gw-border-strong: #CDC5AF; --gw-rule: #D8D0BC;
-    --gw-text: #1A1710; --gw-text-2: #2A251C; --gw-text-3: #3D372B;
-    --gw-text-4: #4E4739; --gw-muted: #5E5748;
-    --gw-accent: #75540E; --gw-accent-fill: #946D19; --gw-accent-hover: #8A6512;
-    --gw-on-accent: #FFFDF7;
-    --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
-    --gw-heart: #16306E; --gw-heart-spec: #6E90D8;
-    --gw-pill-bg: #F5EAD0; --gw-pill-border: #DCC08A; --gw-pill-hover: #EFE0BC;
-    --gw-palette: #FFFDF7; --gw-palette-border: #CDC5AF; --gw-overlay: rgba(70,62,45,.32);
-    --gw-warn-bg: #FAF2DF; --gw-warn-border: #DCC08A;
-    --gw-scroll: #C9C0A9;
-    --gw-glass: rgba(255,253,247,.72);
-    --gw-glass-edge: rgba(117,84,14,.18);
-    --gw-shadow-sm: 0 1px 2px rgba(90,78,50,.10);
-    --gw-shadow-md: 0 10px 30px rgba(90,78,50,.14), 0 2px 8px rgba(90,78,50,.08);
-    --gw-shadow-lg: 0 40px 100px rgba(70,60,38,.22), 0 10px 30px rgba(70,60,38,.12);
-    --gw-glow: 0 0 0 3px rgba(117,84,14,.20);
-    --gw-glow-teal: 0 0 24px -4px rgba(11,95,90,.30);
-    --gw-star: rgba(117,84,14,.55);
-    --gw-star-2: rgba(11,95,90,.45);
-    --gw-nebula-a: rgba(150,130,90,.18);
-    --gw-nebula-b: rgba(90,130,140,.14);
-  }
-}
-
-:root[data-theme="light"],
-:root[data-theme="noon"],
-:root[data-theme="dawn"] {
-    --gw-page: #DED7C6;
-    --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
-    --gw-input: #FFFDF7;
-    --gw-sidebar: rgba(242,237,224,.78);
-    --gw-titlebar-a: #F4EFE2; --gw-titlebar-b: #EBE5D5; --gw-titlebar-border: #D8D0BC;
-    --gw-btn: #EDE7D8; --gw-btn-hover: #E3DCC9; --gw-hover-row: #EFE9DA;
-    --gw-border: #DED7C6; --gw-border-strong: #CDC5AF; --gw-rule: #D8D0BC;
-    --gw-text: #1A1710; --gw-text-2: #2A251C; --gw-text-3: #3D372B;
-    --gw-text-4: #4E4739; --gw-muted: #5E5748;
-    --gw-accent: #75540E; --gw-accent-fill: #946D19; --gw-accent-hover: #8A6512;
-    --gw-on-accent: #FFFDF7;
-    --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
-    --gw-heart: #16306E; --gw-heart-spec: #6E90D8;
-    --gw-pill-bg: #F5EAD0; --gw-pill-border: #DCC08A; --gw-pill-hover: #EFE0BC;
-    --gw-palette: #FFFDF7; --gw-palette-border: #CDC5AF; --gw-overlay: rgba(70,62,45,.32);
-    --gw-warn-bg: #FAF2DF; --gw-warn-border: #DCC08A;
-    --gw-scroll: #C9C0A9;
-    --gw-glass: rgba(255,253,247,.72);
-    --gw-glass-edge: rgba(117,84,14,.18);
-    --gw-shadow-sm: 0 1px 2px rgba(90,78,50,.10);
-    --gw-shadow-md: 0 10px 30px rgba(90,78,50,.14), 0 2px 8px rgba(90,78,50,.08);
-    --gw-shadow-lg: 0 40px 100px rgba(70,60,38,.22), 0 10px 30px rgba(70,60,38,.12);
-    --gw-glow: 0 0 0 3px rgba(117,84,14,.20);
-    --gw-glow-teal: 0 0 24px -4px rgba(11,95,90,.30);
-    --gw-star: rgba(117,84,14,.55);
-    --gw-star-2: rgba(11,95,90,.45);
-    --gw-nebula-a: rgba(150,130,90,.18);
-    --gw-nebula-b: rgba(90,130,140,.14);
-}
-
-/* ---------------- the four prahars of Kurukshetra ----------------
-
-   The war stopped at sunset every day and both armies stood down; fighting
-   resumed at sunrise. That daily rhythm is the epic's actual structure, and
-   it is a better organising idea for a theme than "light and dark", because
-   a bright screen at midnight and a dark one at noon are both wrong.
-
-     dawn   05:00-08:59   before the conches -- rose over pale indigo
-     noon   09:00-16:59   the hard hours     -- parchment, deep ochre
-     dusk   17:00-19:59   fighting ends      -- the cosmic dark, temple gold
-     night  20:00-04:59   the camps          -- near-black, dim silver-gold
-
-   Only two BASE palettes exist: the dark one on :root and the light one
-   above. dawn and noon ride on the light base, dusk and night on the dark
-   one, and the two blocks below override only what actually differs -- about
-   a dozen tokens each instead of a fourth and fifth copy of forty. That
-   matters: the light palette already has to be written out twice because CSS
-   cannot share a declaration block across a media-query boundary, and a test
-   asserts the two copies stay identical. Four full palettes would be eight
-   blocks to keep in sync by hand.
-
-   Every colour here is verified by scripts/check_contrast.py, which checks
-   each text token against every surface it can actually land on, in all four
-   prahars. That script exists because of the trap recorded in CONTINUE.md:
-   a muted grey that passed against the page and failed against the slightly
-   lighter button sitting on it. */
-
-:root[data-theme="dawn"] {
-  /* First light: the sky still holds night's indigo, the horizon does not. */
-  --gw-page: #DCD3CE;
-  --gw-bg: #F6EDE9; --gw-panel: #F1E7E3; --gw-card: #FFF9F5; --gw-card-alt: #F7EDE8;
-  --gw-input: #FFF9F5;
-  --gw-sidebar: rgba(241,231,227,.78);
-  --gw-titlebar-a: #F3E9E5; --gw-titlebar-b: #E9DED9; --gw-titlebar-border: #D6C9C2;
-  --gw-btn: #EDE2DD; --gw-btn-hover: #E3D6D0; --gw-hover-row: #EFE4DF;
-  --gw-border: #DCD0C9; --gw-border-strong: #C9BAB2; --gw-rule: #D6C9C2;
-  --gw-accent: #7A4A22; --gw-accent-fill: #99612C; --gw-accent-hover: #8E5829;
-  --gw-teal: #1B5566; --gw-teal-dim: #276E82;
-  --gw-pill-bg: #F8E6DA; --gw-pill-border: #DDB795; --gw-pill-hover: #F1DACA;
-  --gw-warn-bg: #FBEFE6; --gw-warn-border: #DDB795;
-  --gw-glass: rgba(255,249,245,.72);
-  --gw-glass-edge: rgba(122,74,34,.18);
-  --gw-glow: 0 0 0 3px rgba(122,74,34,.20);
-  --gw-star: rgba(122,74,34,.42);
-  --gw-star-2: rgba(27,85,102,.36);
-  --gw-nebula-a: rgba(170,130,140,.20);
-  --gw-nebula-b: rgba(120,120,160,.16);
-}
-
-:root[data-theme="night"] {
-  /* The camps after the day's fighting. Darker ground than dusk and a gold
-     pulled back toward silver -- lamplight, not the sun. */
-  --gw-page: #010207;
-  --gw-bg: #03040A; --gw-panel: #070912; --gw-card: #0B0D18; --gw-card-alt: #0E111F;
-  --gw-input: #080A13;
-  --gw-sidebar: rgba(7,9,18,.76);
-  --gw-titlebar-a: #080A15; --gw-titlebar-b: #04050D; --gw-titlebar-border: #171C31;
-  --gw-btn: #141829; --gw-btn-hover: #1C2138; --gw-hover-row: #111524;
-  --gw-border: #151A2B; --gw-border-strong: #222941; --gw-rule: #1B2036;
-  --gw-accent: #D8C48C; --gw-accent-fill: #B49F68; --gw-accent-hover: #E8D6A4;
-  --gw-teal: #7FC8C0; --gw-teal-dim: #2A6F6A;
-  --gw-pill-bg: #14141A; --gw-pill-border: #3E361F; --gw-pill-hover: #1D1B26;
-  --gw-warn-bg: #14110B; --gw-warn-border: #3A3020;
-  --gw-glass: rgba(11,13,24,.66);
-  --gw-glass-edge: rgba(216,196,140,.12);
-  --gw-glow: 0 0 0 3px rgba(216,196,140,.20);
-  --gw-star: rgba(232,222,196,.80);
-  --gw-star-2: rgba(127,200,192,.55);
-  --gw-nebula-a: rgba(40,30,80,.26);
-  --gw-nebula-b: rgba(10,60,75,.18);
-}
-
 :root { color-scheme: dark; }
-:root[data-theme="light"],
-:root[data-theme="noon"],
-:root[data-theme="dawn"] { color-scheme: light; }
-:root[data-theme="dusk"],
-:root[data-theme="night"] { color-scheme: dark; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) {
-    color-scheme: light;
-  }
-}
 
 * { box-sizing: border-box; }
 
@@ -493,9 +334,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
   stroke-linecap: round; stroke-linejoin: round;
 }
 
-/* Chapter picker. Native <select> on purpose: it brings keyboard type-ahead,
-   platform scrolling and a real mobile picker that a custom listbox would
-   have to reimplement badly. */
 /* A native <select> was the first attempt. Its closed state themed fine, but
    the OPEN popup is drawn by the operating system -- grey panel, blue system
    highlight -- and no CSS can reach it, so it looked pasted in from another
@@ -1001,71 +839,38 @@ textarea#q:focus,
   text-transform: uppercase; color: var(--gw-muted);
 }
 .inspscroll { flex: 1; overflow-y: auto; }
-.vcard {
-  border-bottom: 1px solid var(--gw-border);
-  background: linear-gradient(var(--gw-card), var(--gw-panel));
-  animation: rise-in .4s ease;
-}
 /* ---------------- tadapatra: the palm-leaf manuscript ----------------
 
-   The light prahars are not "parchment" -- parchment is European, and the
-   Mahabharata was not written on it. It was incised on tadapatra: narrow
-   strips of palm leaf, ruled horizontally, with two holes punched through
-   the folio for the cord that bound the stack together.
+   The Mahabharata was incised on tadapatra: narrow strips of palm leaf, ruled
+   horizontally, with holes punched through the folio for the binding cord.
+   The verse card is that leaf -- ruled lines behind the text, the lengthwise
+   grain of the leaf running with the writing, and the cord hole level with
+   the card's header, where a folio is actually punched.
 
-   So in dawn and noon the verse card becomes a leaf: faint rule lines behind
-   the text, the binding hole at the left margin, and the grain of the leaf
-   running with the writing. The hole sits level with the card's header rather
-   than at its centre: folios were punched near the binding edge, and on a
-   tall card a mid-height hole reads as an accident rather than a detail.
-   Scoped to the light prahars only -- on the dark ones the card is the night
-   sky and none of this applies.
+   Written in light strokes over the dark card rather than dark over pale:
+   this was first drawn for a parchment theme, and inverting the marks was
+   what it needed to survive that theme being removed. All background-image
+   on an element that already exists, so it costs one paint and no markup. */
 
-   All of it is background-image and border-radius on an element that already
-   exists, so it costs one paint and no markup. */
-
-:root[data-theme="noon"] .vcard,
-:root[data-theme="dawn"] .vcard,
-:root[data-theme="light"] .vcard {
+.vcard {
   background:
     /* the cord hole, punched through the left margin */
     radial-gradient(circle at 21px 26px,
-      rgba(120,96,52,.24) 0 3.5px, rgba(120,96,52,.11) 3.5px 5px, transparent 5px),
+      rgba(224,180,87,.16) 0 3.5px, rgba(224,180,87,.07) 3.5px 5px, transparent 5px),
     /* ruled lines, at the text's own rhythm */
     repeating-linear-gradient(to bottom,
-      transparent 0 27px, rgba(120,96,52,.055) 27px 28px),
+      transparent 0 27px, rgba(224,180,87,.038) 27px 28px),
     /* the leaf's lengthwise grain */
     repeating-linear-gradient(to right,
-      rgba(150,125,80,.030) 0 2px, transparent 2px 5px),
-    linear-gradient(var(--gw-card), var(--gw-card-alt));
+      rgba(224,180,87,.018) 0 2px, transparent 2px 5px),
+    linear-gradient(var(--gw-card), var(--gw-panel));
   border-radius: 3px 10px 10px 3px;
-  border-left: 2px solid rgba(120,96,52,.20);
+  border-left: 2px solid rgba(224,180,87,.14);
+  border-bottom: 1px solid var(--gw-border);
+  animation: rise-in .4s ease;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) .vcard {
-    background:
-      radial-gradient(circle at 21px 26px,
-        rgba(120,96,52,.24) 0 3.5px, rgba(120,96,52,.11) 3.5px 5px, transparent 5px),
-      repeating-linear-gradient(to bottom,
-        transparent 0 27px, rgba(120,96,52,.055) 27px 28px),
-      repeating-linear-gradient(to right,
-        rgba(150,125,80,.030) 0 2px, transparent 2px 5px),
-      linear-gradient(var(--gw-card), var(--gw-card-alt));
-    border-radius: 3px 10px 10px 3px;
-    border-left: 2px solid rgba(120,96,52,.20);
-  }
-}
-/* The hole sits at x=22px, so the card's contents start clear of it. */
-:root[data-theme="noon"] .vtop,
-:root[data-theme="dawn"] .vtop,
-:root[data-theme="light"] .vtop { padding-left: 38px; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]):not([data-theme="dusk"]):not([data-theme="night"]) .vtop {
-    padding-left: 38px;
-  }
-}
-
-.vtop { display: flex; align-items: center; gap: 8px; padding: 13px 15px 9px; }
+/* padding-left clears the cord hole punched at x=21 by .vcard above. */
+.vtop { display: flex; align-items: center; gap: 8px; padding: 13px 15px 9px 38px; }
 .vref {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12.5px; color: var(--gw-accent); font-weight: 600;
