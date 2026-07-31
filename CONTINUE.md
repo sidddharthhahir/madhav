@@ -118,7 +118,72 @@ miss. Multi-query fusion was tried and is WORSE (34 full at k=12 against 43)
 and flood the fusion with noise, so the concatenated query wins. Ranker
 weighting is within noise. Recorded so none of it is retried blind.
 
-11 real misses remain at k=20. A quick read of them: mostly abstract/
+### Audit of the 11 misses (done, question by question)
+
+Each miss was read against what retrieval actually returned. Verdicts are
+judgement calls about which verses answer a question, not measurements --
+disagree with any of them and the tally moves. Evidence for each is the
+enrichment summaries of expected vs. retrieved verses.
+
+**Label artifact -- retrieval as good or better (7 of 11):**
+
+- *attached to outcomes I cannot control* -> returned the nishkama-karma
+  cluster (5.12, 3.19, 2.38, 9.28, 2.49). These answer the question more
+  directly than the labelled 2.62/2.64.
+- *cannot be happy for my friend's success* -> returned 16.18, whose
+  enrichment literally says "becomes envious of others", and 9.1 which names
+  jealousy. Labels were 16.4/7.27.
+- *stop measuring my life against other people's* -> returned 12.19 (not
+  shaken by others' opinions) and 5.24/3.17 (satisfaction from within).
+- *any way to be genuinely peaceful* -> returned 2.65 and 2.66, the verses
+  immediately adjacent to the labelled 2.70/2.71 and making the same point,
+  plus 6.15 ("unshakeable peace").
+- *is ambition a bad thing* -> returned 7.11, which is arguably THE verse for
+  this (desire not opposed to dharma), and 18.34 on determination driven by
+  attachment to reward.
+- *everyone gives me different advice and I am lost* -> returned 3.2, which
+  is Arjuna literally saying "your words conflict, tell me one thing", and
+  2.53 on a mind pulled by conflicting teachings. Better than both labels.
+- *does it matter how I behave when nobody is watching* -> returned 17.18
+  (discipline performed to be seen) and 3.6 (self-deception). Here the LABEL
+  looks wrong: 3.21 is about setting an example for others, i.e. behaviour
+  when people ARE watching, close to the opposite of the question.
+
+**Mixed -- one label matched by an equivalent verse (2 of 11):**
+
+- *only enjoy my job when praised* -> 12.19 and 14.24 were labelled; returned
+  5.24 and 5.21 on not chasing approval. Both defensible.
+- *find purpose when I have no idea what I am doing* -> returned 2.7, Arjuna
+  asking to be taught, which is the same move as the labelled 4.34. The
+  labelled 3.35 (svadharma) was genuinely not found.
+
+**Real retrieval failures (2 of 11):**
+
+- *I feel worthless compared to everyone around me* -> labelled 6.5/6.6
+  ("lift yourself by yourself; the mind is your friend or your enemy"),
+  which is exactly right. Retrieval returned 16.15 and 16.13, about pride
+  and acquisitiveness -- the OPPOSITE emotional pole. The query shares
+  vocabulary ("compared", "status") with verses about arrogance, and nothing
+  distinguishes the valence. This is the clearest real defect found.
+- *scroll for hours and feel worse afterwards* -> caught the compulsion
+  (6.35, 14.12, 2.44) but missed the envy/comparison half (16.18), which the
+  index clearly holds since it surfaces for the envy question above.
+
+**What this means for the headline number.** The true retrieval failure rate
+is about 2-4 of 106, not 11. 54/106 "full" understates the system, because
+"full" demands both hand-picked verses and the Gita usually offers several
+equally good ones. Chasing that number upward would mostly mean teaching
+retrieval to prefer narrower answers than the text supports -- the concrete
+form of the overfitting argument above.
+
+**The one actionable pattern: valence.** Both real failures are the same
+defect. Enrichment describes what a verse is ABOUT but not which side of a
+feeling it speaks to, so "I feel worthless" and "I am arrogant" retrieve the
+same status-and-comparison verses. A valence or stance field in the
+enrichment prompt is the targeted fix, and it is cheap to test against the
+cached plans before spending on a re-enrichment run.
+
+11 nominal misses remain at k=20, audited above. A quick read of them: mostly abstract/
 existential questions ("am I my thoughts or something underneath them",
 "does anything actually care whether I exist") where the phrase itself
 carries little concrete vocabulary for either BM25 or embeddings to grab
