@@ -441,9 +441,21 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// Class-based rather than inline style.display: an inline style wins over
+// every media query, so the old version pinned the panel visible on a phone
+// where the layout needs it off-canvas.
 function toggleInspector() {
-  const el = $("inspector");
-  el.style.display = el.style.display === "none" ? "flex" : "none";
+  $("app").classList.toggle("hide-inspector");
+  $("app").classList.remove("show-sidebar");
+}
+
+function toggleSidebar() {
+  $("app").classList.toggle("show-sidebar");
+  $("app").classList.add("hide-inspector");
+}
+
+function closeDrawers() {
+  $("app").classList.remove("show-sidebar");
 }
 
 async function copyMarkdown() {
@@ -841,6 +853,9 @@ function preloader() {
   };
 }
 
+$("btnMenu").addEventListener("click", toggleSidebar);
+$("scrim").addEventListener("click", closeDrawers);
+
 $("btnTheme").addEventListener("click", () => {
   applyTheme(resolvedTheme() === "dark" ? "light" : "dark");
 });
@@ -851,10 +866,18 @@ matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
   if (!document.documentElement.dataset.theme) applyTheme(null);
 });
 
+// Below the drawer breakpoint the verse panel covers the answer, so it starts
+// closed. Without this the first mobile load opens straight into the panel
+// with the scrim over everything, since "no class" means "open" on desktop.
+function applyInitialLayout() {
+  if (innerWidth <= 1000) $("app").classList.add("hide-inspector");
+}
+
 (async function boot() {
   const pre = preloader();
   startCosmos();
   applyTheme(null);
+  applyInitialLayout();
   pre.step(35);
   await Promise.all([loadHealth(), loadSidebar()]);
   pre.step(92);

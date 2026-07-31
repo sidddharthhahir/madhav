@@ -249,11 +249,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible,
 /* ---------------- shell ---------------- */
 
 #app {
-  height: 100vh; min-width: 1120px;
+  /* svh, not vh: mobile browsers report vh as the height WITHOUT the address
+     bar, so 100vh overflows by the bar's height and the page rocks as it
+     hides and shows. */
+  height: 100svh; min-height: 100vh;
   display: flex; flex-direction: column;
   background: transparent;
   position: relative; z-index: 1;
 }
+@supports not (height: 100svh) { #app { height: 100vh; } }
 
 .titlebar {
   height: 66px; flex: none; display: flex; align-items: center; gap: 10px;
@@ -650,6 +654,81 @@ textarea#q:focus {
 @keyframes shimmer {
   0% { background-position: 120% 0 }
   100% { background-position: -120% 0 }
+}
+
+/* ------------------------------------------------------------ responsive */
+/* The layout used to carry `min-width: 1120px`, which meant a phone got a
+   desktop three-pane layout to pan around sideways, with the verse panel
+   off the edge of the screen. Below, the two side panels become overlay
+   drawers in stages: the verse panel first (it is reference material, and
+   already had a toggle), then the sidebar. The centre column -- question
+   in, answer out -- is the one thing that never collapses. */
+
+.menubtn { display: none; font-size: 15px; line-height: 1; padding: 0 10px; }
+
+.scrim {
+  position: fixed; inset: 0; z-index: 4; display: none;
+  background: var(--gw-overlay);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+
+#app.hide-inspector .inspector { display: none; }
+
+@media (max-width: 1180px) {
+  .inspector { width: 340px; }
+  .centre-inner { padding: 26px 28px 60px; }
+}
+
+/* Verse panel off-canvas. It slides over the answer instead of squeezing it,
+   because below this width there is not enough room for both to be legible. */
+@media (max-width: 1000px) {
+  .inspector {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 5;
+    width: min(400px, 88vw);
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.2,.9,.3,1);
+  }
+  /* Stays in the layout when closed and slides out, rather than being
+     display:none'd -- a hidden box cannot animate back in. This overrides
+     the desktop rule above, which does hide it outright. */
+  #app.hide-inspector .inspector { display: flex; }
+  #app:not(.hide-inspector) .inspector { transform: translateX(0); }
+  #app:not(.hide-inspector) .scrim { display: block; }
+}
+
+@media (max-width: 760px) {
+  .menubtn { display: inline-flex; align-items: center; }
+
+  .titlebar { height: 58px; padding: 0 10px; gap: 6px; }
+  .tagline { display: none; }
+  .wordmark { font-size: 17px; }
+  .logochip { width: 38px; height: 38px; }
+  .feather { width: 28px; height: 35px; }
+  /* Export and the palette hint are desktop affordances; the phone keeps
+     asking, copying and the two panel toggles. */
+  #btnExportPng, #btnExportPdf, #btnPalette .kbd { display: none; }
+  #btnInspector { font-size: 0; padding: 0 10px; }
+  #btnInspector::after { content: "◫"; font-size: 14px; }
+
+  .sidebar {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 6;
+    width: min(280px, 84vw);
+    transform: translateX(-100%);
+    transition: transform .28s cubic-bezier(.2,.9,.3,1);
+  }
+  #app.show-sidebar .sidebar { transform: translateX(0); }
+  #app.show-sidebar .scrim { display: block; }
+
+  .centre-inner { padding: 20px 16px 56px; }
+  textarea#q { font-size: 16px; }   /* 16px stops iOS zooming on focus */
+  .answer { font-size: 16.5px; }
+  .chakra-wrap { left: 50%; opacity: .04; }
+}
+
+@media (max-width: 420px) {
+  .titlebar { gap: 4px; }
+  #btnCopy { display: none; }
+  .centre-inner { padding: 16px 12px 48px; }
 }
 
 /* ---------------------------------------------------------------- print */

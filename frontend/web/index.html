@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Without this a phone lays the page out at a virtual 980px and scales the
+     result down, so every max-width media query below 980 never matches and
+     the whole responsive layout is dead on the device it was written for.
+     viewport-fit=cover lets the shell reach under the notch. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Madhav — the Gita, answered and cited</title>
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="stylesheet" href="/static/styles.css">
@@ -56,6 +61,7 @@
 <div id="app">
 
   <div class="titlebar">
+    <button class="btn ghost menubtn" id="btnMenu" aria-label="Show chapters and history">☰</button>
     <div class="brand">
       <span class="logochip">
       <svg class="feather" viewBox="0 0 64 80" role="img"
@@ -148,6 +154,8 @@
       Hide verse panel
     </button>
   </div>
+
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
 
   <div class="body">
 
