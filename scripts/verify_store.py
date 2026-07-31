@@ -74,6 +74,19 @@ def main() -> int:
             bad_rows.append("%s/%s/%s" % (key, lang, kind))
     check("every stored row is permitted by policy", not bad_rows, str(bad_rows))
 
+    # A DELETE does not zero the page it frees, so rows removed from the corpus
+    # stay readable in the raw file until a VACUUM rewrites it -- and this file
+    # is committed to a public repository. Personal rows lived here before the
+    # split; a full history row (question, answer, citations, timestamp) was
+    # found intact in a freed page after the move. Freelist must stay empty.
+    free = conn.execute("PRAGMA freelist_count").fetchone()[0]
+    check("no free pages holding deleted data (run VACUUM if this fails)",
+          free == 0, "%d free pages" % free)
+    leftovers = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")} & {"history", "saved_verses"}
+    check("no personal tables in the redistributable corpus",
+          not leftovers, str(sorted(leftovers)))
+
     print("\nCoverage")
     for lang, kind, label in (("en", "translation", "English translation"),
                               ("sa", "commentary", "Sanskrit commentary")):
