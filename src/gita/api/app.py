@@ -24,6 +24,9 @@ from ..pipeline import Pipeline
 
 WEB_ROOT = Path(__file__).resolve().parents[3] / "frontend" / "web"
 
+# Read at import, not per request: this decides how the pipeline is built.
+RERANK_ENABLED = os.environ.get("MADHAV_RERANK", "").strip() in ("1", "true", "yes")
+
 _state: dict = {}
 
 
@@ -37,7 +40,11 @@ async def lifespan(app: FastAPI):
     # use_dense=True fuses in local Ollama embeddings via RRF; it degrades to
     # BM25 alone if Ollama isn't running or embeddings haven't been built, so
     # this is safe to leave on even where that setup step was skipped.
-    _state["pipeline"] = Pipeline(threaded=True, use_dense=True)
+    # Reranking is the opposite case and so defaults OFF: it is the only
+    # retrieval step that spends money, and its benefit has not been measured
+    # (see retrieval/rerank.py). MADHAV_RERANK=1 turns it on.
+    _state["pipeline"] = Pipeline(threaded=True, use_dense=True,
+                                  use_rerank=RERANK_ENABLED)
     yield
     pipeline = _state.pop("pipeline", None)
     if pipeline is not None:
@@ -83,6 +90,7 @@ class AskResponse(BaseModel):
     detail: str = ""
     usage: dict = {}
     timings: dict = {}
+    rerank: dict = {}
 
 
 @app.get("/health")
@@ -221,6 +229,23 @@ def ask_stream(req: AskRequest, request: Request):
 def preview(req: AskRequest):
     """Retrieval + grounding context with no model calls. Costs nothing."""
     return get_pipeline().preview(req.question, k=req.k)
+
+
+class CounterpointRequest(BaseModel):
+    verse_ids: list[str] = Field(..., min_length=1, max_length=40,
+                                 description="the verses an answer was grounded on")
+    k: int = Field(5, ge=1, le=12)
+
+
+@app.post("/counterpoint")
+def counterpoint(req: CounterpointRequest):
+    """The verses that face the other way from a given set.
+
+    Deliberately NOT behind the rate limiter or the spend guard: this makes no
+    model call at all. It is one more local retrieval against a query built
+    from the corpus's own stance text -- see retrieval/counterpoint.py.
+    """
+    return get_pipeline().counterpoint(req.verse_ids, k=req.k)
 
 
 @app.get("/verse/{verse_id}")

@@ -213,6 +213,7 @@ async function ask({ retrieveOnly }) {
   state.busy = true;
   $("answer").innerHTML = "";
   $("provenance").innerHTML = "";
+  $("counterpoint").innerHTML = "";
   hideHistoryBanner();
   setInspectorStages(retrieveOnly);
 
@@ -229,6 +230,7 @@ async function ask({ retrieveOnly }) {
          These are the verses an answer would have been grounded in, and the only
          references it would have been permitted to cite.</p>`;
       renderProvenance(out.citable);
+      renderCounterpointButton();
       if (out.retrieved.length) await showVerse(out.retrieved[0].verse_id);
     } else {
       await askStreaming(question);
@@ -323,12 +325,18 @@ async function askStreaming(question) {
           state.lastQuestion = question;
           renderAnswer(payload.answer);
           renderProvenance(null, payload);
+          renderCounterpointButton();
           break;
         case "failed":
           state.retrieved = payload.retrieved || [];
           state.answerText = "";
           renderFailure(payload);
-          if (state.retrieved.length) renderProvenance(null, payload);
+          // Offered even on a withheld answer: the retrieval succeeded, so
+          // the counterweight is just as available and just as free.
+          if (state.retrieved.length) {
+            renderProvenance(null, payload);
+            renderCounterpointButton();
+          }
           break;
       }
     }
@@ -380,6 +388,77 @@ function renderAnswer(text) {
                           role="button" tabindex="0">BG ${c}.${v}</span>`)}</p>`)
     .join("");
   $("answer").innerHTML = html;
+}
+
+// ------------------------------------------------------------- counterpoint
+//
+// The verses that face the other way. An answer is grounded in verses that
+// matched the question as it was asked, which is what makes it useful and
+// also what makes it one-sided -- ask something shaped like self-justification
+// and retrieval will hand back the verses that agree with you.
+//
+// This costs nothing: /counterpoint makes no model call, so it is exempt from
+// the spend guard and safe to offer as a plain button. It is still opt-in
+// rather than automatic, because the counterweight is worth seeking out
+// deliberately and worth nothing if it just appears under every answer.
+
+function renderCounterpointButton() {
+  const el = $("counterpoint");
+  if (!el) return;
+  if (!state.retrieved.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <button class="cpbtn" id="btnCounterpoint">
+      <span class="cpglyph" aria-hidden="true">⟳</span>
+      Show me the opposite
+      <span class="cpfree">free · no model call</span>
+    </button>`;
+}
+
+async function loadCounterpoint() {
+  const el = $("counterpoint");
+  if (!el || !state.retrieved.length) return;
+  el.innerHTML = `<div class="cpwait">finding the other side…</div>`;
+
+  let res;
+  try {
+    res = await api("/counterpoint", {
+      method: "POST",
+      body: JSON.stringify({
+        verse_ids: state.retrieved.map((r) => r.verse_id), k: 5,
+      }),
+    });
+  } catch (err) {
+    el.innerHTML = `<div class="cpwait">Could not load the other side.</div>`;
+    return;
+  }
+
+  if (!res.ok || !res.verses.length) {
+    // Say which of the two reasons it was. "Nothing found" with no
+    // explanation is the kind of dead end that reads as a bug.
+    const why = res.reason === "no_contrastive_stance"
+      ? "These verses don’t carry a stated counter-position, so there is nothing to invert."
+      : "Every opposing verse was already in the set above.";
+    el.innerHTML = `<div class="cpwait">${escapeHtml(why)}</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="cphead">
+      <span class="t">The other side</span>
+      <span class="n">verses whose stance points away from this question</span>
+    </div>
+    <p class="cpquery">Searched for: <em>${escapeHtml(
+      res.clauses.slice(0, 4).join(" · "))}</em>${
+      res.clauses.length > 4 ? ` <span>+${res.clauses.length - 4} more</span>` : ""}</p>
+    ${res.verses.map((v) => `
+      <button class="cprow" data-verse="${v.verse_id}">
+        <span class="ref">BG ${v.verse_id.split(".").slice(1).join(".")}</span>
+        <span class="body">
+          <span class="sum">${escapeHtml(v.summary)}</span>
+          ${v.stance && v.stance.length
+            ? `<span class="stance">${escapeHtml(v.stance[0])}</span>` : ""}
+        </span>
+      </button>`).join("")}`;
 }
 
 function renderProvenance(citable, out) {
@@ -587,9 +666,10 @@ function runPaletteRow(row) {
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
+  const t = e.target.closest("#btnCounterpoint,[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
   if (!t) return;
 
+  if (t.id === "btnCounterpoint") return loadCounterpoint();
   if (t.dataset.newq !== undefined) return startNewQuestion();
   if (t.dataset.delHistory) {
     await api(`/history/${t.dataset.delHistory}`, { method: "DELETE" });
@@ -731,6 +811,7 @@ $("btnPalette").addEventListener("click", openPalette);
 $("btnInspector").addEventListener("click", toggleInspector);
 function startNewQuestion() {
   $("q").value = ""; $("answer").innerHTML = ""; $("provenance").innerHTML = "";
+  $("counterpoint").innerHTML = "";
   state.retrieved = []; state.citations = []; state.answerText = "";
   hideHistoryBanner();
   $("q").focus();
@@ -764,6 +845,10 @@ function renderHistoryEntry(entry) {
   state.citations = entry.citations || [];
   state.answerText = entry.answer || "";
   $("provenance").innerHTML = "";
+  // History rows store citations but not the full retrieval set, so there is
+  // nothing to invert -- the button stays hidden rather than appearing and
+  // then failing.
+  $("counterpoint").innerHTML = "";
   showHistoryBanner(entry.question);
   if (entry.answer) {
     renderAnswer(entry.answer);

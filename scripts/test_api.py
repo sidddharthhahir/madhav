@@ -54,6 +54,29 @@ def main() -> int:
         check("context is non-empty", len(body["context"]) > 500,
               len(body["context"]))
 
+        print("\nPOST /counterpoint (free -- must never call a model)")
+        grounding = [v["verse_id"] for v in
+                     client.post("/preview", json={"question":
+                         "i feel worthless next to everyone", "k": 20}
+                     ).json()["retrieved"]]
+        r = client.post("/counterpoint", json={"verse_ids": grounding, "k": 5})
+        check("200", r.status_code == 200, r.text)
+        body = r.json()
+        check("produced opposing verses", body["ok"] and body["verses"],
+              body.get("reason"))
+        check("<= 5 verses", len(body["verses"]) <= 5, len(body["verses"]))
+        check("excludes the grounding set",
+              not ({v["verse_id"] for v in body["verses"]} & set(grounding)),
+              [v["verse_id"] for v in body["verses"]])
+        check("discloses the derived query", bool(body["query"]), body)
+        check("each verse carries its stance",
+              all("stance" in v for v in body["verses"]), body["verses"][:1])
+        r = client.post("/counterpoint", json={"verse_ids": [], "k": 5})
+        check("rejects an empty verse list", r.status_code == 422, r.status_code)
+        r = client.post("/counterpoint", json={"verse_ids": ["BG.9.99"], "k": 5})
+        check("unknown verse -> honest empty, not 500",
+              r.status_code == 200 and not r.json()["ok"], r.text[:120])
+
         print("\nGET /verse/{id}")
         r = client.get("/verse/BG.2.47")
         check("200", r.status_code == 200, r.text)

@@ -155,6 +155,19 @@ can -- and that is the next thing to try, not another indexing variant.
 
 Do not re-add stance to the index expecting a different result.
 
+**Since resolved, two ways.** The stance field is no longer idle:
+
+1. *"Show me the opposite"* (`retrieval/counterpoint.py`) uses it for free.
+   Rather than asking an index to understand "not X", it splits the stance
+   line ON the "not" and searches for the right-hand clause as a positive
+   query. 61.4% of stance lines carry that pivot, covering 86.4% of stanced
+   verses. This ships, works, costs nothing, and is exposed in the UI.
+2. The reranker (`retrieval/rerank.py`) is the thing this section predicted --
+   built, off by default (`MADHAV_RERANK=1`), and **not yet measured**,
+   because it needs credit to run at all. Free headroom measurement: pool 30
+   -> k=20 could win at most 10 of 106; pool 60 -> k=20 at most 29. Settle it
+   with `eval_sweep.py --rerank` before believing anything about it.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are
@@ -410,6 +423,14 @@ python scripts/ask.py --hybrid "..."           # real generation, costs a few ce
 # demonstrate what enrichment does, no API calls
 python scripts/demo_enrichment.py
 python scripts/demo_enrichment.py --revert
+
+# "show me the opposite" -- free, no model call
+curl -s -X POST localhost:8000/counterpoint -H 'content-type: application/json' \
+  -d '{"verse_ids":["BG.16.18","BG.16.13"],"k":4}'
+
+# the reranker: off by default, and unmeasured until this is run
+MADHAV_RERANK=1 uvicorn --app-dir src gita.api.app:app
+python scripts/eval_sweep.py --rerank --limit 25   # ~15c, does it actually help?
 
 # cost bounds
 python scripts/cost_audit.py

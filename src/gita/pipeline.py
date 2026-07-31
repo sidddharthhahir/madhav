@@ -16,7 +16,8 @@ from . import db
 from .answer import context as C
 from .answer import generate as G
 from .answer import validate as V
-from .retrieval import corpus, dense
+from .retrieval import corpus, counterpoint as CP, dense
+from .retrieval import rerank as RR
 from .retrieval.bm25 import reciprocal_rank_fusion
 
 
@@ -40,6 +41,11 @@ class AnswerResult:
     usage: dict = field(default_factory=dict)
     timings: list[Stage] = field(default_factory=list)
     plan: dict = field(default_factory=dict)
+    # What the reranker did, if anything. Populated on every result that got
+    # as far as retrieval, including {"used": False, "reason": ...} -- a
+    # reranker that quietly fell back to the original order would otherwise be
+    # indistinguishable from one that worked.
+    rerank: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -60,7 +66,8 @@ class Pipeline:
     # citations less trustworthy -- only give the model more good material.
     def __init__(self, db_path=None, *, client=None, model: str = G.DEFAULT_MODEL,
                  max_verses: int = 20, threaded: bool = False, use_dense: bool = False,
-                 local_db_path=None):
+                 local_db_path=None, use_rerank: bool = False,
+                 rerank_pool: int = 30, rerank_model: str = RR.MODEL):
         self.conn = db.connect(db_path or db.DEFAULT_DB,
                                check_same_thread=not threaded)
         # Personal state (what was asked, what was kept) lives in its own
@@ -93,6 +100,14 @@ class Pipeline:
         self.client = client
         self.model = model
         self.max_verses = max_verses
+        # Reranking is the one retrieval step that costs money, so it is
+        # opt-in and never implicit. When on, the shape is "retrieve a deeper
+        # pool, let a cheap model pick the best k from it" -- see rerank.py
+        # for why that can come out cheaper overall, and for the warning that
+        # the benefit is a hypothesis rather than a measured result.
+        self.use_rerank = use_rerank
+        self.rerank_pool = rerank_pool
+        self.rerank_model = rerank_model
         # chapters/history/saved reads and the history/saved-verse writes are
         # the only runtime SQLite access. Under a threaded server they arrive
         # from arbitrary worker threads on a connection opened with
@@ -259,6 +274,40 @@ class Pipeline:
             "context": ctx.text,
         }
 
+    def _ground(self, question: str, plan, k: int | None):
+        """Retrieve the grounding set for an answer, reranking if enabled.
+
+        Shared by ask() and ask_stream() so the two cannot drift apart -- they
+        must ground on identical verses or the streamed answer and the
+        non-streamed answer to the same question stop matching.
+
+        Note which text goes where: retrieval searches the EXPANDED query
+        (plan.retrieval_query), because the index is keyed on enrichment
+        vocabulary the user never types. Reranking judges against the ORIGINAL
+        question, because stance is about who the asker actually is, and the
+        expansion has by then flattened that into topic words.
+        """
+        k = k or self.max_verses
+        if not self.use_rerank:
+            return self.retrieve(plan.retrieval_query, k), {"used": False,
+                                                            "reason": "disabled"}
+        # Deeper pool in, same k out: reranking only helps if it is given
+        # something the ranking below k could not surface on its own.
+        pool = self.retrieve(plan.retrieval_query, max(self.rerank_pool, k))
+        return RR.rerank(question, self.records, pool, k=k,
+                         client=self.client, model=self.rerank_model)
+
+    def counterpoint(self, verse_ids: list[str], k: int = 5) -> dict:
+        """The verses that face the other way. Free -- no model call.
+
+        Takes the verse ids that grounded an answer rather than the question,
+        so this costs nothing beyond one more local retrieval: the expensive
+        step (query understanding) already happened, and its result is
+        irrelevant here anyway -- the opposing query is built from the
+        corpus's own stance text, not from anything the user typed.
+        """
+        return CP.counterpoint(self.records, self.retrieve, verse_ids, k=k)
+
     # -- full pipeline -----------------------------------------------------
 
     def ask(self, question: str, *, k: int | None = None) -> AnswerResult:
@@ -289,7 +338,7 @@ class Pipeline:
             )
 
         t0 = time.perf_counter()
-        hits = self.retrieve(plan.retrieval_query, k)
+        hits, rerank_info = self._ground(question, plan, k)
         ctx = C.build(self.records, hits, max_verses=k or self.max_verses)
         timings.append(Stage("retrieve", int((time.perf_counter() - t0) * 1000)))
 
@@ -331,7 +380,7 @@ class Pipeline:
                 status="citation_validation_failed",
                 detail=" | ".join(generated.rejected),
                 attempts=generated.attempts, usage=generated.usage,
-                timings=timings, plan=asdict(plan),
+                timings=timings, plan=asdict(plan), rerank=rerank_info,
             )
 
         return AnswerResult(
@@ -339,6 +388,7 @@ class Pipeline:
             retrieved=retrieved, ok=True, status="ok",
             detail=generated.validation.summary(), attempts=generated.attempts,
             usage=generated.usage, timings=timings, plan=asdict(plan),
+            rerank=rerank_info,
         )
 
     def delete_history(self, entry_id: int) -> bool:
@@ -475,7 +525,7 @@ class Pipeline:
 
         yield ("stage", {"name": "retrieving"})
         t0 = time.perf_counter()
-        hits = self.retrieve(plan.retrieval_query, k)
+        hits, rerank_info = self._ground(question, plan, k)
         ctx = C.build(self.records, hits, max_verses=k or self.max_verses)
         timings.append(Stage("retrieve", int((time.perf_counter() - t0) * 1000)))
 
@@ -529,7 +579,7 @@ class Pipeline:
                 detail=" | ".join(generated.rejected) if generated else "no output",
                 attempts=generated.attempts if generated else 0,
                 usage=generated.usage if generated else {},
-                timings=timings, plan=asdict(plan))
+                timings=timings, plan=asdict(plan), rerank=rerank_info)
             self.record_history(result)
             yield ("failed", result)
             return
@@ -538,6 +588,7 @@ class Pipeline:
             question, generated.text, plan.language, generated.citations,
             retrieved=retrieved, ok=True, status="ok",
             detail=generated.validation.summary(), attempts=generated.attempts,
-            usage=generated.usage, timings=timings, plan=asdict(plan))
+            usage=generated.usage, timings=timings, plan=asdict(plan),
+            rerank=rerank_info)
         self.record_history(result)
         yield ("done", result)

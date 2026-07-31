@@ -9,6 +9,10 @@ variants over them for nothing.
     python scripts/eval_sweep.py --cache      # ~$0.55, once
     python scripts/eval_sweep.py --ranks      # where do expected verses sit?
     python scripts/eval_sweep.py --sweep      # compare configurations
+    python scripts/eval_sweep.py --rerank     # measure the reranker (COSTS MONEY)
+
+--cache and --rerank are the only modes that spend anything; --ranks and
+--sweep replay the cache and are free to run as often as you like.
 
 A note on the target. recall@k rises to 100% at k=701 by returning the whole
 corpus, so a number quoted without its k is meaningless, and "get it to
@@ -166,6 +170,72 @@ def score(index, di, cache, cases, k, **kw):
     return full, partial, misses
 
 
+def cmd_rerank(index, di, cache, cases, records, pool, k, limit):
+    """Does reranking a deep pool down to k beat plain retrieval at k?
+
+    THE ONLY THING THAT SETTLES THE QUESTION. retrieval/rerank.py ships
+    unmeasured because it needs API credit to run at all; this is the harness
+    that turns that hypothesis into a number.
+
+    Two configurations are compared on identical questions:
+        baseline   retrieve k directly            (free)
+        reranked   retrieve `pool`, model picks k (~$0.006 per question)
+
+    So a full 106-question run costs about $0.65 on Haiku. Use --limit to try
+    a slice first -- if the reranker is not clearly ahead at 25 questions it
+    is unlikely to pay for itself at 106.
+
+    Reranking can only ever help if the expected verse is INSIDE the pool but
+    OUTSIDE k. That set is printed first, and it is the ceiling: no ordering
+    of the pool can find a verse the pool does not contain.
+    """
+    from gita.retrieval import rerank as RR
+
+    live = [c for c in cases if cache.get(c["question"])][:limit]
+
+    reachable = 0
+    for case in live:
+        plan = cache[case["question"]]
+        deep = {h.doc_id for h in fuse(index, di, plan["retrieval_query"], pool)}
+        near = {h.doc_id for h in fuse(index, di, plan["retrieval_query"], k)}
+        if set(case["expected"]) <= deep and not set(case["expected"]) <= near:
+            reachable += 1
+    print("questions: %d   pool=%d  k=%d" % (len(live), pool, k))
+    print("headroom: %d question(s) have every expected verse inside the pool "
+          "but not inside k." % reachable)
+    print("          that is the most reranking can possibly win. If it is 0, "
+          "stop here.\n")
+    if not reachable:
+        return
+
+    base_full = rr_full = 0
+    changed = failed = 0
+    for case in live:
+        plan = cache[case["question"]]
+        expected = set(case["expected"])
+        if expected <= {h.doc_id for h in
+                        fuse(index, di, plan["retrieval_query"], k)}:
+            base_full += 1
+        deep = fuse(index, di, plan["retrieval_query"], pool)
+        got, info = RR.rerank(case["question"], records, deep, k=k)
+        if not info["used"]:
+            failed += 1
+            continue
+        changed += bool(info.get("reordered"))
+        if expected <= {h.doc_id for h in got}:
+            rr_full += 1
+
+    print("%-34s %6s" % ("configuration", "full"))
+    print("-" * 42)
+    print("%-34s %6d" % ("baseline: retrieve k=%d" % k, base_full))
+    print("%-34s %6d" % ("reranked: %d -> %d" % (pool, k), rr_full))
+    print("\nreranker changed the order on %d of %d; %d call(s) failed."
+          % (changed, len(live), failed))
+    if failed:
+        print("failed calls fall back to retrieval order, so they count as "
+              "baseline -- rerun if that number is large.")
+
+
 def cmd_ranks(index, di, cache, cases):
     """Where does each expected verse actually sit in the fused ranking?"""
     import statistics
@@ -247,6 +317,12 @@ def main() -> int:
     ap.add_argument("--cache", action="store_true", help="build the plan cache (costs money)")
     ap.add_argument("--ranks", action="store_true")
     ap.add_argument("--sweep", action="store_true")
+    ap.add_argument("--rerank", action="store_true",
+                    help="measure the reranker (COSTS MONEY, ~$0.006/question)")
+    ap.add_argument("--pool", type=int, default=30, help="candidates to rerank")
+    ap.add_argument("--k", type=int, default=12, help="verses kept after reranking")
+    ap.add_argument("--limit", type=int, default=106,
+                    help="questions to run; use a slice before paying for all 106")
     args = ap.parse_args()
 
     if args.cache:
@@ -262,8 +338,11 @@ def main() -> int:
         cmd_ranks(index, di, cache, cases)
     elif args.sweep:
         cmd_sweep(index, di, cache, cases)
+    elif args.rerank:
+        cmd_rerank(index, di, cache, cases, records,
+                   args.pool, args.k, args.limit)
     else:
-        ap.error("pick --cache, --ranks or --sweep")
+        ap.error("pick --cache, --ranks, --sweep or --rerank")
     return 0
 
 

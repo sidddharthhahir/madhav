@@ -31,19 +31,27 @@
      shell; purely decorative, and aria-hidden so it is never announced. -->
 <canvas id="cosmos" aria-hidden="true"></canvas>
 
-<!-- Slowly rotating Sudarshana chakra watermark. Sacred geometry rather than
-     generic ornament: the discus is Krishna's, and the 16 spokes give the
-     rotation something to read against. -->
+<!-- Krishna's Sudarshana chakra, turning clockwise. The geometry follows the
+     Vishnu Purana / Pancharatra description rather than a generic dharma wheel:
+     108 serrated edges (the 108 Upanishads), 12 spokes (the twelve Adityas, one
+     per solar month), and 6 navels (the six seasons) read as the shatkona at the
+     hub. Teeth all lean the same way so the rim reads as a blade with a
+     direction of travel instead of a symmetric gear. Path data is generated,
+     not hand-drawn -- see the note in README on regenerating it. -->
 <div class="chakra-wrap" aria-hidden="true">
   <svg class="chakra" viewBox="0 0 200 200">
-    <circle cx="100" cy="100" r="94" class="ck-ring"/>
-    <circle cx="100" cy="100" r="76" class="ck-ring"/>
-    <circle cx="100" cy="100" r="40" class="ck-ring"/>
-    <circle cx="100" cy="100" r="15" class="ck-ring"/>
-    <g class="ck-spokes">
-      <path d="M100 6 L100 194 M6 100 L194 100 M33 33 L167 167 M167 33 L33 167"/>
-      <path d="M100 24 L136 60 L100 96 L64 60 Z"/>
-    </g>
+    <!-- 108 serrated edges, leaning with the direction of spin -->
+    <path class="ck-edge" d="M100 13L101.9 4.02L105.06 13.15L107.48 4.29L110.1 13.59L113.03 4.89L115.11 14.32L118.54 5.81L120.06 15.35L123.98 7.04L124.95 16.65L129.35 8.6L129.76 18.25L134.61 10.46L134.46 20.12L139.76 12.62L139.05 22.25L144.77 15.08L143.5 24.66L149.64 17.83L147.81 27.31L154.33 20.85L151.95 30.22L158.84 24.15L155.92 33.35L163.15 27.69L159.7 36.72L167.25 31.49L163.28 40.3L171.12 35.51L166.65 44.08L174.75 39.76L169.78 48.05L178.12 44.21L172.69 52.19L181.23 48.84L175.34 56.5L184.07 53.65L177.75 60.95L186.62 58.62L179.88 65.54L188.88 63.73L181.75 70.24L190.84 68.96L183.35 75.05L192.49 74.29L184.65 79.94L193.83 79.71L185.68 84.89L194.85 85.2L186.41 89.9L195.55 90.74L186.85 94.94L195.93 96.31L187 100L195.98 101.9L186.85 105.06L195.71 107.48L186.41 110.1L195.11 113.03L185.68 115.11L194.19 118.54L184.65 120.06L192.96 123.98L183.35 124.95L191.4 129.35L181.75 129.76L189.54 134.61L179.88 134.46L187.38 139.76L177.75 139.05L184.92 144.77L175.34 143.5L182.17 149.64L172.69 147.81L179.15 154.33L169.78 151.95L175.85 158.84L166.65 155.92L172.31 163.15L163.28 159.7L168.51 167.25L159.7 163.28L164.49 171.12L155.92 166.65L160.24 174.75L151.95 169.78L155.79 178.12L147.81 172.69L151.16 181.23L143.5 175.34L146.35 184.07L139.05 177.75L141.38 186.62L134.46 179.88L136.27 188.88L129.76 181.75L131.04 190.84L124.95 183.35L125.71 192.49L120.06 184.65L120.29 193.83L115.11 185.68L114.8 194.85L110.1 186.41L109.26 195.55L105.06 186.85L103.69 195.93L100 187L98.1 195.98L94.94 186.85L92.52 195.71L89.9 186.41L86.97 195.11L84.89 185.68L81.46 194.19L79.94 184.65L76.02 192.96L75.05 183.35L70.65 191.4L70.24 181.75L65.39 189.54L65.54 179.88L60.24 187.38L60.95 177.75L55.23 184.92L56.5 175.34L50.36 182.17L52.19 172.69L45.67 179.15L48.05 169.78L41.16 175.85L44.08 166.65L36.85 172.31L40.3 163.28L32.75 168.51L36.72 159.7L28.88 164.49L33.35 155.92L25.25 160.24L30.22 151.95L21.88 155.79L27.31 147.81L18.77 151.16L24.66 143.5L15.93 146.35L22.25 139.05L13.38 141.38L20.12 134.46L11.12 136.27L18.25 129.76L9.16 131.04L16.65 124.95L7.51 125.71L15.35 120.06L6.17 120.29L14.32 115.11L5.15 114.8L13.59 110.1L4.45 109.26L13.15 105.06L4.07 103.69L13 100L4.02 98.1L13.15 94.94L4.29 92.52L13.59 89.9L4.89 86.97L14.32 84.89L5.81 81.46L15.35 79.94L7.04 76.02L16.65 75.05L8.6 70.65L18.25 70.24L10.46 65.39L20.12 65.54L12.62 60.24L22.25 60.95L15.08 55.23L24.66 56.5L17.83 50.36L27.31 52.19L20.85 45.67L30.22 48.05L24.15 41.16L33.35 44.08L27.69 36.85L36.72 40.3L31.49 32.75L40.3 36.72L35.51 28.88L44.08 33.35L39.76 25.25L48.05 30.22L44.21 21.88L52.19 27.31L48.84 18.77L56.5 24.66L53.65 15.93L60.95 22.25L58.62 13.38L65.54 20.12L63.73 11.12L70.24 18.25L68.96 9.16L75.05 16.65L74.29 7.51L79.94 15.35L79.71 6.17L84.89 14.32L85.2 5.15L89.9 13.59L90.74 4.45L94.94 13.15L96.31 4.07L100 13Z"/>
+    <circle cx="100" cy="100" r="86" class="ck-ring"/>
+    <circle cx="100" cy="100" r="82" class="ck-ring"/>
+    <!-- 12 spokes: the twelve Adityas -->
+    <path class="ck-spoke" d="M100 70 L100 18 M115 74.02 L141 28.99 M125.98 85 L171.01 59 M130 100 L182 100 M125.98 115 L171.01 141 M115 125.98 L141 171.01 M100 130 L100 182 M85 125.98 L59 171.01 M74.02 115 L28.99 141 M70 100 L18 100 M74.02 85 L28.99 59 M85 74.02 L59 28.99"/>
+    <circle cx="100" cy="100" r="30" class="ck-ring"/>
+    <!-- shatkona at the core of the Sudarshana yantra -->
+    <path class="ck-hex" d="M100 73 L123.38 113.5 L76.62 113.5 Z M123.38 86.5 L100 127 L76.62 86.5 Z"/>
+    <circle cx="100" cy="100" r="9" class="ck-ring"/>
+    <!-- six navels: the six seasons -->
+    <g class="ck-navel"><circle cx="100" cy="81" r="2.1"/> <circle cx="116.45" cy="90.5" r="2.1"/> <circle cx="116.45" cy="109.5" r="2.1"/> <circle cx="100" cy="119" r="2.1"/> <circle cx="83.55" cy="109.5" r="2.1"/> <circle cx="83.55" cy="90.5" r="2.1"/></g>
   </svg>
 </div>
 
@@ -53,7 +61,13 @@
       <circle cx="60" cy="60" r="54" class="pre-track"/>
       <circle cx="60" cy="60" r="54" class="pre-arc" id="preArc"/>
       <g class="pre-spokes">
-        <path d="M60 14 L60 106 M14 60 L106 60 M27 27 L93 93 M93 27 L27 93"/>
+        <path class="ck-edge" d="M60 20.5L62.73 14.08L66.86 21.1L70.66 15.25L73.51 22.88L78.27 17.78L79.75 25.79L85.32 21.6L85.39 29.74L91.61 26.58L90.26 34.61L96.93 32.57L94.21 40.25L101.13 39.4L97.12 46.49L104.08 46.86L98.9 53.14L105.7 54.71L99.5 60L105.92 62.73L98.9 66.86L104.75 70.66L97.12 73.51L102.22 78.27L94.21 79.75L98.4 85.32L90.26 85.39L93.42 91.61L85.39 90.26L87.43 96.93L79.75 94.21L80.6 101.13L73.51 97.12L73.14 104.08L66.86 98.9L65.29 105.7L60 99.5L57.27 105.92L53.14 98.9L49.34 104.75L46.49 97.12L41.73 102.22L40.25 94.21L34.68 98.4L34.61 90.26L28.39 93.42L29.74 85.39L23.07 87.43L25.79 79.75L18.87 80.6L22.88 73.51L15.92 73.14L21.1 66.86L14.3 65.29L20.5 60L14.08 57.27L21.1 53.14L15.25 49.34L22.88 46.49L17.78 41.73L25.79 40.25L21.6 34.68L29.74 34.61L26.58 28.39L34.61 29.74L32.57 23.07L40.25 25.79L39.4 18.87L46.49 22.88L46.86 15.92L53.14 21.1L54.71 14.3L60 20.5Z"/>
+        <circle cx="60" cy="60" r="37" class="ck-ring"/>
+        <path class="ck-spoke" d="M60 46 L60 23 M67 47.88 L78.5 27.96 M72.12 53 L92.04 41.5 M74 60 L97 60 M72.12 67 L92.04 78.5 M67 72.12 L78.5 92.04 M60 74 L60 97 M53 72.12 L41.5 92.04 M47.88 67 L27.96 78.5 M46 60 L23 60 M47.88 53 L27.96 41.5 M53 47.88 L41.5 27.96"/>
+        <circle cx="60" cy="60" r="14" class="ck-ring"/>
+        <path class="ck-hex" d="M60 47.5 L70.83 66.25 L49.17 66.25 Z M70.83 53.75 L60 72.5 L49.17 53.75 Z"/>
+        <circle cx="60" cy="60" r="4.2" class="ck-ring"/>
+        <g class="ck-navel"><circle cx="60" cy="51.4" r="1.15"/> <circle cx="67.45" cy="55.7" r="1.15"/> <circle cx="67.45" cy="64.3" r="1.15"/> <circle cx="60" cy="68.6" r="1.15"/> <circle cx="52.55" cy="64.3" r="1.15"/> <circle cx="52.55" cy="55.7" r="1.15"/></g>
       </g>
     </svg>
     <div class="pre-pct" id="prePct">0%</div>
@@ -191,6 +205,11 @@
         <div class="answer measure" id="answer"></div>
         <div class="printonly" id="printCited"></div>
         <div class="provenance" id="provenance"></div>
+        <!-- The counterweight: verses whose stance points away from the asker
+             rather than at them. Free -- no model call -- so it is offered as
+             a button rather than run automatically. noprint because it is an
+             exploration, not part of the answer being cited. -->
+        <div class="counterpoint noprint" id="counterpoint"></div>
         <div class="printonly printfooter">Madhav — the Gita, answered and cited</div>
       </div>
     </main>

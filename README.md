@@ -332,6 +332,7 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 | `GET /search?q=` | no | raw lexical search with matched terms |
 | `POST /preview` | no | retrieval + grounding context, free |
 | `GET /verse/{id}` | no | one verse with translations and enrichment |
+| `POST /counterpoint` | no | verses whose stance points the other way, free |
 | `POST /ask` | yes | the full pipeline, all-or-nothing |
 | `POST /ask/stream` | yes | same pipeline as server-sent events (see above) |
 
@@ -342,26 +343,75 @@ uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on 
 ## Tests
 
 ```bash
-python scripts/verify_store.py    # 13 corpus integrity checks
+python scripts/verify_store.py    # 16 corpus integrity checks
 python scripts/validate_eval.py   # eval-set sanity (verses exist, no over-used verse)
 python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
 python scripts/test_validator.py  # 15 citation-validator cases
 python scripts/test_pipeline.py   # 22 end-to-end checks against a stub client
 python scripts/test_api.py        # 21 HTTP contract checks
 python scripts/test_api_ui.py     # confirms the desktop UI's app.js calls the routes it needs
+python scripts/test_rerank.py     # 32 reranker/counterpoint checks against a stub client
 python scripts/eval_answers.py     # answer-shape regressions (costs ~25c, real API calls)
 ```
 
-Run all seven in sequence:
+Run all eight in sequence:
 
 ```bash
 for s in verify_store test_validator test_pipeline test_api test_api_ui \
-         test_prefixes validate_eval; do python scripts/$s.py; done
+         test_prefixes test_rerank validate_eval; do python scripts/$s.py; done
 ```
 
 `test_pipeline.py` stubs the Anthropic client, so the reject-and-regenerate
 loop — the most safety-critical path, and the one that never runs during happy-
 path use — is driven deterministically with no credential and no spend.
+`test_rerank.py` does the same for the reranker, and note what it does and does
+not establish: it proves the reranker is *safe* (a malformed or hallucinated
+ordering never loses a verse, and every failure falls back to the original
+ranking), not that it is *useful*. Only `eval_sweep.py --rerank` can show that.
+
+## Show me the opposite
+
+An answer is grounded in verses that matched the question as it was asked,
+which is what makes it useful and also what makes it one-sided — ask something
+shaped like self-justification and retrieval will return the verses that agree
+with you. The button under each answer surfaces the counterweight.
+
+It costs nothing, and does not call a model. The `stance` enrichment was
+generated in an explicit contrast form — *"a warning to someone corrupted by
+power, **not** comfort for the powerless"* — and 1,420 of 2,312 stance lines
+(61.4%), covering 605 of 700 stanced verses (86.4%), carry that pivot. So the
+right-hand clause is a ready-made description of the reader this verse is *not*
+for, which is to say a description of the verse someone else needs. Take those
+clauses, use them as a query, run ordinary free retrieval.
+
+This deliberately sidesteps rather than re-fights the negation problem below:
+the "not" is resolved by string surgery on a known sentence shape, and only the
+positive remainder is ever handed to a ranker.
+
+## Reranking (off by default, unmeasured)
+
+`MADHAV_RERANK=1` puts a Haiku call between retrieval and answering: fetch a
+deeper pool, let a cheap model pick the best *k* by reading each verse's
+`stance`. That is the one thing an index provably cannot do — see the negation
+note in `retrieval/corpus.py`.
+
+**Its benefit has not been measured.** It needs API credit to run at all, and
+there was none when it was written. Two earlier changes in this project looked
+equally sound on paper and turned out to be worth nothing, so treat this as a
+hypothesis. What *is* measured, for free, is the ceiling — reranking can only
+win a question whose expected verses sit inside the pool but outside *k*:
+
+| configuration | questions winnable (of 106) |
+|---|---|
+| pool 30 → k=12 | 20 |
+| pool 30 → k=20 | 10 |
+| pool 60 → k=20 | 29 |
+
+Real headroom, but an upper bound assuming perfect judgement. Settle it with:
+
+```bash
+python scripts/eval_sweep.py --rerank --limit 25    # ~15c, try a slice first
+```
 
 ## Credentials
 
