@@ -39,6 +39,14 @@ __pycache__/
 # Secrets -- never commit these.
 .env
 
+# Personal state: the questions actually asked on this machine and the verses
+# kept. The corpus (data/gita.sqlite3) IS committed and is meant to be; this
+# is not. Keeping them in one file meant one `git add` would publish someone's
+# questions to a public repo permanently.
+data/local.sqlite3
+data/local.sqlite3-wal
+data/local.sqlite3-shm
+
 # Design tool exports. The working copies live in frontend/ -- these zips are
 # redundant packaging of the same two files.
 *.zip

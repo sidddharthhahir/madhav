@@ -84,6 +84,27 @@ def main() -> int:
         check("css has light theme", "prefers-color-scheme: light" in css)
         check("css has focus-visible", "focus-visible" in css)
         check("css respects reduced motion", "prefers-reduced-motion" in css)
+
+        # The light palette is declared twice -- once for the system
+        # preference, once for an explicit [data-theme="light"] -- because CSS
+        # cannot share a declaration block across a media-query boundary. They
+        # are generated from one source; this catches the two drifting apart,
+        # which would otherwise break exactly one of the paths silently.
+        import re as _re
+        blocks = _re.findall(
+            r'(?::root:not\(\[data-theme="dark"\]\)|:root\[data-theme="light"\])\s*\{([^}]*)\}',
+            css)
+        palettes = [set(_re.findall(r'(--gw-[\w-]+)\s*:', b)) for b in blocks
+                    if "--gw-" in b]
+        check("light palette declared for both system and explicit choice",
+              len(palettes) == 2, "found %d blocks" % len(palettes))
+        check("both light palettes declare identical variables",
+              len(palettes) == 2 and palettes[0] == palettes[1],
+              "differ: %s" % (palettes[0] ^ palettes[1] if len(palettes) == 2 else "n/a"))
+
+        js = client.get("/static/app.js").text
+        check("theme choice persists", "madhav-theme" in js)
+        check("starfield recolours on theme change", "__cosmosRecolour" in js)
         js = client.get("/static/app.js").text
         for path in ("/preview", "/ask", "/verse/", "/chapters", "/health", "/search"):
             check("app.js calls %s" % path, path in js)

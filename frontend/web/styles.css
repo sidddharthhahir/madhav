@@ -46,8 +46,18 @@
   --gw-nebula-b: rgba(14,90,110,.22);
 }
 
+/* Theme resolution, in priority order:
+     1. an explicit choice on <html data-theme="...">, set by the toggle
+     2. the operating system preference
+     3. dark, the :root default above
+   The light palette below is emitted twice because CSS cannot share one
+   declaration block across a media-query boundary. Both copies are
+   generated from a single source and MUST stay identical -- scripts/
+   test_api_ui.py asserts they declare the same variables, so drift fails
+   the suite rather than silently breaking one path. The media-query copy
+   is what a no-JS visitor gets. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --gw-page: #DED7C6;
     --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
     --gw-input: #FFFDF7;
@@ -77,6 +87,43 @@
     --gw-nebula-a: rgba(150,130,90,.18);
     --gw-nebula-b: rgba(90,130,140,.14);
   }
+}
+
+:root[data-theme="light"] {
+    --gw-page: #DED7C6;
+    --gw-bg: #F7F3E8; --gw-panel: #F2EDE0; --gw-card: #FFFDF7; --gw-card-alt: #F6F1E4;
+    --gw-input: #FFFDF7;
+    --gw-sidebar: rgba(242,237,224,.78);
+    --gw-titlebar-a: #F4EFE2; --gw-titlebar-b: #EBE5D5; --gw-titlebar-border: #D8D0BC;
+    --gw-btn: #EDE7D8; --gw-btn-hover: #E3DCC9; --gw-hover-row: #EFE9DA;
+    --gw-border: #DED7C6; --gw-border-strong: #CDC5AF; --gw-rule: #D8D0BC;
+    --gw-text: #1A1710; --gw-text-2: #2A251C; --gw-text-3: #3D372B;
+    --gw-text-4: #4E4739; --gw-muted: #5E5748;
+    --gw-accent: #75540E; --gw-accent-fill: #B98A22; --gw-accent-hover: #8A6512;
+    --gw-on-accent: #FFFDF7;
+    --gw-teal: #0B5F5A; --gw-teal-dim: #0F7C75;
+    --gw-heart: #16306E; --gw-heart-spec: #6E90D8;
+    --gw-pill-bg: #F5EAD0; --gw-pill-border: #DCC08A; --gw-pill-hover: #EFE0BC;
+    --gw-palette: #FFFDF7; --gw-palette-border: #CDC5AF; --gw-overlay: rgba(70,62,45,.32);
+    --gw-warn-bg: #FAF2DF; --gw-warn-border: #DCC08A;
+    --gw-scroll: #C9C0A9;
+    --gw-glass: rgba(255,253,247,.72);
+    --gw-glass-edge: rgba(117,84,14,.18);
+    --gw-shadow-sm: 0 1px 2px rgba(90,78,50,.10);
+    --gw-shadow-md: 0 10px 30px rgba(90,78,50,.14), 0 2px 8px rgba(90,78,50,.08);
+    --gw-shadow-lg: 0 40px 100px rgba(70,60,38,.22), 0 10px 30px rgba(70,60,38,.12);
+    --gw-glow: 0 0 0 3px rgba(117,84,14,.20);
+    --gw-glow-teal: 0 0 24px -4px rgba(11,95,90,.30);
+    --gw-star: rgba(117,84,14,.55);
+    --gw-star-2: rgba(11,95,90,.45);
+    --gw-nebula-a: rgba(150,130,90,.18);
+    --gw-nebula-b: rgba(90,130,140,.14);
+}
+
+:root { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { color-scheme: light; }
 }
 
 * { box-sizing: border-box; }

@@ -217,10 +217,13 @@ def main() -> int:
           repr(logged["answer"]))
     check("citations logged", logged["citations"] == result.citations,
           str(logged["citations"]))
-    # This suite runs against the real committed corpus, not a fixture --
-    # leave no trace in data/gita.sqlite3's history table.
-    pipeline.conn.execute("DELETE FROM history WHERE id = (SELECT MAX(id) FROM history)")
-    pipeline.conn.commit()
+    # This suite runs against the real store, not a fixture, so it has to
+    # leave no trace. Targets `local` (where history now lives) and matches
+    # on the question rather than MAX(id) -- deleting the highest id would
+    # remove whatever the person using the app asked most recently if this
+    # ever ran while the server was up.
+    pipeline.local.execute("DELETE FROM history WHERE question = ?", (QUESTION,))
+    pipeline.local.commit()
     pipeline.close()
 
     print()

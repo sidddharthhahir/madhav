@@ -5,6 +5,16 @@
 <title>Madhav — the Gita, answered and cited</title>
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="stylesheet" href="/static/styles.css">
+<script>
+  // Inline and synchronous on purpose: applying the stored choice from
+  // app.js would repaint after the shell had already drawn, flashing the
+  // wrong theme. No stored choice means no attribute, which leaves the
+  // CSS media query in charge.
+  try {
+    var t = localStorage.getItem("madhav-theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode: fall back to the system preference */ }
+</script>
 </head>
 <body>
 
@@ -132,6 +142,8 @@
     <button class="btn ghost" id="btnCopy">Copy answer</button>
     <button class="btn ghost noprint" id="btnExportPng" title="Save this answer as a PNG image">Export PNG</button>
     <button class="btn ghost noprint" id="btnExportPdf" title="Save this answer as a PDF (via your browser's print dialog)">Export PDF</button>
+    <button class="btn ghost" id="btnTheme" title="Switch between light and dark"
+            aria-label="Switch theme"></button>
     <button class="btn ghost" id="btnInspector" title="Show or hide the verse panel (⌘\)">
       Hide verse panel
     </button>

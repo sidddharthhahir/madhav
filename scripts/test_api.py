@@ -88,11 +88,15 @@ def main() -> int:
             # every time this suite runs.
             pipeline = _state.get("pipeline")
             if pipeline is not None:
-                pipeline.conn.execute(
+                # `local`, not `conn`: history moved to the personal store so
+                # the corpus stays safe to commit. Pointed at the corpus this
+                # silently deletes nothing and the test row survives into the
+                # sidebar.
+                pipeline.local.execute(
                     "DELETE FROM history WHERE question=? AND status='no_credentials'",
                     ("why am I so angry",),
                 )
-                pipeline.conn.commit()
+                pipeline.local.commit()
 
         print("\nPOST /ask input validation")
         r = client.post("/ask", json={"question": ""})

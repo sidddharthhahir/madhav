@@ -712,6 +712,34 @@ function hideHistoryBanner() {
   $("historyBanner").innerHTML = "";
 }
 
+// ----------------------------------------------------------------- theme
+
+// Three states, not two: "system" is a real choice and the default, so the
+// app follows the OS until someone actively picks a side. The button label
+// shows what clicking will DO, not what is currently active.
+function resolvedTheme() {
+  const set = document.documentElement.dataset.theme;
+  if (set === "light" || set === "dark") return set;
+  return matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function paintThemeButton() {
+  const next = resolvedTheme() === "dark" ? "light" : "dark";
+  $("btnTheme").textContent = next === "light" ? "☾ Light" : "☀ Dark";
+  $("btnTheme").title = "Switch to the " + next + " theme";
+}
+
+function applyTheme(theme) {
+  if (theme) {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("madhav-theme", theme); } catch (e) { /* private mode */ }
+  }
+  paintThemeButton();
+  // The starfield samples its colours once at init, so a theme change has to
+  // hand it the new ones or the stars keep the old palette until reload.
+  if (window.__cosmosRecolour) window.__cosmosRecolour();
+}
+
 // ------------------------------------------------------------- starfield
 
 // Canvas 2D rather than WebGL/Three.js: a few hundred drifting points is
@@ -723,8 +751,14 @@ function startCosmos() {
   const cv = $("cosmos");
   if (!cv || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const ctx = cv.getContext("2d");
-  const warm = getComputedStyle(document.documentElement).getPropertyValue("--gw-star").trim();
-  const cool = getComputedStyle(document.documentElement).getPropertyValue("--gw-star-2").trim();
+  let warm = "", cool = "";
+  const readColours = () => {
+    const cs = getComputedStyle(document.documentElement);
+    warm = cs.getPropertyValue("--gw-star").trim();
+    cool = cs.getPropertyValue("--gw-star-2").trim();
+  };
+  readColours();
+  window.__cosmosRecolour = readColours;
 
   let stars = [], w = 0, h = 0;
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -807,9 +841,20 @@ function preloader() {
   };
 }
 
+$("btnTheme").addEventListener("click", () => {
+  applyTheme(resolvedTheme() === "dark" ? "light" : "dark");
+});
+
+// While the app is still following the system, track it live -- otherwise the
+// button label goes stale the moment the OS flips at sunset.
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+  if (!document.documentElement.dataset.theme) applyTheme(null);
+});
+
 (async function boot() {
   const pre = preloader();
   startCosmos();
+  applyTheme(null);
   pre.step(35);
   await Promise.all([loadHealth(), loadSidebar()]);
   pre.step(92);

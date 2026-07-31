@@ -57,9 +57,17 @@ class Pipeline:
     # answer -- a real cost increase, but a small one, and the citation
     # validator still only allows citing what the model was actually shown.
     def __init__(self, db_path=None, *, client=None, model: str = G.DEFAULT_MODEL,
-                 max_verses: int = 12, threaded: bool = False, use_dense: bool = False):
+                 max_verses: int = 12, threaded: bool = False, use_dense: bool = False,
+                 local_db_path=None):
         self.conn = db.connect(db_path or db.DEFAULT_DB,
                                check_same_thread=not threaded)
+        # Personal state (what was asked, what was kept) lives in its own
+        # gitignored file so the corpus stays safe to commit. Anything
+        # already sitting in the corpus from before the split is moved here
+        # on open.
+        self.local = db.connect_local(local_db_path or db.DEFAULT_LOCAL_DB,
+                                      check_same_thread=not threaded)
+        db.migrate_local_out_of_corpus(self.conn, self.local)
         self.index, self.records = corpus.build_index(self.conn)
         # Off by default: dense retrieval calls out to a local Ollama server,
         # and Pipeline() must keep working (API server, test suites) whether
@@ -95,6 +103,7 @@ class Pipeline:
 
     def close(self) -> None:
         self.conn.close()
+        self.local.close()
 
     # -- sidebar state -----------------------------------------------------
 
@@ -119,7 +128,7 @@ class Pipeline:
 
     def record_history(self, result: "AnswerResult") -> None:
         with self._conn_lock:
-            self.conn.execute(
+            self.local.execute(
                 """INSERT INTO history (question, language, status, citations,
                                         answer, asked_at)
                    VALUES (?, ?, ?, ?, ?, ?)""",
@@ -127,11 +136,11 @@ class Pipeline:
                  json.dumps(result.citations), result.answer,
                  dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")),
             )
-            self.conn.commit()
+            self.local.commit()
 
     def history(self, limit: int = 30) -> list[dict]:
         with self._conn_lock:
-            rows = self.conn.execute(
+            rows = self.local.execute(
                 "SELECT * FROM history ORDER BY asked_at DESC, id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
@@ -139,7 +148,7 @@ class Pipeline:
 
     def saved(self) -> list[dict]:
         with self._conn_lock:
-            rows = self.conn.execute(
+            rows = self.local.execute(
                 "SELECT verse_id, note, saved_at FROM saved_verses ORDER BY saved_at DESC"
             ).fetchall()
         out = []
@@ -156,20 +165,20 @@ class Pipeline:
         if verse_id not in self.records:
             return False
         with self._conn_lock:
-            self.conn.execute(
+            self.local.execute(
                 """INSERT INTO saved_verses (verse_id, note, saved_at) VALUES (?, ?, ?)
                    ON CONFLICT(verse_id) DO UPDATE SET note=excluded.note""",
                 (verse_id, note,
                  dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")),
             )
-            self.conn.commit()
+            self.local.commit()
         return True
 
     def unsave_verse(self, verse_id: str) -> None:
         with self._conn_lock:
-            self.conn.execute(
+            self.local.execute(
                 "DELETE FROM saved_verses WHERE verse_id=?", (verse_id,))
-            self.conn.commit()
+            self.local.commit()
 
     # -- introspection -----------------------------------------------------
 
