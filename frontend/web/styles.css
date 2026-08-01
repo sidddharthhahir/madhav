@@ -1202,6 +1202,18 @@ textarea#q:focus,
     var(--gw-page);
   animation: rd-in .5s cubic-bezier(.2,.9,.3,1);
 }
+/* The [hidden] attribute alone is NOT enough here. Browsers implement it via
+   a user-agent stylesheet rule -- [hidden] { display: none } -- and origin
+   beats specificity in the cascade: an AUTHOR rule of normal importance
+   always wins over a UA rule of normal importance, regardless of selector
+   weight or source order. .reader's own `display: flex` therefore silently
+   overrode the browser's hidden handling, so the reader rendered fixed,
+   inset:0, z-index:300 -- covering the entire app -- on every page load,
+   not only after the book button was clicked. Confirmed directly: `hidden`
+   was true on the element while computed display was still "flex".
+   This selector out-specifies the plain class rule above (0,2,0 vs 0,1,0),
+   so it wins in the same stylesheet without relying on source order. */
+.reader[hidden] { display: none; }
 @keyframes rd-in { from { opacity: 0; transform: scale(1.015); } }
 
 /* The app keeps its own scroll position while the reader is over it. Without

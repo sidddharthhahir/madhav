@@ -97,6 +97,23 @@ def main() -> int:
         # one and silently leaves the other sitting mid-poem.
         check("reader strips Devanagari verse markers", "\\u0966-\\u096F" in js)
         check("reader is wired to /read/", "/read/" in js)
+        # Regression: the reader used to be visible on every page load, not
+        # only after the book button was clicked. `.reader { display: flex }`
+        # is an author-stylesheet rule, and origin beats specificity in the
+        # cascade -- an author rule of normal importance always wins over the
+        # browser's own `[hidden] { display: none }`, regardless of selector
+        # weight or source order. Toggling the `hidden` PROPERTY in JS
+        # therefore did nothing visible; `.reader[hidden]` must exist to win
+        # back the override. Confirmed live: `hidden` was true on the element
+        # while computed display was still "flex". Caught by a user report,
+        # not by any existing check -- this is a rendering/cascade bug no
+        # server-side test can see, so it is pinned here structurally.
+        check("reader[hidden] wins the cascade over .reader's own display",
+              ".reader[hidden]" in css and
+              css.index(".reader[hidden]") > css.index(".reader {"),
+              "the .reader{display:flex} rule must be followed by a "
+              ".reader[hidden]{display:none} override, or the reader "
+              "renders on top of the whole app from page load")
         for path in ("/preview", "/ask", "/verse/", "/chapters", "/health", "/search"):
             check("app.js calls %s" % path, path in js)
 
