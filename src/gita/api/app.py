@@ -303,6 +303,14 @@ def chapter_verses(chapter: int):
     return get_pipeline().chapter_verses(chapter)
 
 
+@app.get("/read/{chapter}")
+def read_chapter(chapter: int):
+    """One chapter with everything the immersive reader needs. Free."""
+    if not 1 <= chapter <= 18:
+        raise HTTPException(status_code=404, detail="chapters run 1-18")
+    return get_pipeline().read_chapter(chapter)
+
+
 @app.get("/history")
 def history(limit: int = 30):
     return get_pipeline().history(limit)

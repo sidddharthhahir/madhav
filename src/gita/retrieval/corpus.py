@@ -49,6 +49,9 @@ class VerseRecord:
     chapter: int
     verse: int
     sanskrit: str | None
+    # IAST. Present for all 701 and, until the reader, surfaced nowhere --
+    # it is what lets someone sound the verse out without reading Devanagari.
+    transliteration: str | None
     translations: dict[str, str]     # source_key -> body (English)
     commentary: dict[str, str]       # source_key -> body
     enrichment: dict | None
@@ -71,11 +74,13 @@ class VerseRecord:
 def load_verses(conn) -> dict[str, VerseRecord]:
     records: dict[str, VerseRecord] = {}
     for row in conn.execute(
-        "SELECT verse_id, chapter, verse, sanskrit FROM verses ORDER BY chapter, verse"
+        "SELECT verse_id, chapter, verse, sanskrit, transliteration "
+        "FROM verses ORDER BY chapter, verse"
     ):
         records[row["verse_id"]] = VerseRecord(
             verse_id=row["verse_id"], chapter=row["chapter"], verse=row["verse"],
-            sanskrit=row["sanskrit"], translations={}, commentary={}, enrichment=None,
+            sanskrit=row["sanskrit"], transliteration=row["transliteration"],
+            translations={}, commentary={}, enrichment=None,
         )
 
     # 'hi' and 'gu' were previously excluded here, which is why 1,402

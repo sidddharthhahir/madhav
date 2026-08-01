@@ -144,6 +144,35 @@ class Pipeline:
             for r in self.records.values() if r.chapter == chapter
         ]
 
+    def read_chapter(self, chapter: int) -> dict:
+        """Everything the reader needs for one chapter, in one call.
+
+        Deliberately not /verse/{id} in a loop: the reader moves continuously
+        through 701 verses, and 701 round trips -- each rebuilding a record
+        the pipeline already holds in memory -- would make paging feel like
+        loading. One call per chapter is 20-78 verses, a few tens of KB.
+
+        Commentary is excluded. It is the largest field by far and the reader
+        is for reading the verse, not studying it; anyone who wants the 14
+        commentaries taps through to the verse panel, which already has them.
+        """
+        with self._conn_lock:
+            row = self.conn.execute(
+                "SELECT chapter, title, verse_count FROM chapters WHERE chapter=?",
+                (chapter,)).fetchone()
+        if row is None:
+            return {}
+        verses = [
+            {"verse_id": r.verse_id, "verse": r.verse,
+             "sanskrit": r.sanskrit, "transliteration": r.transliteration,
+             "translations": r.translations, "other_langs": r.other_langs,
+             "speaker": r.speaker,
+             "summary": (r.enrichment or {}).get("summary", "")}
+            for r in self.records.values() if r.chapter == chapter
+        ]
+        return {"chapter": row["chapter"], "title": row["title"],
+                "verse_count": row["verse_count"], "verses": verses}
+
     def record_history(self, result: "AnswerResult") -> None:
         with self._conn_lock:
             self.local.execute(

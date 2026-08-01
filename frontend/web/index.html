@@ -158,6 +158,14 @@
          tooltip already say, and three of them together took more of the bar
          than the brand did. Each keeps an aria-label so the meaning is not
          carried by the icon alone. -->
+    <button class="btn iconbtn-t" id="btnRead" aria-label="Read the Gita"
+            title="Read the Gita">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M10 5.2C8.4 4 6.4 3.5 3 3.5v11c3.4 0 5.4.5 7 1.7"/>
+        <path d="M10 5.2C11.6 4 13.6 3.5 17 3.5v11c-3.4 0-5.4.5-7 1.7"/>
+        <path d="M10 5.2v11"/>
+      </svg>
+    </button>
     <button class="btn iconbtn-t" id="btnPalette" aria-label="Find a verse (Command K)"
             title="Find a verse  ⌘K">
       <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M13.5 13.5 L18 18"/></svg>
@@ -253,6 +261,27 @@
     </aside>
 
   </div>
+</div>
+
+<!-- The reader. A full takeover rather than a panel: the point is that the
+     app disappears and you are left with the text. Hidden from assistive
+     tech and from tab order until opened, or the whole Gita sits in the tab
+     sequence behind the app. Built empty and filled a chapter at a time. -->
+<div id="reader" class="reader" hidden aria-hidden="true">
+  <div class="rd-bar">
+    <button class="rd-close" id="rdClose" aria-label="Close the reader">✕</button>
+    <span class="rd-where" id="rdWhere"></span>
+    <div style="flex:1"></div>
+    <button class="rd-src" id="rdSource" title="Switch translator"></button>
+  </div>
+
+  <!-- The scroller. One verse per screen, snapped, so movement between
+       verses is a deliberate step rather than a drift. -->
+  <div class="rd-scroll" id="rdScroll" tabindex="-1"></div>
+
+  <!-- Position in all 701, not in the chapter: the reader is one continuous
+       text and the chapter divisions are stations along it. -->
+  <div class="rd-rail" aria-hidden="true"><div class="rd-railfill" id="rdRail"></div></div>
 </div>
 
 <script type="module" src="/static/app.js"></script>

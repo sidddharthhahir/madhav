@@ -437,6 +437,29 @@ watermark — the one place the text stops explaining and shows. Once per
 session, no flash, and it degrades to a plain brightening under
 `prefers-reduced-motion`.
 
+## The reader
+
+The book icon opens a full takeover: the app dissolves and what is left is the
+text. One verse per screen, scroll-snapped, Devanagari leading, IAST beneath
+it, translation under that, with a translator toggle. Chapter title cards carry
+the dhvaja at a size worth drawing. Position is tracked across all 701 verses
+rather than within a chapter, and the reader reopens where it closed.
+
+`GET /read/{chapter}` serves a whole chapter in one call — the reader moves
+continuously, and 701 round trips would make paging feel like loading.
+Commentary is excluded (it is the largest field and the reader does not show
+it); "commentary & translations" hands off to the ordinary verse panel, which
+already has all fourteen.
+
+This surfaces the **IAST transliteration**, which has been in the corpus for
+all 701 verses since the first ingest with nowhere to appear. It is what lets
+someone sound a verse out without reading Devanagari.
+
+Illustration is the next phase and is not built yet. Every scene carries an
+empty art slot; the plan is curated public-domain painting for the landmark
+moments and procedural work, driven by each verse's own enrichment, for the
+rest.
+
 ## Who is speaking
 
 The Gita is a dialogue inside a dialogue, and the pipeline used to treat all

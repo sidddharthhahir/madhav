@@ -28,6 +28,7 @@ const state = {
   savedIds: new Set(),
   lastQuestion: "",
   historyById: new Map(),
+  chapterCounts: {},   // chapter -> verse_count, from /chapters
   dilemmaMode: false,
   vishvarupaShown: false,
 };
@@ -53,6 +54,7 @@ async function loadSidebar() {
   state.savedIds = new Set(saved.map((s) => s.verse_id));
   state.historyById = new Map(history.map((h) => [h.id, h]));
 
+  chapters.forEach((c) => { state.chapterCounts[c.chapter] = c.verse_count; });
   renderChapters(chapters);
 
   // data-history-id, not data-question: clicking a past question restores its
@@ -909,13 +911,280 @@ function runPaletteRow(row) {
   if (row?.verse) showVerse(row.verse);
 }
 
+// ---------------------------------------------------------------- reader
+//
+// A full-screen takeover for reading the Gita straight through, rather than
+// arriving at verses sideways through a question. The app dissolves; what is
+// left is the text.
+//
+// Chapters load one at a time and stay loaded. The whole corpus is only a few
+// hundred KB, but fetching all eighteen up front would stall the open, and the
+// reader has to feel like a book falling open, not like a page load.
+//
+// Phase 1 is deliberately image-free. Every verse gets an art slot that is
+// currently empty; the procedural and curated visuals drop into it without
+// touching any of this.
+
+const READ_KEY = "madhav-reading";
+const SOURCE_KEY = "madhav-translator";
+
+const reader = {
+  open: false,
+  chapters: new Map(),      // chapter -> payload
+  order: [],                // flat [{chapter, verse, verse_id}] in reading order
+  index: 0,                 // position in `order`
+  source: "purohit",
+  loading: false,
+};
+
+function readerSources(v) {
+  return Object.keys(v.translations || {}).sort();
+}
+
+// Verse scene. The Devanagari leads because it is the thing itself; the
+// transliteration under it is what lets someone sound it out without reading
+// the script, and it has existed in the corpus all along with nowhere to go.
+function renderScene(v, chapter) {
+  const src = v.translations[reader.source] ? reader.source
+            : readerSources(v)[0];
+  const body = (v.translations[src] || "").replace(/^\d+\.\d+\s*/, "");
+  return `
+    <section class="rd-scene" data-verse="${v.verse_id}"
+             data-chapter="${chapter}" data-verse-n="${v.verse}">
+      <div class="rd-art" aria-hidden="true"></div>
+      <div class="rd-body">
+        <div class="rd-ref">
+          <span class="n">${chapter}.${v.verse}</span>
+          ${v.speaker && v.speaker !== "Krishna"
+            ? `<span class="speaker">${escapeHtml(v.speaker)}</span>` : ""}
+        </div>
+        <p class="rd-deva">${escapeHtml(stripEnd(v.sanskrit))}</p>
+        <p class="rd-iast">${escapeHtml(stripEnd(v.transliteration))}</p>
+        <p class="rd-en">${escapeHtml(body)}</p>
+        <button class="rd-more" data-verse="${v.verse_id}">
+          commentary &amp; translations →
+        </button>
+      </div>
+    </section>`;
+}
+
+// The corpus stores the verse-number marker inside both the Sanskrit and the
+// transliteration. It belongs in the reference line, not in the middle of the
+// poem.
+//
+// The digits differ between the two: the transliteration writes ||2-47|| in
+// ASCII, the Devanagari writes ||२-४७|| in Devanagari numerals (U+0966-096F).
+// A \d-only pattern therefore cleans the transliteration, silently leaves the
+// marker sitting in the Sanskrit, and looks like it works.
+function stripEnd(s) {
+  return String(s || "")
+    .replace(/\|\|[\d\u0966-\u096F\-]+\|\|/g, "")
+    .replace(/\s+$/, "");
+}
+
+function renderChapterCard(payload) {
+  return `
+    <section class="rd-card" data-chapter="${payload.chapter}">
+      <div class="rd-cardmark">${dhvaja(payload.chapter)}</div>
+      <div class="rd-cardnum">Chapter ${payload.chapter}</div>
+      <h2 class="rd-cardtitle">${escapeHtml(payload.title)}</h2>
+      <div class="rd-cardcount">${payload.verse_count} verses</div>
+    </section>`;
+}
+
+async function loadReaderChapter(n) {
+  if (reader.chapters.has(n)) return reader.chapters.get(n);
+  const payload = await api(`/read/${n}`);
+  reader.chapters.set(n, payload);
+  return payload;
+}
+
+// Appends a chapter to the scroller. Chapters are appended in order and never
+// removed, so `order` stays a straight index into what is on screen.
+async function appendChapter(n) {
+  const payload = await loadReaderChapter(n);
+  const html = renderChapterCard(payload)
+    + payload.verses.map((v) => renderScene(v, n)).join("");
+  $("rdScroll").insertAdjacentHTML("beforeend", html);
+  payload.verses.forEach((v) =>
+    reader.order.push({ chapter: n, verse: v.verse, verse_id: v.verse_id }));
+  return payload;
+}
+
+async function openReader(startChapter) {
+  if (reader.open) return;
+  reader.open = true;
+  try { reader.source = localStorage.getItem(SOURCE_KEY) || "purohit"; } catch (e) { /**/ }
+
+  const el = $("reader");
+  el.hidden = false;
+  el.removeAttribute("aria-hidden");
+  document.body.classList.add("reading");
+  $("rdScroll").innerHTML = "";
+  reader.chapters.clear();
+  reader.order = [];
+
+  const resume = startChapter ? { chapter: startChapter, verse: 1 } : readingMark();
+  await appendChapter(resume.chapter);
+  paintSource();
+  // Scroll to the resumed verse before the reader is interactive, so it does
+  // not visibly jump from the chapter card down to where you left off.
+  const target = $("rdScroll").querySelector(
+    `[data-verse="BG.${resume.chapter}.${resume.verse}"]`);
+  // "instant", not the stylesheet's smooth. Two reasons: resuming should put
+  // you where you were, not scroll you there past everything in between; and
+  // scroll-snap-stop:always makes a smooth scroll halt at the very next snap
+  // point, so a multi-verse jump silently does not arrive.
+  if (target) target.scrollIntoView({ block: "start", behavior: "instant" });
+  reader.index = Math.max(0, readerScenes().indexOf(target));
+  $("rdScroll").focus({ preventScroll: true });
+  updateReaderPosition();
+}
+
+function closeReader() {
+  if (!reader.open) return;
+  reader.open = false;
+  const el = $("reader");
+  el.hidden = true;
+  el.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("reading");
+  $("btnRead").focus();
+}
+
+// Where the reader left off, so the book reopens where it closed.
+function readingMark() {
+  try {
+    const raw = localStorage.getItem(READ_KEY);
+    if (raw) {
+      const m = JSON.parse(raw);
+      if (m && m.chapter >= 1 && m.chapter <= 18) return m;
+    }
+  } catch (e) { /* private mode */ }
+  return { chapter: 1, verse: 1 };
+}
+
+function saveReadingMark(chapter, verse) {
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify({ chapter, verse }));
+  } catch (e) { /* private mode */ }
+}
+
+// Position in all 701 rather than within the chapter: the reader treats the
+// Gita as one continuous text, and the chapters are stations along it.
+//
+// Derived from /chapters rather than written out. This corpus is the Gita
+// Press recension, where chapter 13 has 35 verses and not the 34 most editions
+// print -- a hard-coded table would be wrong for exactly one chapter and would
+// stay wrong quietly.
+function chapterOffset(chapter) {
+  let n = 0;
+  for (let i = 1; i < chapter; i++) n += state.chapterCounts[i] || 0;
+  return n;
+}
+function corpusSize() {
+  return Object.values(state.chapterCounts).reduce((a, b) => a + b, 0) || 701;
+}
+
+function updateReaderPosition() {
+  const scenes = readerScenes();
+  if (!scenes.length) return;
+  const mid = $("rdScroll").scrollTop + $("rdScroll").clientHeight / 2;
+  let current = scenes[0];
+  for (const s of scenes) {
+    if (s.offsetTop <= mid) current = s; else break;
+  }
+  reader.index = scenes.indexOf(current);
+  // Chapter cards carry no verse number. Report the verse that follows.
+  if (!current.dataset.verseN) {
+    current = scenes[scenes.indexOf(current) + 1] || current;
+  }
+  if (!current.dataset.verseN) return;
+  const ch = +current.dataset.chapter, vn = +current.dataset.verseN;
+  $("rdWhere").textContent = `${ch}.${vn}`;
+  saveReadingMark(ch, vn);
+  const absolute = chapterOffset(ch) + vn;
+  $("rdRail").style.height = `${(absolute / corpusSize()) * 100}%`;
+
+  // Pull in the next chapter before the reader reaches the end of this one.
+  const last = scenes[scenes.length - 1];
+  if (current === last || scenes.indexOf(current) > scenes.length - 4) {
+    const next = +last.dataset.chapter + 1;
+    if (next <= 18 && !reader.chapters.has(next) && !reader.loading) {
+      reader.loading = true;
+      appendChapter(next).finally(() => { reader.loading = false; });
+    }
+  }
+}
+
+function paintSource() {
+  const any = reader.chapters.values().next().value;
+  if (!any) return;
+  const names = readerSources(any.verses[0]);
+  const label = reader.source in any.verses[0].translations ? reader.source : names[0];
+  $("rdSource").textContent = label;
+  $("rdSource").title = `Translation: ${label} — click for ${
+    names[(names.indexOf(label) + 1) % names.length]}`;
+}
+
+function cycleSource() {
+  const any = reader.chapters.values().next().value;
+  if (!any) return;
+  const names = readerSources(any.verses[0]);
+  const i = names.indexOf(reader.source);
+  reader.source = names[(i + 1) % names.length];
+  try { localStorage.setItem(SOURCE_KEY, reader.source); } catch (e) { /**/ }
+  // Repaint the visible translations in place rather than re-rendering the
+  // scroller, which would lose the scroll position mid-read.
+  for (const [ch, payload] of reader.chapters) {
+    for (const v of payload.verses) {
+      const node = $("rdScroll").querySelector(
+        `[data-verse="${v.verse_id}"] .rd-en`);
+      if (node) {
+        const src = v.translations[reader.source] ? reader.source
+                  : readerSources(v)[0];
+        node.textContent = (v.translations[src] || "").replace(/^\d+\.\d+\s*/, "");
+      }
+    }
+  }
+  paintSource();
+}
+
+// Step one verse.
+//
+// Driven by an explicit cursor rather than by re-reading scrollTop each press.
+// Deriving the position per keystroke looked correct and was not: a held
+// arrow key issues presses faster than the scroll lands, so every press
+// recomputed "where am I" from a position that had not arrived yet and
+// re-targeted almost the same verse. Twenty-nine presses moved half a screen.
+//
+// `behavior: instant` for the same reason smooth is wrong on resume: with
+// scroll-snap-stop:always an animated scroll halts at the next snap point,
+// and successive animations interrupt each other. Snap already makes stepping
+// feel discrete; animating it adds nothing and breaks holding the key.
+function readerScenes() {
+  return [...$("rdScroll").querySelectorAll(".rd-scene, .rd-card")];
+}
+
+function readerStep(delta) {
+  const scenes = readerScenes();
+  if (!scenes.length) return;
+  reader.index = Math.max(0, Math.min(scenes.length - 1, reader.index + delta));
+  scenes[reader.index].scrollIntoView({ behavior: "instant", block: "start" });
+}
+
 // ---------------------------------------------------------------- events
 
 document.addEventListener("click", async (e) => {
-  const t = e.target.closest("#btnCounterpoint,#btnMode,#btnDilemma,[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
+  const t = e.target.closest("#btnCounterpoint,#btnMode,#btnDilemma,.rd-more,[data-verse],[data-history-id],[data-save],[data-unpin],[data-nav],[data-index],[data-newq],[data-del-history],[data-clear-history]");
   if (!t) return;
 
   if (t.id === "btnCounterpoint") return loadCounterpoint();
+  // From inside the reader, "commentary & translations" hands off to the
+  // ordinary verse panel -- the reader is for reading, the panel is for study.
+  if (t.classList.contains("rd-more")) {
+    closeReader();
+    return showVerse(t.dataset.verse);
+  }
   if (t.id === "btnMode") return setMode(!state.dilemmaMode);
   if (t.id === "btnDilemma") return runDilemma();
   if (t.dataset.newq !== undefined) return startNewQuestion();
@@ -964,6 +1233,22 @@ document.addEventListener("click", async (e) => {
 
 document.addEventListener("keydown", (e) => {
   const meta = e.metaKey || e.ctrlKey;
+
+  // The reader takes over the whole window, so it takes over the keyboard
+  // too -- and returns first, before any of the app's own shortcuts can fire
+  // underneath a view that is covering them.
+  if (reader.open) {
+    if (e.key === "Escape") { e.preventDefault(); return closeReader(); }
+    if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown"
+        || (e.key === " " && !e.shiftKey)) {
+      e.preventDefault(); return readerStep(1);
+    }
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp"
+        || (e.key === " " && e.shiftKey)) {
+      e.preventDefault(); return readerStep(-1);
+    }
+    return;
+  }
 
   if (state.paletteOpen) {
     if (e.key === "Escape") { e.preventDefault(); return closePalette(); }
@@ -1054,6 +1339,19 @@ addEventListener("beforeprint", () => {
   $("printCited").textContent =
     state.citations.length ? `Cited: ${citedList()}` : "";
 });
+
+$("btnRead").addEventListener("click", () => openReader());
+$("rdClose").addEventListener("click", closeReader);
+$("rdSource").addEventListener("click", cycleSource);
+// Passive: this only reads layout and writes a rail height, so it must never
+// be able to block the scroll it is measuring.
+$("rdScroll").addEventListener("scroll", () => {
+  if (reader.raf) return;
+  reader.raf = requestAnimationFrame(() => {
+    reader.raf = 0;
+    updateReaderPosition();
+  });
+}, { passive: true });
 
 $("btnPalette").addEventListener("click", openPalette);
 $("btnInspector").addEventListener("click", toggleInspector);

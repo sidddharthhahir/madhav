@@ -1177,3 +1177,159 @@ textarea#q:focus,
 
   @page { margin: 2cm; }
 }
+
+/* ===========================================================================
+   The reader
+
+   A full takeover, not a panel. The point of the book button is that the app
+   goes away: no sidebar, no question box, no verse panel, no toolbar full of
+   controls -- one verse, filling the screen, and the means to move.
+
+   Scroll-snapped one verse per viewport. That makes moving through the text a
+   deliberate step rather than a drift, and it makes keyboard, wheel and touch
+   all produce the same motion, so ArrowDown and a swipe land identically.
+
+   Every scene carries an .rd-art slot, currently empty. The procedural and
+   curated visuals drop into it without touching the layout.
+   =========================================================================== */
+
+.reader {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(1200px 800px at 50% -10%, rgba(60,40,120,.30), transparent 62%),
+    radial-gradient(900px 700px at 90% 110%, rgba(14,90,110,.20), transparent 58%),
+    var(--gw-page);
+  animation: rd-in .5s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes rd-in { from { opacity: 0; transform: scale(1.015); } }
+
+/* The app keeps its own scroll position while the reader is over it. Without
+   this the page behind scrolls whenever the reader's scroller hits an end. */
+body.reading #app { visibility: hidden; }
+
+.rd-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; flex: none; position: relative; z-index: 2;
+}
+.rd-close, .rd-src {
+  border: 1px solid var(--gw-border-strong); background: transparent;
+  color: var(--gw-text-3); font-family: inherit; cursor: pointer;
+  border-radius: 8px; padding: 6px 10px; font-size: 12px;
+  transition: color .15s ease, border-color .15s ease;
+}
+.rd-close { font-size: 13px; line-height: 1; padding: 7px 10px; }
+.rd-close:hover, .rd-src:hover { color: var(--gw-text); border-color: var(--gw-accent); }
+.rd-src { text-transform: capitalize; letter-spacing: .04em; }
+.rd-where {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px; color: var(--gw-muted); letter-spacing: .06em;
+}
+
+.rd-scroll {
+  flex: 1; overflow-y: auto; scroll-snap-type: y mandatory;
+  /* No scroll-behavior:smooth. Every programmatic scroll here wants to
+     arrive, and with scroll-snap-stop:always an animated one stops at the
+     next snap point instead. Gestures are unaffected by this property. */
+  outline: none;
+  /* The snap container is the scroller, so scenes measure against it. */
+  position: relative;
+}
+
+/* One verse, one screen. min-height rather than height so a long verse with a
+   long translation can grow past the viewport instead of being clipped --
+   scroll-snap aligns the top, which is where the reading starts. */
+.rd-scene, .rd-card {
+  scroll-snap-align: start; scroll-snap-stop: always;
+  min-height: 100%; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 28px 72px;
+}
+
+/* Where the art will go. Full-bleed behind the text with the page's own
+   gradient over it, so type stays readable whatever the image is. */
+.rd-art {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden;
+  background-size: cover; background-position: center;
+}
+.rd-art::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    rgba(5,6,13,.55) 0%, rgba(5,6,13,.78) 45%, rgba(5,6,13,.92) 100%);
+}
+
+.rd-body { position: relative; z-index: 1; max-width: 62ch; width: 100%; }
+
+.rd-ref { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.rd-ref .n {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px; color: var(--gw-accent); letter-spacing: .1em;
+}
+
+.rd-deva {
+  font-family: 'Kohinoor Devanagari', 'Noto Serif Devanagari', 'Devanagari MT', serif;
+  font-size: clamp(21px, 3.4vw, 33px); line-height: 1.85;
+  color: var(--gw-text); margin: 0 0 18px; white-space: pre-line;
+  text-wrap: balance;
+}
+/* The transliteration has been in the corpus for all 701 verses since ingest
+   with nowhere to appear. It is what lets someone sound the verse out. */
+.rd-iast {
+  font-size: clamp(13px, 1.5vw, 15px); line-height: 1.8;
+  color: var(--gw-teal); opacity: .85; margin: 0 0 26px;
+  font-style: italic; white-space: pre-line;
+}
+.rd-en {
+  font-family: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  font-size: clamp(16px, 1.9vw, 19px); line-height: 1.75;
+  color: var(--gw-text-2); margin: 0 0 28px;
+}
+.rd-more {
+  border: none; background: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; color: var(--gw-muted);
+  border-bottom: 1px dashed var(--gw-border-strong); padding-bottom: 2px;
+  transition: color .15s ease, border-color .15s ease;
+}
+.rd-more:hover { color: var(--gw-accent); border-color: var(--gw-accent); }
+
+/* Chapter title card. The station between one chapter and the next, and the
+   place the dhvaja finally gets to be shown at a size worth drawing. */
+.rd-card { flex-direction: column; gap: 14px; text-align: center; }
+.rd-cardmark .dhvaja {
+  width: 62px; height: 62px; stroke-width: 1; color: var(--gw-accent); opacity: .9;
+}
+.rd-cardnum {
+  font-size: 11px; font-weight: 700; letter-spacing: .3em;
+  text-transform: uppercase; color: var(--gw-muted);
+}
+.rd-cardtitle {
+  font-family: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  font-size: clamp(28px, 5vw, 46px); font-weight: 500; margin: 0;
+  color: var(--gw-text); letter-spacing: -.01em;
+}
+.rd-cardcount { font-size: 12.5px; color: var(--gw-muted); letter-spacing: .08em; }
+
+/* Position in all 701. A hairline down the right edge -- present enough to
+   tell you where you are, quiet enough not to be a scrollbar. */
+.rd-rail {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 2px;
+  background: var(--gw-rule); z-index: 2;
+}
+.rd-railfill {
+  width: 100%; background: var(--gw-accent); opacity: .75;
+  transition: height .25s ease;
+}
+
+@media (max-width: 760px) {
+  .rd-scene, .rd-card { padding: 28px 20px 60px; }
+  .rd-deva { line-height: 1.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader { animation: none; }
+  .rd-scroll { scroll-behavior: auto; }
+  .rd-railfill { transition: none; }
+}
+
+/* The reader is screen-only; printing from it should print the page beneath. */
+@media print { .reader { display: none !important; } }

@@ -93,6 +93,26 @@ def main() -> int:
         r = client.post("/dilemma", json={"option_a": "x", "option_b": ""})
         check("empty side -> 422", r.status_code == 422, r.status_code)
 
+        print("\nGET /read/{chapter} (the reader's one call per chapter)")
+        r = client.get("/read/2")
+        check("200", r.status_code == 200, r.text)
+        body = r.json()
+        check("all 72 verses of chapter 2", len(body["verses"]) == 72,
+              len(body["verses"]))
+        check("carries the chapter title", bool(body["title"]), body)
+        v = body["verses"][46]                       # BG.2.47
+        check("has Devanagari", bool(v["sanskrit"]), v)
+        # Present for all 701 since ingest and surfaced nowhere until the
+        # reader existed.
+        check("has IAST transliteration", bool(v["transliteration"]), v)
+        check("has the speaker", v["speaker"] == "Krishna", v.get("speaker"))
+        check("has >=2 translations", len(v["translations"]) >= 2,
+              list(v["translations"]))
+        # Commentary is the largest field and the reader does not show it;
+        # shipping it would multiply the payload for nothing.
+        check("omits commentary", "commentary" not in v, list(v))
+        check("404 outside 1-18", client.get("/read/19").status_code == 404)
+
         print("\nGET /verse/{id}")
         r = client.get("/verse/BG.2.47")
         check("200", r.status_code == 200, r.text)

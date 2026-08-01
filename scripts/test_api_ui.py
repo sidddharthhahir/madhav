@@ -92,6 +92,11 @@ def main() -> int:
         js = client.get("/static/app.js").text
         check("no theme preference is stored", "madhav-theme" not in js)
         check("no theme toggle remains", "btnTheme" not in js)
+        # The verse-number marker is written with Devanagari numerals in the
+        # Sanskrit and ASCII in the transliteration, so a \d-only strip cleans
+        # one and silently leaves the other sitting mid-poem.
+        check("reader strips Devanagari verse markers", "\\u0966-\\u096F" in js)
+        check("reader is wired to /read/", "/read/" in js)
         for path in ("/preview", "/ask", "/verse/", "/chapters", "/health", "/search"):
             check("app.js calls %s" % path, path in js)
 
