@@ -1053,12 +1053,41 @@ async function openReader(startChapter) {
   el.hidden = false;
   el.removeAttribute("aria-hidden");
   document.body.classList.add("reading");
+
+  const resume = startChapter ? { chapter: startChapter, verse: 1 } : readingMark();
+  await enterReaderAt(resume);
+}
+
+// The actual content load, split out from openReader() so a failed attempt
+// can be retried without re-running the open guard above. `reader.open` means
+// "the shell is on screen" -- it stays true across a failure so the close
+// button keeps working, which means openReader() itself can't be called
+// again to retry (its guard would just return). Retry calls this directly.
+async function enterReaderAt(resume) {
   $("rdScroll").innerHTML = "";
   reader.chapters.clear();
   reader.order = [];
+  reader.lastResume = resume;
 
-  const resume = startChapter ? { chapter: startChapter, verse: 1 } : readingMark();
-  await appendChapter(resume.chapter);
+  try {
+    await appendChapter(resume.chapter);
+  } catch (err) {
+    // The shell is already visible at this point (so the close button works
+    // and the app underneath stays hidden), but nothing had filled it yet.
+    // This used to be an unhandled promise rejection: the reader was left
+    // open, empty, with no error and no way to tell what happened short of
+    // opening devtools -- indistinguishable from the page being broken.
+    console.error("reader: failed to load chapter %d", resume.chapter, err);
+    $("rdScroll").innerHTML = `
+      <section class="rd-scene rd-error">
+        <div class="rd-body">
+          <p class="rd-en">Could not load this chapter.</p>
+          <p class="rd-iast" style="font-style:normal">${escapeHtml(err.message || String(err))}</p>
+          <button class="rd-more rd-retry" id="rdRetry">try again →</button>
+        </div>
+      </section>`;
+    return;
+  }
   paintSource();
   // Scroll to the resumed verse before the reader is interactive, so it does
   // not visibly jump from the chapter card down to where you left off.
@@ -1212,6 +1241,14 @@ document.addEventListener("click", async (e) => {
   if (!t) return;
 
   if (t.id === "btnCounterpoint") return loadCounterpoint();
+  // Checked before the generic .rd-more handling below, which this button
+  // also carries (for the same look) but must not fall into: it has no
+  // data-verse, and closeReader() + showVerse(undefined) would silently
+  // dismiss the reader instead of retrying it. Calls enterReaderAt()
+  // directly, not openReader() -- reader.open is still true from the failed
+  // attempt (that is what keeps the close button working), so openReader()'s
+  // own re-entry guard would just return without doing anything.
+  if (t.id === "rdRetry") return enterReaderAt(reader.lastResume);
   // From inside the reader, "commentary & translations" hands off to the
   // ordinary verse panel -- the reader is for reading, the panel is for study.
   if (t.classList.contains("rd-more")) {
