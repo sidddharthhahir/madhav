@@ -107,3 +107,53 @@ if a `texts` row exists that policy doesn't explicitly permit.
 `frontend/web/` only. It does not extend to the corpus text — the rights
 position above is independent of whatever licence the code carries, and the
 LICENSE file says so explicitly.
+
+## Reader artwork
+
+Curated public-domain paintings used as background art in the immersive
+reader (`GET /read/{chapter}` -> `frontend/web/art/`). Each was individually
+verified public domain before download; none were AI-generated. Resized to
+1600px on the long edge and re-encoded as WebP -- the museum-issued originals
+are not redistributed here.
+
+Two of the five are captioned as ASSOCIATED rather than DEPICTS: the
+closest available public-domain art for that chapter's mood, not an
+illustration of any specific verse in it. The app must not claim otherwise.
+
+**Krishna and Arjuna on the field of Kurukshetra** (c. 1830)
+- Chapter 2 -- DEPICTS
+- Medium: Gouache on paper, from an album of seventy paintings of Hindu deities
+- Source: [British Museum, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Krishna_Arjuna_Gita.jpg)
+- Licence: Public Domain Mark 1.0 -- published before 1931
+- File: `frontend/web/art/bg-2-krishna-teaching.webp`
+
+**Vishvarupa, the cosmic form** (early-to-mid 20th century (≤ 1940))
+- Chapter 11 -- DEPICTS
+- Medium: Devotional print, style associated with the Ravi Varma press
+- Source: [Columbia University Bhagavad Gita digital collection, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Vishvaprint4max.jpg)
+- Licence: Public domain in India and the United States
+- File: `frontend/web/art/bg-11-vishvarupa.webp`
+
+**Dhritarashtra Attacks the Statue of Bhima, folio from a Razmnama** (c. 1616–17)
+- Chapter 1 -- ASSOCIATED
+- Medium: Opaque color and gold on paper
+- Source: [The Metropolitan Museum of Art (Howard Hodgkin Collection)](https://www.metmuseum.org/art/collection/search/825591)
+- Licence: Public domain (Met Open Access)
+- File: `frontend/web/art/bg-1-dhritarashtra.webp`
+- Note: Depicts a different scene involving Dhritarashtra; used for chapter 1, which he opens, not as an illustration of BG.1.1.
+
+**Navagunjara, a universal form of Krishna** (c. 1835)
+- Chapter 1 -- ASSOCIATED
+- Medium: Opaque watercolor, ink, and gold on paper
+- Source: [The Metropolitan Museum of Art (Purchase, Evelyn Kranes Kossak Gift, 2006)](https://www.metmuseum.org/art/collection/search/73296)
+- Licence: Public domain (Met Open Access)
+- File: `frontend/web/art/bg-1-arjuna.webp`
+- Note: A different Mahabharata episode -- Krishna tests Arjuna's vow of non-violence in a nine-animal form -- used here for its kindred image of Arjuna disarmed before Krishna, not as an illustration of any specific verse.
+
+**Krishna Holds Up Mount Govardhan, folio from a Harivamsa** (c. 1590–95)
+- Not used in the app -- UNUSED
+- Medium: Ink, opaque watercolor, and gold on paper
+- Source: [The Metropolitan Museum of Art (Purchase, Edward C. Moore Jr. Gift, 1928)](https://www.metmuseum.org/art/collection/search/448183)
+- Licence: Public domain (Met Open Access)
+- File: `frontend/web/art/unused-govardhan.webp`
+- Note: Downloaded during art research but not used: a Krishna story, not a Gita scene, and chapter 18 already has no plate that fits it honestly. Kept documented in case a future chapter mapping wants it.

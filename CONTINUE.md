@@ -277,6 +277,68 @@ localStorage key, no `prefers-color-scheme` branch, no `data-theme` attribute.
 `test_api_ui.py` asserts each of those absences, so a half-restored theme
 fails the suite rather than shipping as a dead switch.
 
+### The reader, and where its art actually came from
+
+`GET /read/{chapter}` plus a full-screen scroll-snapped UI (`app.js`
+`reader.*`, `styles.css` `.rd-*`) replaced the book icon's placeholder. One
+verse per screen: Devanagari, then IAST (`verses.transliteration` -- in the
+corpus since first ingest, exposed by no other surface until now), then the
+translation. Position is tracked across all 701 verses via `chapterOffset()`,
+derived from `/chapters` rather than hard-coded -- this recension has 35
+verses in chapter 13, not the usual 34, and a written-out offset table would
+have been silently wrong for one chapter.
+
+**Illustration is real for three chapters (1, 2, 11), not a mockup.** Five
+paintings were sourced and individually verified public domain via the
+source's own metadata API before download -- not by trusting a search result
+summary. `scripts/build_reader_art.py` resizes them to 1600px WebP (2.9MB for
+all five) and regenerates both `frontend/web/art/map.json` and the NOTICE.md
+credit block from one table, so the two cannot drift apart by hand-editing
+only one of them.
+
+Sourcing was harder than the earlier plan assumed. The Met's collection
+*search* API ignores the query term entirely -- `q=Arjuna` and `q=Mahabharata`
+returned the same ~130 objectIDs, most of them unrelated (Egyptian papyri, a
+Mexican print) -- so it is useless for targeted discovery; only fetching a
+specific known objectID and reading `isPublicDomain` from the response is
+reliable. Wikimedia Commons file pages were the actual source for two of the
+five plates. Several otherwise-perfect matches (a Philadelphia Museum
+Arjuna/Karna scene, a Brooklyn Museum Vishvarupa) were confirmed PD but
+rejected for resolution -- 300x304 and 768x484 are unusable full-bleed behind
+text. Realistic yield at this quality bar was five images, not the 30-60
+guessed at before actually searching.
+
+**Two of the five are honestly mismatched, and stay labelled that way.** The
+Razmnama folio depicts Dhritarashtra attacking a statue, not BG.1.1; the
+Navagunjara plate is a different Mahabharata story entirely (Krishna tests
+Arjuna's non-violence vow in a nine-animal form). Both are used for chapter 1
+because they are the same emotional register and the same manuscript
+tradition, and both are captioned `ASSOCIATED` rather than `DEPICTS` in
+NOTICE.md. Do not silence that distinction to make the reader feel more
+complete than the sourcing actually supports -- an unlabelled wrong caption is
+worse than an honestly generic background.
+
+A chapter with two plates spreads them across its verse count
+(`artFor()` in app.js) rather than repeating one image 47 times. Chapter 1
+happens to move from Dhritarashtra's court to Arjuna's collapse, which tracks
+the chapter's own arc -- a lucky consequence of what was available, not
+evidence the plates were chosen for it.
+
+`scripts/check_reader_art.py` checks the three-way consistency (files on disk
+== files map.json points at == files NOTICE.md documents) both directions.
+Written after almost shipping exactly the drift it now catches: deleting an
+unused plate during cleanup left one dangling NOTICE.md reference, caught by
+rereading the file rather than by anything automatic. Verified against real
+drift (temporarily deleted a file, confirmed both directions fail, restored
+it) before being trusted.
+
+**What is NOT built yet:** the other fifteen chapters. The plan was curated
+art for landmarks plus procedural art (palette from `emotions`, geometry from
+`themes`, seeded by `verse_id`) for the rest; only the curated half exists.
+Procedural art needs the 2,649 free-text emotion phrases clustered into a
+handful of families first -- unclustered, they are 93% one-off and there is
+no controlled vocabulary to drive a palette from yet.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are

@@ -941,17 +941,48 @@ function readerSources(v) {
   return Object.keys(v.translations || {}).sort();
 }
 
+// chapter (string) -> ordered list of /static/art files, e.g. {"1": [...]}.
+// Built offline by scripts/build_reader_art.py from verified public-domain
+// scans; see NOTICE.md for what each depicts and its licence. Most chapters
+// have no entry yet -- .rd-art is a real empty slot, not a placeholder, and
+// procedural art fills it later without this code changing.
+let artMap = null;
+
+async function loadArtMap() {
+  if (artMap) return artMap;
+  try {
+    artMap = await fetch("/static/art/map.json").then((r) => r.json());
+  } catch (e) {
+    artMap = {};   // the reader works with no art at all; this must not block it
+  }
+  return artMap;
+}
+
+// A chapter's plates are spread evenly across its verses rather than repeated
+// or randomised, so a chapter with two plates shows the first for roughly its
+// first half and the second for its second half -- a chapter-length fade
+// from one image to the next instead of a jump cut on every verse.
+function artFor(chapter, verseIndex, verseCount) {
+  const list = artMap && artMap[String(chapter)];
+  if (!list || !list.length) return null;
+  const slot = Math.min(list.length - 1,
+    Math.floor((verseIndex / Math.max(1, verseCount)) * list.length));
+  return list[slot];
+}
+
 // Verse scene. The Devanagari leads because it is the thing itself; the
 // transliteration under it is what lets someone sound it out without reading
 // the script, and it has existed in the corpus all along with nowhere to go.
-function renderScene(v, chapter) {
+function renderScene(v, chapter, verseIndex, verseCount) {
   const src = v.translations[reader.source] ? reader.source
             : readerSources(v)[0];
   const body = (v.translations[src] || "").replace(/^\d+\.\d+\s*/, "");
+  const art = artFor(chapter, verseIndex, verseCount);
   return `
     <section class="rd-scene" data-verse="${v.verse_id}"
              data-chapter="${chapter}" data-verse-n="${v.verse}">
-      <div class="rd-art" aria-hidden="true"></div>
+      <div class="rd-art${art ? "" : " empty"}" aria-hidden="true"${
+        art ? ` style="background-image:url('/static/art/${art}')"` : ""}></div>
       <div class="rd-body">
         <div class="rd-ref">
           <span class="n">${chapter}.${v.verse}</span>
@@ -1002,9 +1033,11 @@ async function loadReaderChapter(n) {
 // Appends a chapter to the scroller. Chapters are appended in order and never
 // removed, so `order` stays a straight index into what is on screen.
 async function appendChapter(n) {
+  await loadArtMap();
   const payload = await loadReaderChapter(n);
   const html = renderChapterCard(payload)
-    + payload.verses.map((v) => renderScene(v, n)).join("");
+    + payload.verses.map((v, i) =>
+        renderScene(v, n, i, payload.verses.length)).join("");
   $("rdScroll").insertAdjacentHTML("beforeend", html);
   payload.verses.forEach((v) =>
     reader.order.push({ chapter: n, verse: v.verse, verse_id: v.verse_id }));

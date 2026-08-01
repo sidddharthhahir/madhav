@@ -354,14 +354,16 @@ python scripts/test_api.py        # 21 HTTP contract checks
 python scripts/test_api_ui.py     # confirms the desktop UI's app.js calls the routes it needs
 python scripts/test_rerank.py     # 32 reranker/counterpoint checks against a stub client
 python scripts/test_speakers.py   # speaker attribution, incl. the sandhi trap
+python scripts/check_reader_art.py # art/, map.json and NOTICE.md agree
 python scripts/eval_answers.py     # answer-shape regressions (costs ~25c, real API calls)
 ```
 
-Run all ten in sequence:
+Run all eleven in sequence:
 
 ```bash
 for s in verify_store check_contrast test_validator test_pipeline test_api \
-         test_api_ui test_prefixes test_rerank test_speakers validate_eval; do
+         test_api_ui test_prefixes test_rerank test_speakers check_reader_art \
+         validate_eval; do
   python scripts/$s.py; done
 ```
 
@@ -455,10 +457,34 @@ This surfaces the **IAST transliteration**, which has been in the corpus for
 all 701 verses since the first ingest with nowhere to appear. It is what lets
 someone sound a verse out without reading Devanagari.
 
-Illustration is the next phase and is not built yet. Every scene carries an
-empty art slot; the plan is curated public-domain painting for the landmark
-moments and procedural work, driven by each verse's own enrichment, for the
-rest.
+### Illustration
+
+Every scene carries an art slot. Three chapters (1, 2, 11) are illustrated with
+curated public-domain paintings; the other fifteen are still empty pending
+procedural art driven by each verse's own enrichment.
+
+```bash
+python scripts/build_reader_art.py   # resize the source scans, write map.json + NOTICE.md
+python scripts/check_reader_art.py   # art/, map.json and NOTICE.md agree
+```
+
+Five paintings were sourced, each individually verified public domain before
+download -- the British Museum's *Krishna and Arjuna Gita* album (via Wikimedia
+Commons), a Ravi-Varma-press Vishvarupa print (Columbia University's Gita
+collection), and three Metropolitan Museum Open Access folios. Full credit,
+licence and a `depicts`-vs-`associated` honesty label for each is in
+[NOTICE.md](NOTICE.md): two of the five are the closest available public-domain
+art for a chapter's mood, not an illustration of any verse in it, and are
+captioned as such rather than passed off as something they are not.
+
+A chapter with more than one plate spreads them across its verses rather than
+picking one -- chapter 1 opens on Dhritarashtra's court and moves to Arjuna's
+collapse by its second half, which happens to track how the chapter itself
+moves and is a consequence of what was available, not a claim the plates were
+chosen to tell that story.
+
+`frontend/web/art/*.webp` (2.9MB total, five files) is committed; the
+museum-issued full-resolution originals are not.
 
 ## Who is speaking
 

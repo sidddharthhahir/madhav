@@ -1246,12 +1246,18 @@ body.reading #app { visibility: hidden; }
   padding: 40px 28px 72px;
 }
 
-/* Where the art will go. Full-bleed behind the text with the page's own
-   gradient over it, so type stays readable whatever the image is. */
+/* Full-bleed behind the text, with the page's own gradient over it so type
+   stays readable whatever the image is. A scene with no curated or procedural
+   art yet (most of them, for now) gets `.empty` and the same scrim over
+   nothing -- background-image is simply unset -- so a chapter with partial
+   coverage does not flicker between two different looks as it scrolls. */
 .rd-art {
   position: absolute; inset: 0; z-index: 0; overflow: hidden;
   background-size: cover; background-position: center;
+  animation: rd-art-in .8s ease both;
 }
+.rd-art.empty { animation: none; }
+@keyframes rd-art-in { from { opacity: 0; } to { opacity: 1; } }
 .rd-art::after {
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(180deg,
@@ -1329,6 +1335,7 @@ body.reading #app { visibility: hidden; }
   .reader { animation: none; }
   .rd-scroll { scroll-behavior: auto; }
   .rd-railfill { transition: none; }
+  .rd-art { animation: none; }
 }
 
 /* The reader is screen-only; printing from it should print the page beneath. */
