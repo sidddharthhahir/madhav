@@ -472,6 +472,65 @@ worth seeing. The new art is a single centred composition -- Krishna and
 Arjuna roughly in the middle of the frame -- and the old range pushed them
 half out of frame at the extremes.
 
+### The reader had no way to jump backward except scrolling
+
+User's exact words, after confirming the resume-on-open behaviour was fine:
+"what if I want to go back like 1.2 or something like that." Real gap: the
+reader could step one verse at a time (forward or back, after the scroll-snap
+fix) and it could resume where it closed, but there was no way to reach an
+arbitrary EARLIER point without manually scrolling back through every verse
+in between -- slow from partway through chapter 3 back to chapter 1.
+
+Reused the existing command palette (Cmd/Ctrl+K, verse-reference and keyword
+search) rather than building a second picker. Two real ordering bugs were in
+the way, both structural, both would have shipped broken silently:
+
+1. The reader's keydown branch returned unconditionally for every key it
+   didn't explicitly handle, including Cmd+K, so the palette could not even
+   be summoned while the reader was open. Added an explicit Cmd+K case inside
+   the reader branch.
+2. Once summoned, the reader branch was still checked BEFORE
+   `state.paletteOpen` in the global keydown handler -- so the palette's own
+   arrow-key navigation (move the selection) would have been intercepted by
+   `readerStep()` (move the verse) instead, the moment it opened on top of
+   the reader. Reordered so whichever modal is topmost owns the keyboard:
+   palette check first, reader check second, plain app last.
+3. `.overlay` (the palette's own backdrop) was `z-index: 50`; `.reader` is
+   `z-index: 300`. Opened on top of the reader, the palette would have been
+   focused, receiving keystrokes, and completely invisible -- rendered
+   underneath an opaque full-screen layer. Bumped to 350.
+
+`runPaletteRow()` now branches on `reader.open`: picking a verse jumps the
+reader there (`enterReaderAt({chapter, verse})`, the same function the
+resume-on-open path already used) instead of opening the outer app's verse
+panel, which is not visible while the reader covers the screen.
+
+Also made `#rdWhere` (the small "3.1" position label) a real `<button>`
+rather than a `<span>`, both for the obvious reason (a label someone can
+click to search) and a less obvious one found by actually trying to tap it
+on a simulated mobile viewport: at `padding: 0` its hit box was ~24x15px,
+well under the ~44x44px a thumb can reliably hit, and a coordinate-precise
+test click landed on the wrong element entirely on the first attempt.
+Enlarged the tap target via padding + a compensating negative margin (so the
+invisible hit area grows without visually widening the button among its
+siblings in the bar) rather than just calling it done because the desktop
+click worked.
+
+Verified end-to-end, not just unit-by-unit: typed "1.2" into the palette
+opened from inside chapter 3, pressed Enter, landed on the actual BG.1.2
+scene with the reader still open and the palette closed. Separately
+confirmed arrow-down inside the palette moved the palette's own selection
+(0 -> 1) while `rdScroll.scrollTop` did not move at all -- proof the
+ownership fix actually holds, not just that both features exist. Three new
+`test_api_ui.py` checks pin the z-index ordering, the keydown check order
+(anchored specifically on `document.addEventListener("keydown"` -- a naive
+substring search for `addEventListener("keydown"` matches the chapter
+listbox's OWN earlier keydown handler first and silently checks the wrong
+code), and that `runPaletteRow` contains the reader-aware branch. The
+ordering check was proven to actually catch the regression by temporarily
+re-simulating the old bug and confirming it failed, not just written and
+trusted.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are

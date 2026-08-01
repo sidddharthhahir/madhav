@@ -908,7 +908,16 @@ function renderPaletteRows() {
 
 function runPaletteRow(row) {
   closePalette();
-  if (row?.verse) showVerse(row.verse);
+  if (!row?.verse) return;
+  // Opened from inside the reader (Cmd/Ctrl+K over it), so "open this verse"
+  // means jump the reader there -- reloading from that chapter, scrolled to
+  // that verse -- not the outer app's verse panel, which is not even visible
+  // while the reader covers the screen.
+  if (reader.open) {
+    const m = row.verse.match(/^BG\.(\d+)\.(\d+)$/);
+    if (m) return enterReaderAt({ chapter: +m[1], verse: +m[2] });
+  }
+  showVerse(row.verse);
 }
 
 // ---------------------------------------------------------------- reader
@@ -1219,6 +1228,7 @@ function updateReaderPosition() {
   if (!current.dataset.verseN) return;
   const ch = +current.dataset.chapter, vn = +current.dataset.verseN;
   $("rdWhere").textContent = `${ch}.${vn}`;
+  $("rdWhere").setAttribute("aria-label", `Jump to a verse -- currently at ${ch}.${vn}`);
   saveReadingMark(ch, vn);
   const absolute = chapterOffset(ch) + vn;
   $("rdRail").style.height = `${(absolute / corpusSize()) * 100}%`;
@@ -1360,22 +1370,11 @@ document.addEventListener("click", async (e) => {
 document.addEventListener("keydown", (e) => {
   const meta = e.metaKey || e.ctrlKey;
 
-  // The reader takes over the whole window, so it takes over the keyboard
-  // too -- and returns first, before any of the app's own shortcuts can fire
-  // underneath a view that is covering them.
-  if (reader.open) {
-    if (e.key === "Escape") { e.preventDefault(); return closeReader(); }
-    if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown"
-        || (e.key === " " && !e.shiftKey)) {
-      e.preventDefault(); return readerStep(1);
-    }
-    if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp"
-        || (e.key === " " && e.shiftKey)) {
-      e.preventDefault(); return readerStep(-1);
-    }
-    return;
-  }
-
+  // Whichever modal is topmost owns the keyboard. The palette can be
+  // summoned ON TOP of the reader (see the reader branch below), so it has
+  // to be checked before the reader branch -- otherwise its own arrow keys,
+  // meant to move the palette's selection, would be caught by the reader's
+  // arrow-key handling first and step through verses underneath instead.
   if (state.paletteOpen) {
     if (e.key === "Escape") { e.preventDefault(); return closePalette(); }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -1387,6 +1386,26 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       return runPaletteRow(state.paletteRows[state.paletteIndex]);
+    }
+    return;
+  }
+
+  // The reader takes over the whole window, so it takes over the keyboard
+  // too -- with one deliberate hole: Cmd/Ctrl+K still opens the palette on
+  // top of it. Without this there was no way to reach an arbitrary earlier
+  // point (chapter 1, say, from partway through chapter 3) except scrolling
+  // back one verse at a time; the palette already does verse-reference and
+  // keyword search, so reusing it beats building a second picker.
+  if (reader.open) {
+    if (meta && e.key.toLowerCase() === "k") { e.preventDefault(); return openPalette(); }
+    if (e.key === "Escape") { e.preventDefault(); return closeReader(); }
+    if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "PageDown"
+        || (e.key === " " && !e.shiftKey)) {
+      e.preventDefault(); return readerStep(1);
+    }
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "PageUp"
+        || (e.key === " " && e.shiftKey)) {
+      e.preventDefault(); return readerStep(-1);
     }
     return;
   }
@@ -1468,6 +1487,7 @@ addEventListener("beforeprint", () => {
 
 $("btnRead").addEventListener("click", () => openReader());
 $("rdClose").addEventListener("click", closeReader);
+$("rdWhere").addEventListener("click", openPalette);
 $("rdSource").addEventListener("click", cycleSource);
 // Passive: this only reads layout and writes a rail height, so it must never
 // be able to block the scroll it is measuring.

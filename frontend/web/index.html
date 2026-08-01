@@ -270,7 +270,11 @@
 <div id="reader" class="reader" hidden aria-hidden="true">
   <div class="rd-bar">
     <button class="rd-close" id="rdClose" aria-label="Close the reader">✕</button>
-    <span class="rd-where" id="rdWhere"></span>
+    <!-- A button, not a static label: click (or ⌘K) opens the palette on top
+         of the reader, so jumping to an earlier point -- chapter 1 from
+         partway through chapter 3, say -- is a search away rather than a
+         long manual scroll back through everything in between. -->
+    <button class="rd-where" id="rdWhere" title="Jump to a verse  ⌘K"></button>
     <div style="flex:1"></div>
     <button class="rd-src" id="rdSource" title="Switch translator"></button>
   </div>

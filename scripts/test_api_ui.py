@@ -114,6 +114,39 @@ def main() -> int:
               "the .reader{display:flex} rule must be followed by a "
               ".reader[hidden]{display:none} override, or the reader "
               "renders on top of the whole app from page load")
+
+        # Regression: opening the command palette from inside the reader
+        # (Cmd/Ctrl+K, or clicking #rdWhere) let a user jump anywhere in the
+        # book without scrolling back one verse at a time. Two ways that
+        # silently breaks again without changing anything an ordinary read
+        # would catch:
+        check(".overlay renders above .reader (350 > 300)",
+              ".reader" in css and "z-index: 300" in css
+              and "z-index: 350" in css,
+              "the palette's .overlay must sit above .reader's z-index:300, "
+              "or an open palette is focused, receiving keystrokes, and "
+              "completely invisible behind the reader's opaque full-screen layer")
+        # Anchored on the GLOBAL keydown listener specifically, not a bare
+        # substring search: there are two `addEventListener("keydown"` calls
+        # in the file (the chapter listbox has its own, earlier one), and
+        # `js.find('addEventListener("keydown"')` matches that one first --
+        # every position "after" it, including the real ordering bug this is
+        # meant to catch, would then compare as passing regardless of what
+        # the actual global handler does.
+        kd = js.find('document.addEventListener("keydown"')
+        check("the palette check in keydown comes before the reader check",
+              kd != -1
+              and 0 <= js.index("if (state.paletteOpen)", kd) < js.index("if (reader.open)", kd),
+              "if reader.open is checked first, its arrow-key handling steals "
+              "the palette's own up/down navigation the moment the palette is "
+              "opened on top of the reader, instead of moving the selection")
+        check("runPaletteRow jumps the reader instead of the outer verse panel",
+              "if (reader.open)" in js and "enterReaderAt(" in js
+              and "runPaletteRow" in js,
+              "picking a verse from the palette while the reader is open must "
+              "reload the reader at that verse, not open the outer app's verse "
+              "panel, which is not visible while the reader covers the screen")
+
         for path in ("/preview", "/ask", "/verse/", "/chapters", "/health", "/search"):
             check("app.js calls %s" % path, path in js)
 

@@ -457,6 +457,11 @@ This surfaces the **IAST transliteration**, which has been in the corpus for
 all 701 verses since the first ingest with nowhere to appear. It is what lets
 someone sound a verse out without reading Devanagari.
 
+Click the position label ("3.1") in the top bar, or press Cmd/Ctrl+K, to open
+the search palette on top of the reader and jump anywhere in the book —
+without it, getting from partway through chapter 3 back to 1.2 meant
+scrolling backward one verse at a time.
+
 ### Illustration
 
 Every scene carries an art slot. Two images cover all 18 chapters: one is

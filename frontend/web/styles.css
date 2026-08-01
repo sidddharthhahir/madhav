@@ -961,7 +961,13 @@ textarea#q:focus,
   position: fixed; inset: 0; background: var(--gw-overlay);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   display: flex; align-items: flex-start; justify-content: center;
-  padding-top: 14vh; z-index: 50;
+  padding-top: 14vh;
+  /* Above .reader's z-index:300. The palette can now be summoned from
+     inside the reader (Cmd/Ctrl+K jumps to any verse), and at the old
+     z-index:50 it would have rendered underneath the reader's opaque
+     full-screen layer -- open, focused, receiving keystrokes, entirely
+     invisible. */
+  z-index: 350;
   animation: overlay-in .16s ease-out;
 }
 .palette {
@@ -1233,9 +1239,25 @@ body.reading #app { visibility: hidden; }
 .rd-close { font-size: 13px; line-height: 1; padding: 7px 10px; }
 .rd-close:hover, .rd-src:hover { color: var(--gw-text); border-color: var(--gw-accent); }
 .rd-src { text-transform: capitalize; letter-spacing: .04em; }
+/* A button now, not a static label -- click or Cmd/Ctrl+K opens the palette
+   on top of the reader to jump anywhere in the book. Reset first: an
+   unstyled <button> otherwise keeps the browser's own chrome (system font,
+   grey box, default border), which .rd-close and .rd-src already strip.
+   padding, not padding:0 -- the text itself is only ~24x15px, well under
+   the ~44x44px a thumb can reliably hit; found by testing an actual tap on
+   mobile and missing the element on the first attempt. The larger box is
+   invisible (transparent background) so it does not look like a bigger
+   control than .rd-close/.rd-src beside it, it just IS one. */
 .rd-where {
+  border: none; background: transparent; cursor: pointer;
+  padding: 10px 8px; margin: -10px -8px;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px; color: var(--gw-muted); letter-spacing: .06em;
+  border-bottom: 1px solid transparent;
+  transition: color .15s ease, border-color .15s ease;
+}
+.rd-where:hover, .rd-where:focus-visible {
+  color: var(--gw-accent); border-bottom-color: var(--gw-accent);
 }
 
 .rd-scroll {
