@@ -970,6 +970,50 @@ function artFor(chapter, verseIndex, verseCount) {
   return list[slot];
 }
 
+// A chapter this size has far more verses than curated plates -- chapter 1
+// spreads 2 images over 47 verses, so each one sits, pixel-identical, behind
+// roughly 23 consecutive screens. That reads as "the same picture the whole
+// time" even though the split is working exactly as designed; scrolling
+// through that many screens with no visible change is indistinguishable from
+// nothing happening.
+//
+// Rather than fabricate more art, each verse gets its own deterministic crop
+// of whichever plate it was assigned: a small, repeatable hash of the verse
+// id drives background-position, so adjacent verses under the same painting
+// are still visibly different frames of it. Deterministic on verse_id (not
+// random) so a verse looks the same on every visit, not different each time
+// the page is reloaded.
+// FNV-1a plus a Murmur-style finalizer, not a plain polynomial hash. Tried
+// the plain version first (h = h*31 + charCode) and it clustered badly:
+// verse ids sharing a chapter share almost their entire string ("BG.2."),
+// so a hash that accumulates left-to-right with a small multiplier makes
+// h(BG.2.11) and h(BG.2.30) numerically close, and taking %61 kept them
+// close too -- adjacent verses landed on nearly the same crop, which is
+// exactly the sameness this function exists to break. The finalizer forces
+// avalanche: a one-character input difference should flip roughly half the
+// output bits, which plain polynomial accumulation does not do on its own.
+function versePosition(verseId) {
+  let h = 0x811c9dc5;             // FNV offset basis
+  for (let i = 0; i < verseId.length; i++) {
+    h ^= verseId.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;   // FNV prime
+  }
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b) >>> 0;
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35) >>> 0;
+  // `>>> 0` on this last line is not decoration: `^` in JS returns a SIGNED
+  // int32, so without it h can come out negative here even though every
+  // prior step was forced unsigned -- and `h % 61` on a negative h returns a
+  // negative remainder in JS (unlike Python), producing a CSS percentage
+  // like "-8%". Caught by generating positions for 180 verse ids and finding
+  // negative values in the output, not by inspection.
+  h = (h ^ (h >>> 16)) >>> 0;
+  // Kept away from the 0-100 extremes: a crop centred at the very edge of a
+  // painting tends to land on empty border or margin rather than the subject.
+  const x = 20 + (h % 61);              // 20-80
+  const y = 20 + ((h >>> 8) % 61);      // 20-80
+  return `${x}% ${y}%`;
+}
+
 // Verse scene. The Devanagari leads because it is the thing itself; the
 // transliteration under it is what lets someone sound it out without reading
 // the script, and it has existed in the corpus all along with nowhere to go.
@@ -978,11 +1022,13 @@ function renderScene(v, chapter, verseIndex, verseCount) {
             : readerSources(v)[0];
   const body = (v.translations[src] || "").replace(/^\d+\.\d+\s*/, "");
   const art = artFor(chapter, verseIndex, verseCount);
+  const artStyle = art
+    ? ` style="background-image:url('/static/art/${art}');background-position:${versePosition(v.verse_id)}"`
+    : "";
   return `
     <section class="rd-scene" data-verse="${v.verse_id}"
              data-chapter="${chapter}" data-verse-n="${v.verse}">
-      <div class="rd-art${art ? "" : " empty"}" aria-hidden="true"${
-        art ? ` style="background-image:url('/static/art/${art}')"` : ""}></div>
+      <div class="rd-art${art ? "" : " empty"}" aria-hidden="true"${artStyle}></div>
       <div class="rd-body">
         <div class="rd-ref">
           <span class="n">${chapter}.${v.verse}</span>
