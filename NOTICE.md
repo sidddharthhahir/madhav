@@ -110,65 +110,26 @@ LICENSE file says so explicitly.
 
 ## Reader artwork
 
-Curated public-domain paintings used as background art in the immersive
-reader (`GET /read/{chapter}` -> `frontend/web/art/`). Each was individually
-verified public domain before download; none were AI-generated. Resized to
-1600px on the long edge and re-encoded as WebP -- the museum-issued originals
-are not redistributed here.
+Background art in the immersive reader (`GET /read/{chapter}` ->
+`frontend/web/art/`). Two AI-generated illustrations, supplied directly
+by the project owner for use in this app -- not sourced from a museum
+or archive, so no public-domain or attribution claim is made for them.
+Resized to 1600px on the long edge and re-encoded as WebP.
 
-Two of the five are captioned as ASSOCIATED rather than DEPICTS: the
-closest available public-domain art for that chapter's mood, not an
-illustration of any specific verse in it. The app must not claim otherwise.
+An earlier pass used five museum-sourced public-domain paintings
+instead; retired outright on user feedback rather than kept as
+`unused` entries here. Their sourcing and licence verification are in
+git history (see the commits touching this file before this one), not
+duplicated as permanent documentation for art the app no longer ships.
 
-**Arjuna and His Charioteer Krishna Confront Karna** (c. 1820)
-- Chapter 1 -- DEPICTS
-- Medium: Opaque watercolor on cloth
-- Source: [Philadelphia Museum of Art, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Arjuna_and_His_Charioteer_Krishna_Confront_Karna.jpg)
-- Licence: Public Domain Mark 1.0 / PD-Art (PD-old-100) / PD-India
-- File: `frontend/web/art/bg-1-karna-confrontation.webp`
-- Note: The two armies arrayed and the chariots drawn up between them, essentially illustrating BG 1.20-27 -- the moment Krishna draws the chariot into the middle of the field at Arjuna's request, just before the despair the chapter is named for.
+**Krishna and Arjuna in dialogue on the field**
+- Default (every chapter without a more specific plate)
+- AI-generated illustration
+- File: `frontend/web/art/krishna-arjuna-dialogue.webp`
+- Note: Supplied directly by the project owner for use in this reader. Used as the default background for every chapter that has no more specific plate -- i.e. every chapter except 11, which gets the Vishvarupa image below.
 
-**Krishna and Arjuna on the field of Kurukshetra** (c. 1830)
-- Chapter 2 -- DEPICTS
-- Medium: Gouache on paper, from an album of seventy paintings of Hindu deities
-- Source: [British Museum, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Krishna_Arjuna_Gita.jpg)
-- Licence: Public Domain Mark 1.0 -- published before 1931
-- File: `frontend/web/art/bg-2-krishna-teaching.webp`
-
-**Sri Krishna preaching Gita Upadesh to Arjun** (c. 1875-1900)
-- Chapter 2 -- DEPICTS
-- Medium: Pahari miniature painting (Kashmir school), natural pigments on paper
-- Source: [Google Cultural Institute, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sri_Krishna_preaching_Gita_Upadesh_to_Arjun_-_Unknown,_Kashmir_School_-_Google_Cultural_Institute.jpg)
-- Licence: Public Domain Mark 1.0
-- File: `frontend/web/art/bg-2-gita-upadesh.webp`
-
-**Vishvarupa, the cosmic form** (early-to-mid 20th century (≤ 1940))
-- Chapter 11 -- DEPICTS
-- Medium: Devotional print, style associated with the Ravi Varma press
-- Source: [Columbia University Bhagavad Gita digital collection, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Vishvaprint4max.jpg)
-- Licence: Public domain in India and the United States
-- File: `frontend/web/art/bg-11-vishvarupa.webp`
-
-**Dhritarashtra Attacks the Statue of Bhima, folio from a Razmnama** (c. 1616–17)
-- Not used in the app -- UNUSED
-- Medium: Opaque color and gold on paper
-- Source: [The Metropolitan Museum of Art (Howard Hodgkin Collection)](https://www.metmuseum.org/art/collection/search/825591)
-- Licence: Public domain (Met Open Access)
-- File: `frontend/web/art/unused-razmnama-dhritarashtra.webp`
-- Note: Retired from chapter 1 on direct user feedback: the folio carries genuine Persian calligraphy (a Mughal-era Persian translation of the Mahabharata), which read as unrelated and confusing behind a Sanskrit Gita reader rather than as the different-manuscript-tradition nuance it actually is.
-
-**Navagunjara, a universal form of Krishna** (c. 1835)
-- Not used in the app -- UNUSED
-- Medium: Opaque watercolor, ink, and gold on paper
-- Source: [The Metropolitan Museum of Art (Purchase, Evelyn Kranes Kossak Gift, 2006)](https://www.metmuseum.org/art/collection/search/73296)
-- Licence: Public domain (Met Open Access)
-- File: `frontend/web/art/unused-navagunjara.webp`
-- Note: Retired from chapter 1 on direct user feedback: a nine-animal composite creature from an unrelated Mahabharata episode reads as bizarre rather than devotional without the story behind it -- the ASSOCIATED label this shipped with was the warning sign, not a hedge that made it fine.
-
-**Krishna Holds Up Mount Govardhan, folio from a Harivamsa** (c. 1590–95)
-- Not used in the app -- UNUSED
-- Medium: Ink, opaque watercolor, and gold on paper
-- Source: [The Metropolitan Museum of Art (Purchase, Edward C. Moore Jr. Gift, 1928)](https://www.metmuseum.org/art/collection/search/448183)
-- Licence: Public domain (Met Open Access)
-- File: `frontend/web/art/unused-govardhan.webp`
-- Note: Downloaded during art research but not used: a Krishna story, not a Gita scene, and chapter 18 already has no plate that fits it honestly. Kept documented in case a future chapter mapping wants it.
+**Vishvarupa, the cosmic form**
+- Chapter 11
+- AI-generated illustration
+- File: `frontend/web/art/vishvarupa-cosmic-form.webp`
+- Note: Supplied directly by the project owner for use in this reader. Chapter 11 only -- the one chapter this specific image was made for.

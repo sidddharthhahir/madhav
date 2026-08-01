@@ -1239,10 +1239,21 @@ body.reading #app { visibility: hidden; }
 }
 
 .rd-scroll {
-  flex: 1; overflow-y: auto; scroll-snap-type: y mandatory;
-  /* No scroll-behavior:smooth. Every programmatic scroll here wants to
-     arrive, and with scroll-snap-stop:always an animated one stops at the
-     next snap point instead. Gestures are unaffected by this property. */
+  flex: 1; overflow-y: auto;
+  /* `proximity`, not `mandatory`. Reported: scrolling forward through the
+     book worked, but scrolling back to an earlier verse did not -- and it
+     reproduced consistently even against automated scroll simulation, which
+     kept hanging on exactly this container. `mandatory` + the
+     `scroll-snap-stop: always` this used to carry forces the browser to
+     halt at EVERY snap point on EVERY gesture, forward or back; that
+     combination is a known WebKit/Blink trap for feeling "stuck" on
+     backward swipes and fast flings, particularly on mobile. `proximity`
+     still snaps when a gesture ends near a boundary, but does not fight a
+     scroll that is already in flight, in either direction.
+     No scroll-behavior:smooth: every programmatic scroll here wants to
+     arrive at an exact target, not animate toward it. Gestures are
+     unaffected by this property either way. */
+  scroll-snap-type: y proximity;
   outline: none;
   /* The snap container is the scroller, so scenes measure against it. */
   position: relative;
@@ -1250,9 +1261,11 @@ body.reading #app { visibility: hidden; }
 
 /* One verse, one screen. min-height rather than height so a long verse with a
    long translation can grow past the viewport instead of being clipped --
-   scroll-snap aligns the top, which is where the reading starts. */
+   scroll-snap aligns the top, which is where the reading starts.
+   No scroll-snap-stop here -- see the note on .rd-scroll above; `always`
+   is exactly the property that made backward scrolling feel broken. */
 .rd-scene, .rd-card {
-  scroll-snap-align: start; scroll-snap-stop: always;
+  scroll-snap-align: start;
   min-height: 100%; position: relative;
   display: flex; align-items: center; justify-content: center;
   padding: 40px 28px 72px;

@@ -395,6 +395,83 @@ into the main text field during ingestion. Affected: BG.1.19, BG.1.44,
 BG.2.64 (`grep`-scoped across all 701 rows for `(or `). Worth a real ingestion
 fix, not a display-layer strip.
 
+### The five museum plates were retired for two AI-generated images, and the reader's backward scroll was fixed
+
+Two user reports arrived together. Both real, both fixed, neither guessed at
+without evidence first.
+
+**"I can go forward but not back."** Exact words: could read verse 1, 2, 3
+forward but "if I wanted to go to the words 2, I am not able to go in the
+book section." Investigated before touching anything: dispatched keyboard
+ArrowDown/ArrowUp events and read `rdScroll.scrollTop` directly (not the
+`#rdWhere` text label -- that turned out to be driven by a `requestAnimationFrame`-throttled
+scroll listener that does not reliably fire in this headless harness, a
+timing quirk seen before with the settle-animation bug; irrelevant to a real
+browser). `scrollTop` itself moved correctly in both directions under
+keyboard control, and grepping app.js found no `wheel`/`touchmove` listener
+that could be blocking a native gesture. So the JS was not the problem.
+
+The CSS was. `.rd-scroll` carried `scroll-snap-type: y mandatory` and every
+scene carried `scroll-snap-stop: always`. That combination forces the browser
+to halt at literally every snap point on every scroll gesture, forward or
+back -- a well-documented WebKit/Blink trap for exactly this symptom,
+especially on trackpad/touch. Corroborating but inconclusive evidence: the
+Browser pane's own synthetic `scroll` gesture action hung/timed out
+specifically on this container, every time, regardless of the fix -- treated
+as a harness limitation on simulating real wheel input against
+`scroll-snap-type: mandatory`, not as further proof, since it didn't change
+after the fix either. Changed to `scroll-snap-type: y proximity` and dropped
+`scroll-snap-stop: always` entirely. Proximity still snaps near a boundary
+but does not fight a gesture already in flight. Could not fully verify the
+exact native-gesture symptom in this harness (no reliable way to simulate a
+real trackpad/touch scroll here); asked the user to confirm on their device
+rather than claiming a verified fix for the one thing that could not
+actually be exercised.
+
+**"Remove all the images, use these two instead."** User attached two
+AI-generated illustrations directly in chat (found on disk at
+`~/Downloads/Krishna Arjuna Illustration Aug 1 2026 (1).png` and `(2).png` --
+a third file in the same folder, with Sanskrit captions baked into the image,
+was NOT one of the two shown and was correctly left out). One is a dialogue
+scene (Krishna and Arjuna silhouetted against a sunset, sacred geometry, om
+symbol); the other is a Vishvarupa/cosmic-form scene with a visible spiral
+galaxy. Both are unmistakably AI-generated (the multi-galaxy blend, the
+hyper-detailed painterly-photoreal rendering) -- said so plainly rather than
+documenting them as if they were museum scans. Because the user attached
+these directly for use in their own app, this is different from the earlier
+question of fetching a third party's copyrighted ISKCON art from the web: it
+is the user supplying their own asset. NOTICE.md documents them as
+"AI-generated illustration, supplied directly by the project owner," with no
+public-domain or attribution claim, which would not be true either way.
+
+All five previous museum plates (including the two already-retired
+`unused-*` ones and Govardhan) are gone from `frontend/web/art/` and from
+`build_reader_art.py`'s PLATES table entirely -- not kept as documented
+`unused` entries this time, on the explicit instruction "remove all the
+images that we have right now." Their research and licence verification live
+in git history (the commits touching `build_reader_art.py` before this one),
+not as permanent NOTICE.md archaeology for art the app no longer ships. That
+is a deliberate change from how the Razmnama/Navagunjara retirement was
+handled one commit earlier -- context there was keeping a research trail for
+museum sourcing that took real effort to verify; here the user asked for a
+clean slate and the git history already preserves the record.
+
+`build_reader_art.py`'s chapter key is now an int, the string `"default"`, or
+`None` (documented-but-unused, unused by neither image now). `"default"`
+covers every chapter with no more specific entry -- as of this pair, every
+chapter except 11 -- which is how two images reach full 1-18 coverage where
+the previous five-plate, per-chapter-only system covered three chapters and
+left fifteen empty. `check_reader_art.py`'s chapter-number check had to
+special-case the `"default"` key (it is not `int()`-able and must not be
+required to fall in 1-18).
+
+`versePosition()`'s crop-position range was narrowed from 20-80% to 32-68% on
+each axis. The wider range was tuned for the previous busy, multi-figure
+manuscript panels, where a crop toward either edge still landed on something
+worth seeing. The new art is a single centred composition -- Krishna and
+Arjuna roughly in the middle of the frame -- and the old range pushed them
+half out of frame at the extremes.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are

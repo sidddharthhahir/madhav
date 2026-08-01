@@ -1,12 +1,8 @@
 {
-  "1": [
-    "bg-1-karna-confrontation.webp"
-  ],
   "11": [
-    "bg-11-vishvarupa.webp"
+    "vishvarupa-cosmic-form.webp"
   ],
-  "2": [
-    "bg-2-krishna-teaching.webp",
-    "bg-2-gita-upadesh.webp"
+  "default": [
+    "krishna-arjuna-dialogue.webp"
   ]
 }

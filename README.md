@@ -459,44 +459,37 @@ someone sound a verse out without reading Devanagari.
 
 ### Illustration
 
-Every scene carries an art slot. Three chapters (1, 2, 11) are illustrated with
-curated public-domain paintings; the other fifteen are still empty pending
-procedural art driven by each verse's own enrichment.
+Every scene carries an art slot. Two images cover all 18 chapters: one is
+chapter 11's alone (the Vishvarupa cosmic form), the other is the default
+background for every chapter that has no more specific plate -- i.e.
+everything else.
 
 ```bash
-python scripts/build_reader_art.py   # resize the source scans, write map.json + NOTICE.md
+python scripts/build_reader_art.py   # resize the source images, write map.json + NOTICE.md
 python scripts/check_reader_art.py   # art/, map.json and NOTICE.md agree
 ```
 
-Four paintings are in active use, each individually verified public domain
-before download: a c. 1820 battlefield scene from the Philadelphia Museum of
-Art (chapter 1), the British Museum's *Krishna and Arjuna Gita* album and a
-Kashmir-school *Gita Upadesh* miniature (chapter 2), and a Ravi-Varma-press
-Vishvarupa print via Columbia University's Gita collection (chapter 11). Full
-credit and licence for each is in [NOTICE.md](NOTICE.md).
+Both are AI-generated illustrations supplied directly by the project owner,
+not museum scans -- documented as such in [NOTICE.md](NOTICE.md), with no
+public-domain or attribution claim made for them, because none would be true.
+An earlier pass used five museum-sourced public-domain paintings across
+chapters 1, 2 and 11; retired outright on direct user feedback (some read as
+unrelated or confusing rather than devotional) rather than kept as documented
+`unused` entries -- their sourcing and licence verification live in git
+history, not as permanent NOTICE.md archaeology for art the app no longer
+ships.
 
-Chapter 1's original pair (a Razmnama folio, a Navagunjara painting) was
-replaced on direct user feedback rather than kept as a hedge. Both were
-labelled `associated` rather than `depicts` when they shipped -- the Razmnama
-folio carries genuine Persian calligraphy (it is a Mughal-era Persian
-translation of the Mahabharata) and read as unrelated and confusing behind a
-Sanskrit Gita reader; the Navagunjara painting depicts an unrelated
-Mahabharata episode (Krishna as a nine-animal composite creature) that read as
-bizarre rather than devotional without the story behind it. That `associated`
-label was the warning sign that they were the wrong choice, not a hedge that
-made shipping them fine. Both stay documented in NOTICE.md as `unused` --
-research and licence verification are real even where the editorial fit was
-not -- alongside a third, never-used plate (Govardhan) from the same sourcing
-pass.
+Each verse still gets its own deterministic crop of whichever plate it lands
+on (`versePosition()` in app.js, seeded on `verse_id`), so a long run of
+consecutive verses under the same image doesn't sit behind a frozen,
+pixel-identical frame. The crop window is narrower than it was for the
+museum paintings (32-68% per axis, was 20-80%) -- those were busy multi-figure
+panels where an off-centre crop still landed on something worth seeing; the
+current art is a single centred composition, and the wider range pushed
+Krishna and Arjuna half out of frame.
 
-A chapter with more than one plate spreads them across its verses rather than
-picking one, so a long run of consecutive verses does not sit behind a frozen,
-pixel-identical frame -- each verse also gets its own deterministic crop of
-whichever plate it lands on (`versePosition()` in app.js), for the same
-reason.
-
-`frontend/web/art/*.webp` (2.9MB total, five files) is committed; the
-museum-issued full-resolution originals are not.
+`frontend/web/art/*.webp` (under 500KB total, two files) is committed; the
+original PNGs are not.
 
 ## Who is speaking
 

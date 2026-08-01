@@ -963,7 +963,11 @@ async function loadArtMap() {
 // first half and the second for its second half -- a chapter-length fade
 // from one image to the next instead of a jump cut on every verse.
 function artFor(chapter, verseIndex, verseCount) {
-  const list = artMap && artMap[String(chapter)];
+  // A chapter-specific list wins; "default" covers every chapter that has
+  // none of its own, which as of the current two-image set is every chapter
+  // except 11 -- giving full 1-18 coverage from two plates instead of the
+  // handful of chapters a curated-per-chapter approach could afford.
+  const list = (artMap && artMap[String(chapter)]) || (artMap && artMap.default);
   if (!list || !list.length) return null;
   const slot = Math.min(list.length - 1,
     Math.floor((verseIndex / Math.max(1, verseCount)) * list.length));
@@ -1007,10 +1011,16 @@ function versePosition(verseId) {
   // like "-8%". Caught by generating positions for 180 verse ids and finding
   // negative values in the output, not by inspection.
   h = (h ^ (h >>> 16)) >>> 0;
-  // Kept away from the 0-100 extremes: a crop centred at the very edge of a
-  // painting tends to land on empty border or margin rather than the subject.
-  const x = 20 + (h % 61);              // 20-80
-  const y = 20 + ((h >>> 8) % 61);      // 20-80
+  // 32-68, not the wider 20-80 this used with the earlier manuscript
+  // paintings. Those were busy multi-figure panels where a crop toward
+  // either edge still landed on something worth seeing. The current art is
+  // a single centred composition -- Krishna and Arjuna roughly in the
+  // middle, sky above, ground below -- so a crop near the old range's edges
+  // pushed the actual subject half out of frame. Narrower window, same
+  // mechanism: still a different frame per verse, kept closer to the
+  // subject that is actually there to look at.
+  const x = 32 + (h % 37);              // 32-68
+  const y = 32 + ((h >>> 8) % 37);      // 32-68
   return `${x}% ${y}%`;
 }
 

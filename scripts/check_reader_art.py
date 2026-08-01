@@ -46,9 +46,15 @@ def main() -> int:
     notice_text = NOTICE.read_text() if NOTICE.exists() else ""
 
     print("Chapters mapped")
-    for ch, files in sorted(mapping.items(), key=lambda kv: int(kv[0])):
-        check("chapter %s is 1-18" % ch, 1 <= int(ch) <= 18, ch)
-        check("chapter %s has at least one plate" % ch, len(files) > 0, files)
+    # "default" is a real key, not a chapter number: artFor() on the JS side
+    # falls back to it for any chapter with no more specific entry. Sorted
+    # with a high sentinel so it lists after the numbered chapters rather
+    # than failing int() or landing arbitrarily among them.
+    for ch, files in sorted(mapping.items(),
+                            key=lambda kv: 999 if kv[0] == "default" else int(kv[0])):
+        check("key %r is a chapter number (1-18) or 'default'" % ch,
+              ch == "default" or 1 <= int(ch) <= 18, ch)
+        check("%s has at least one plate" % ch, len(files) > 0, files)
 
     print("\nEvery file map.json points at exists on disk")
     for f in sorted(files_in_map):
