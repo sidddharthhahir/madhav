@@ -120,12 +120,27 @@ Two of the five are captioned as ASSOCIATED rather than DEPICTS: the
 closest available public-domain art for that chapter's mood, not an
 illustration of any specific verse in it. The app must not claim otherwise.
 
+**Arjuna and His Charioteer Krishna Confront Karna** (c. 1820)
+- Chapter 1 -- DEPICTS
+- Medium: Opaque watercolor on cloth
+- Source: [Philadelphia Museum of Art, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Arjuna_and_His_Charioteer_Krishna_Confront_Karna.jpg)
+- Licence: Public Domain Mark 1.0 / PD-Art (PD-old-100) / PD-India
+- File: `frontend/web/art/bg-1-karna-confrontation.webp`
+- Note: The two armies arrayed and the chariots drawn up between them, essentially illustrating BG 1.20-27 -- the moment Krishna draws the chariot into the middle of the field at Arjuna's request, just before the despair the chapter is named for.
+
 **Krishna and Arjuna on the field of Kurukshetra** (c. 1830)
 - Chapter 2 -- DEPICTS
 - Medium: Gouache on paper, from an album of seventy paintings of Hindu deities
 - Source: [British Museum, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Krishna_Arjuna_Gita.jpg)
 - Licence: Public Domain Mark 1.0 -- published before 1931
 - File: `frontend/web/art/bg-2-krishna-teaching.webp`
+
+**Sri Krishna preaching Gita Upadesh to Arjun** (c. 1875-1900)
+- Chapter 2 -- DEPICTS
+- Medium: Pahari miniature painting (Kashmir school), natural pigments on paper
+- Source: [Google Cultural Institute, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Sri_Krishna_preaching_Gita_Upadesh_to_Arjun_-_Unknown,_Kashmir_School_-_Google_Cultural_Institute.jpg)
+- Licence: Public Domain Mark 1.0
+- File: `frontend/web/art/bg-2-gita-upadesh.webp`
 
 **Vishvarupa, the cosmic form** (early-to-mid 20th century (≤ 1940))
 - Chapter 11 -- DEPICTS
@@ -135,20 +150,20 @@ illustration of any specific verse in it. The app must not claim otherwise.
 - File: `frontend/web/art/bg-11-vishvarupa.webp`
 
 **Dhritarashtra Attacks the Statue of Bhima, folio from a Razmnama** (c. 1616–17)
-- Chapter 1 -- ASSOCIATED
+- Not used in the app -- UNUSED
 - Medium: Opaque color and gold on paper
 - Source: [The Metropolitan Museum of Art (Howard Hodgkin Collection)](https://www.metmuseum.org/art/collection/search/825591)
 - Licence: Public domain (Met Open Access)
-- File: `frontend/web/art/bg-1-dhritarashtra.webp`
-- Note: Depicts a different scene involving Dhritarashtra; used for chapter 1, which he opens, not as an illustration of BG.1.1.
+- File: `frontend/web/art/unused-razmnama-dhritarashtra.webp`
+- Note: Retired from chapter 1 on direct user feedback: the folio carries genuine Persian calligraphy (a Mughal-era Persian translation of the Mahabharata), which read as unrelated and confusing behind a Sanskrit Gita reader rather than as the different-manuscript-tradition nuance it actually is.
 
 **Navagunjara, a universal form of Krishna** (c. 1835)
-- Chapter 1 -- ASSOCIATED
+- Not used in the app -- UNUSED
 - Medium: Opaque watercolor, ink, and gold on paper
 - Source: [The Metropolitan Museum of Art (Purchase, Evelyn Kranes Kossak Gift, 2006)](https://www.metmuseum.org/art/collection/search/73296)
 - Licence: Public domain (Met Open Access)
-- File: `frontend/web/art/bg-1-arjuna.webp`
-- Note: A different Mahabharata episode -- Krishna tests Arjuna's vow of non-violence in a nine-animal form -- used here for its kindred image of Arjuna disarmed before Krishna, not as an illustration of any specific verse.
+- File: `frontend/web/art/unused-navagunjara.webp`
+- Note: Retired from chapter 1 on direct user feedback: a nine-animal composite creature from an unrelated Mahabharata episode reads as bizarre rather than devotional without the story behind it -- the ASSOCIATED label this shipped with was the warning sign, not a hedge that made it fine.
 
 **Krishna Holds Up Mount Govardhan, folio from a Harivamsa** (c. 1590–95)
 - Not used in the app -- UNUSED

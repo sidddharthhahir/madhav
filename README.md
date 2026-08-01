@@ -468,20 +468,32 @@ python scripts/build_reader_art.py   # resize the source scans, write map.json +
 python scripts/check_reader_art.py   # art/, map.json and NOTICE.md agree
 ```
 
-Five paintings were sourced, each individually verified public domain before
-download -- the British Museum's *Krishna and Arjuna Gita* album (via Wikimedia
-Commons), a Ravi-Varma-press Vishvarupa print (Columbia University's Gita
-collection), and three Metropolitan Museum Open Access folios. Full credit,
-licence and a `depicts`-vs-`associated` honesty label for each is in
-[NOTICE.md](NOTICE.md): two of the five are the closest available public-domain
-art for a chapter's mood, not an illustration of any verse in it, and are
-captioned as such rather than passed off as something they are not.
+Four paintings are in active use, each individually verified public domain
+before download: a c. 1820 battlefield scene from the Philadelphia Museum of
+Art (chapter 1), the British Museum's *Krishna and Arjuna Gita* album and a
+Kashmir-school *Gita Upadesh* miniature (chapter 2), and a Ravi-Varma-press
+Vishvarupa print via Columbia University's Gita collection (chapter 11). Full
+credit and licence for each is in [NOTICE.md](NOTICE.md).
+
+Chapter 1's original pair (a Razmnama folio, a Navagunjara painting) was
+replaced on direct user feedback rather than kept as a hedge. Both were
+labelled `associated` rather than `depicts` when they shipped -- the Razmnama
+folio carries genuine Persian calligraphy (it is a Mughal-era Persian
+translation of the Mahabharata) and read as unrelated and confusing behind a
+Sanskrit Gita reader; the Navagunjara painting depicts an unrelated
+Mahabharata episode (Krishna as a nine-animal composite creature) that read as
+bizarre rather than devotional without the story behind it. That `associated`
+label was the warning sign that they were the wrong choice, not a hedge that
+made shipping them fine. Both stay documented in NOTICE.md as `unused` --
+research and licence verification are real even where the editorial fit was
+not -- alongside a third, never-used plate (Govardhan) from the same sourcing
+pass.
 
 A chapter with more than one plate spreads them across its verses rather than
-picking one -- chapter 1 opens on Dhritarashtra's court and moves to Arjuna's
-collapse by its second half, which happens to track how the chapter itself
-moves and is a consequence of what was available, not a claim the plates were
-chosen to tell that story.
+picking one, so a long run of consecutive verses does not sit behind a frozen,
+pixel-identical frame -- each verse also gets its own deterministic crop of
+whichever plate it lands on (`versePosition()` in app.js), for the same
+reason.
 
 `frontend/web/art/*.webp` (2.9MB total, five files) is committed; the
 museum-issued full-resolution originals are not.

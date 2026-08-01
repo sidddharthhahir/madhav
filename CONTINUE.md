@@ -339,6 +339,62 @@ Procedural art needs the 2,649 free-text emotion phrases clustered into a
 handful of families first -- unclustered, they are 93% one-off and there is
 no controlled vocabulary to drive a palette from yet.
 
+### Chapter 1's art was replaced, not supplemented, on user feedback
+
+User's exact words, pointing at a Google Images grid of bright ISKCON
+"As It Is" cover art: *"the images are... I don't know where that is and what
+the language is about. I want this kind of image."*
+
+Two things going on. First, most of what they pointed at is Bhaktivedanta
+Book Trust cover art -- copyrighted, and this project already has a hard rule
+excluding all Prabhupada/BBT material from the text corpus for exactly this
+reason (see the Rights section). Said so directly and did not fetch it.
+Second, the actual complaint about the SHIPPED art was specific and correct:
+the Razmnama folio (chapter 1) carries real Persian calligraphy, because it
+is genuinely a Mughal-era Persian translation of the Mahabharata -- not a
+rendering bug, but the wrong choice for a Sanskrit Gita reader regardless.
+
+Rather than patch the existing pair, went back to Wikimedia Commons and the
+Met specifically looking for the PD ancestor of the ISKCON house style --
+Raja Ravi Varma's paintings (d. 1906, long PD) essentially invented that
+visual language of bright, clear, recognizable devotional Hindu imagery.
+Ravi Varma himself has no Krishna-Arjuna-chariot composition on Commons, but
+found three usable candidates and viewed each one directly (downloaded,
+thumbnailed, read with the Read tool) rather than trusting WebFetch's text
+summary of the file page -- worth doing every time now, since a text
+description of "vivid, saturated colours" turned out accurate for one
+candidate and generously wrong for another (a 1914 book illustration that
+read as dark grey-green in practice, not chosen).
+
+Winner: **Arjuna and His Charioteer Krishna Confront Karna** (Philadelphia
+Museum of Art via Commons, c. 1820, PD Mark 1.0 / PD-Art / PD-India). Gold
+background, white horses, red wheels, two full armies, both chariots facing
+off -- and it is not merely a mood match, it essentially depicts BG 1.20-27
+(Krishna draws the chariot into the middle of the field at Arjuna's request).
+Replaced the Razmnama AND Navagunjara plates outright rather than adding a
+third option -- both had shipped labelled `associated` rather than `depicts`,
+and that label was already the warning sign, not a hedge that made shipping
+them fine. Also added a second chapter-2 plate, a Kashmir-school *Gita
+Upadesh* miniature (Google Cultural Institute via Commons, c. 1875-1900, PD
+Mark 1.0) -- same bright register, explicitly a teaching scene.
+
+The two retired plates are NOT deleted -- renamed to `unused-*.webp`, same
+treatment as the Govardhan plate that was never used at all. The research and
+the licence verification are real even where the editorial fit was not; only
+`build_reader_art.py`'s PLATES table (chapter=None, relation="unused") and
+`map.json` changed. `check_reader_art.py` still passes with all three unused
+files, which is the point of that check -- it verifies documentation/disk
+agreement, not that everything documented is in active use.
+
+Also found and left alone (out of scope for this pass, flagged to the user):
+**3 verses carry a stray parenthetical in their stored Sanskrit AND
+transliteration** -- e.g. BG.1.19 ends `...तुमुलोऽभ्यनुनादयन् (or लोव्यनु)`.
+Confirmed via direct query that it is in `verses.sanskrit` itself, not a
+rendering artifact -- looks like an alternate-reading annotation that leaked
+into the main text field during ingestion. Affected: BG.1.19, BG.1.44,
+BG.2.64 (`grep`-scoped across all 701 rows for `(or `). Worth a real ingestion
+fix, not a display-layer strip.
+
 ### Audit of the 11 misses (done, question by question)
 
 Each miss was read against what retrieval actually returned. Verdicts are

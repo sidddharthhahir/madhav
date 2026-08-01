@@ -27,12 +27,36 @@ MAX_W = 1600
 # (raw filename, art slot filename, chapter it opens, whether it actually
 # depicts the moment vs. is thematically associated, credit block)
 #
-# Two of these five are honest mismatches and are labelled as such rather
-# than captioned as if they were illustrations of the verse. Assigned per
-# CHAPTER, not per verse: applied to every scene in that chapter until a
-# later plate targets a specific verse, so one plate covers many screens
-# instead of decorating a single one.
+# Assigned per CHAPTER, not per verse: applied to every scene in that chapter
+# until a later plate targets a specific verse, so one plate covers many
+# screens instead of decorating a single one.
+#
+# Chapter 1 was rebuilt on direct user feedback: the two original plates
+# (Razmnama, Navagunjara -- still below, now UNUSED) were replaced rather than
+# supplemented. The Razmnama folio genuinely carries Persian calligraphy --
+# it is a Mughal-era Persian translation of the Mahabharata, not a rendering
+# fault -- which read as "I don't know where that is and what the language is
+# about" to someone opening a Sanskrit Gita reader: accurate to its own
+# tradition, wrong context here. Navagunjara depicts Krishna as a nine-animal
+# composite beast from an unrelated Mahabharata episode, which reads as
+# bizarre rather than devotional without the story behind it. Both were
+# honestly labelled ASSOCIATED at the time, and that label was the warning
+# sign that they were the wrong choice, not a hedge that made them fine to
+# ship.
 PLATES = [
+    ("karna_confront_full.jpg", "bg-1-karna-confrontation.webp", 1, "depicts", {
+        "title": "Arjuna and His Charioteer Krishna Confront Karna",
+        "date": "c. 1820",
+        "medium": "Opaque watercolor on cloth",
+        "source": "Philadelphia Museum of Art, via Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Arjuna_and_His_Charioteer_Krishna_Confront_Karna.jpg",
+        "licence": "Public Domain Mark 1.0 / PD-Art (PD-old-100) / PD-India",
+        "note": ("The two armies arrayed and the chariots drawn up between "
+                 "them, essentially illustrating BG 1.20-27 -- the moment "
+                 "Krishna draws the chariot into the middle of the field at "
+                 "Arjuna's request, just before the despair the chapter is "
+                 "named for."),
+    }),
     ("krishna_arjuna_gita.jpg", "bg-2-krishna-teaching.webp", 2, "depicts", {
         "title": "Krishna and Arjuna on the field of Kurukshetra",
         "date": "c. 1830",
@@ -40,6 +64,14 @@ PLATES = [
         "source": "British Museum, via Wikimedia Commons",
         "url": "https://commons.wikimedia.org/wiki/File:Krishna_Arjuna_Gita.jpg",
         "licence": "Public Domain Mark 1.0 -- published before 1931",
+    }),
+    ("kashmir_gita_upadesh.jpg", "bg-2-gita-upadesh.webp", 2, "depicts", {
+        "title": "Sri Krishna preaching Gita Upadesh to Arjun",
+        "date": "c. 1875-1900",
+        "medium": "Pahari miniature painting (Kashmir school), natural pigments on paper",
+        "source": "Google Cultural Institute, via Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Sri_Krishna_preaching_Gita_Upadesh_to_Arjun_-_Unknown,_Kashmir_School_-_Google_Cultural_Institute.jpg",
+        "licence": "Public Domain Mark 1.0",
     }),
     ("vishvarupa_print.jpg", "bg-11-vishvarupa.webp", 11, "depicts", {
         "title": "Vishvarupa, the cosmic form",
@@ -49,37 +81,34 @@ PLATES = [
         "url": "https://commons.wikimedia.org/wiki/File:Vishvaprint4max.jpg",
         "licence": "Public domain in India and the United States",
     }),
-    # Ordered deliberately: Dhritarashtra's court first, matching how chapter
-    # 1 itself opens on his question, then Arjuna's collapse for the chapter's
-    # second half. See build()'s docstring on why this is a lucky consequence
-    # of what was available rather than a claim these were picked for it.
-    ("razmnama_dhritarashtra.jpg", "bg-1-dhritarashtra.webp", 1, "associated", {
+    # UNUSED as of the chapter-1 rebuild above -- kept documented, not deleted,
+    # for the same reason govardhan is kept: the research and the licence
+    # verification are real even where the editorial fit was not.
+    ("razmnama_dhritarashtra.jpg", "unused-razmnama-dhritarashtra.webp", None, "unused", {
         "title": "Dhritarashtra Attacks the Statue of Bhima, folio from a Razmnama",
         "date": "c. 1616–17",
         "medium": "Opaque color and gold on paper",
         "source": "The Metropolitan Museum of Art (Howard Hodgkin Collection)",
         "url": "https://www.metmuseum.org/art/collection/search/825591",
         "licence": "Public domain (Met Open Access)",
-        "note": ("Depicts a different scene involving Dhritarashtra; used for "
-                 "chapter 1, which he opens, not as an illustration of BG.1.1."),
+        "note": ("Retired from chapter 1 on direct user feedback: the folio "
+                 "carries genuine Persian calligraphy (a Mughal-era Persian "
+                 "translation of the Mahabharata), which read as unrelated "
+                 "and confusing behind a Sanskrit Gita reader rather than as "
+                 "the different-manuscript-tradition nuance it actually is."),
     }),
-    # Navagunjara is a DIFFERENT Mahabharata story -- Krishna tests Arjuna's
-    # vow of non-violence by appearing as a nine-part chimeric beast, after
-    # Arjuna has laid down his weapons. It is not an illustration of BG.1,
-    # but it is the same emotional beat (Arjuna, weapons down, undone before
-    # Krishna) and the same manuscript tradition. Used for mood, captioned
-    # honestly, never claimed as a depiction of the verse it sits behind.
-    ("navagunjara.jpg", "bg-1-arjuna.webp", 1, "associated", {
+    ("navagunjara.jpg", "unused-navagunjara.webp", None, "unused", {
         "title": "Navagunjara, a universal form of Krishna",
         "date": "c. 1835",
         "medium": "Opaque watercolor, ink, and gold on paper",
         "source": "The Metropolitan Museum of Art (Purchase, Evelyn Kranes Kossak Gift, 2006)",
         "url": "https://www.metmuseum.org/art/collection/search/73296",
         "licence": "Public domain (Met Open Access)",
-        "note": ("A different Mahabharata episode -- Krishna tests Arjuna's vow "
-                 "of non-violence in a nine-animal form -- used here for its "
-                 "kindred image of Arjuna disarmed before Krishna, not as an "
-                 "illustration of any specific verse."),
+        "note": ("Retired from chapter 1 on direct user feedback: a nine-"
+                 "animal composite creature from an unrelated Mahabharata "
+                 "episode reads as bizarre rather than devotional without "
+                 "the story behind it -- the ASSOCIATED label this shipped "
+                 "with was the warning sign, not a hedge that made it fine."),
     }),
     # Not a Gita scene at all -- kept out of the verse mapping below and
     # listed here only so the file and its licence are documented in one
