@@ -1,23 +1,9 @@
 /* ===========================================================================
-   Madhav — cosmic theme.
+   Madhav UI palette.
 
-   The palette is drawn from the Gita's own imagery rather than generic
-   "futuristic" chrome: the deep indigo of Krishna's form and of the night
-   before Kurukshetra, peacock teal from his crown feather, and the gold of
-   temple lamps. Sacred geometry (the Sudarshana chakra) and Devanagari
-   carry the theme; the glass, glow and starfield carry the futurism.
-
-   One theme, deliberately. A light mode existed briefly -- four time-of-day
-   palettes, in fact -- and was removed: this palette is the product's
-   identity, and a parchment variant of it was a different, weaker app. There
-   is no toggle, no stored preference, and no prefers-color-scheme branch.
-
-   Every text/surface pair is checked for WCAG AA (4.5:1) against EVERY
-   background it actually appears on, not just the canvas -- the trap
-   documented in CONTINUE.md, where #8A857D passed on the page but failed on
-   the lighter button surface. That check is no longer done by hand:
-   scripts/check_contrast.py parses this file and tests all 51 pairs. Worst
-   case is 5.31:1 (muted on the button surface).
+   - Single dark theme by design.
+   - Colors are validated in scripts/check_contrast.py against all declared
+     text/surface pairings.
    =========================================================================== */
 
 :root {

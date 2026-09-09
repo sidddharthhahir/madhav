@@ -71,13 +71,8 @@ def main() -> int:
             a = client.get(asset)
             check("%s 200" % asset, a.status_code == 200, a.status_code)
         css = client.get("/static/styles.css").text
-        # Asserts the contrast-checked muted value for the cosmic palette.
-        # The point is not the specific hex -- it is that --gw-muted is a
-        # value someone actually measured against every surface it lands on,
-        # which is the trap CONTINUE.md records (#8A857D passed on the canvas
-        # and failed on the lighter button surface). Worst measured case is
-        # 5.31:1, above the 4.5:1 AA floor. If the palette changes again,
-        # re-measure with check_contrast.py -- do not delete the check.
+        # Asserts the currently validated muted value in the dark palette.
+        # If this changes, re-run check_contrast.py and update the expectation.
         check("css has contrast-checked muted", "#9A9484" in css)
         check("css has focus-visible", "focus-visible" in css)
         check("css respects reduced motion", "prefers-reduced-motion" in css)

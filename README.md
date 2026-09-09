@@ -62,6 +62,25 @@ API routes:
 - `POST /ask`
 - `POST /ask/stream`
 
+## Configuration
+
+Optional environment variables:
+
+- `ANTHROPIC_API_KEY` for `/ask` and `/ask/stream`
+- `MADHAV_TOKEN` to require `X-Madhav-Token` on paid answer endpoints
+- `MADHAV_ASK_PER_HOUR` to cap paid answers per client (default: `60`)
+- `MADHAV_RERANK=1` to enable model-based reranking
+
+Core retrieval routes (`/search`, `/preview`, `/counterpoint`, `/dilemma`, `/read`) work without API credentials.
+
+## Verification
+
+Run the repository checks:
+
+```bash
+for s in verify_store test_validator test_pipeline test_api test_api_ui test_prefixes validate_eval; do python scripts/$s.py; done
+```
+
 ## Project Structure
 
 ```text

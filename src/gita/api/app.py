@@ -88,9 +88,9 @@ class AskResponse(BaseModel):
     retrieved: list[dict]
     attempts: int
     detail: str = ""
-    usage: dict = {}
-    timings: dict = {}
-    rerank: dict = {}
+    usage: dict = Field(default_factory=dict)
+    timings: dict = Field(default_factory=dict)
+    rerank: dict = Field(default_factory=dict)
 
 
 @app.get("/health")

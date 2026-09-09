@@ -1,9 +1,8 @@
 """WCAG AA contrast check over every text/surface pair in the palette.
 
-This exists because of a specific trap, recorded in CONTINUE.md: a muted grey
-was verified against the page background, passed, and shipped -- while failing
-against the slightly lighter button surface that actually sat under it. Checking
-text against "the background" is not enough when an app has eleven surfaces.
+This exists to prevent palette regressions where a text color passes on one
+surface but fails on another. Checking text against a single background is not
+enough when the UI has many surfaces.
 
 So this enumerates the surfaces each text token can genuinely land on and
 checks the whole cross product. It parses the real stylesheet rather than a

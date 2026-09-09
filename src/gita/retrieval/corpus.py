@@ -39,7 +39,7 @@ COMMENTARY_CHARS = 1500
 #
 # The field is kept because it is generated, paid for, and is the right input
 # for a reranker -- a model reading the text can act on the negation that
-# neither index can. See CONTINUE.md.
+# neither index can.
 STANCE_INDEXED = False
 INDEXED_FIELDS = ("themes", "situations", "emotions", "keywords")
 
