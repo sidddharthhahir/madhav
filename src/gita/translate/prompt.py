@@ -7,9 +7,8 @@ double the request count and the cached-system-prompt overhead for no benefit.
 Rights basis: the Sanskrit is public domain, and both English translations
 used as disambiguation context (Purohit Swami, Sivananda) are already in the
 store under `sources.py`'s policy. The Hindi/Gujarati output is a new
-derivative work translated here, not sourced from any existing in-copyright
-Hindi/Gujarati edition -- see CONTINUE.md §6 for why the obvious existing
-sources (Gita Press OCR, Gandhi's Anasaktiyoga scan) don't work mechanically.
+derivative work translated here, not sourced from any in-copyright
+Hindi/Gujarati edition.
 """
 
 import hashlib

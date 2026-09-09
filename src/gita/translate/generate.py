@@ -85,10 +85,10 @@ def _token_estimate(text: str) -> float:
 
 def estimate_cost(records, verse_ids, model: str,
                    thinking_tokens: int = ASSUMED_THINKING_TOKENS) -> dict:
-    """Pre-flight estimate. Unmeasured -- run a small calibration batch before
-    trusting this, exactly as CONTINUE.md documents for enrichment: the
-    enrichment estimate was off by ~3.4x on Haiku specifically because assumed
-    thinking-token volume didn't match what Haiku actually produced.
+    """Pre-flight estimate.
+
+    This is intentionally conservative and should be calibrated with a small
+    batch before large runs.
     """
     if not verse_ids:
         return {"requests": 0}

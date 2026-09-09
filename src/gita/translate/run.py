@@ -8,8 +8,7 @@
 --dry-run needs no credentials and no network -- use it to see the exact
 prompt and the cost estimate before spending anything. The estimate is
 unmeasured; run a small --limit calibration batch first and read real
-usage.output_tokens, same lesson CONTINUE.md documents for enrichment (the
-Haiku estimate there was off by ~3.4x).
+usage.output_tokens.
 """
 
 import argparse
