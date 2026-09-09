@@ -1,36 +1,27 @@
 # Madhav
 
-Cited retrieval over the Bhagavad Gita. You ask a question about your own life;
-you get an answer grounded in specific verses, and every citation is verified
-against what was actually retrieved before the answer is returned.
+Cited Bhagavad Gita retrieval and answering with strict citation validation.
 
-Not a fine-tuned model. The value of `[BG 3.37]` is that it points at a real
-verse that really makes that point — a fine-tune would produce confident,
-unverifiable citations instead.
+## Overview
 
-**Picking this up on a new machine?** Start with [CONTINUE.md](CONTINUE.md) —
-setup, current state, the next actions in order with costs, and the traps
-already hit.
+Madhav helps users ask life questions and receive answers grounded in specific Gita verses. It emphasizes verifiable retrieval and citation integrity over unverifiable generated references.
 
-## Layout
+## Key Features
 
-```
-src/gita/
-  canon.py               recension handling, verse-id scheme
-  sources.py             per-field rights policy for upstream translations
-  db.py                  SQLite schema
-  pipeline.py            understand -> retrieve -> ground -> answer
-  ingest/                vedicscriptures fetch + cache + rights filter
-  retrieval/             IAST normalisation, BM25, corpus construction, RRF, dense (Ollama)
-  enrich/                the bridge layer (Batch API)
-  answer/                context assembly, prompts, generation, citation validator
-  api/                   FastAPI surface
-scripts/                 CLIs and test suites
-eval/questions.json      labelled questions for recall measurement
-data/gita.sqlite3        the store (~30 MB, populated: corpus + enrichment + embeddings)
-```
+- Grounded Q&A with verse-level citations
+- Citation validation before returning final answers
+- Retrieval pipeline with BM25 and optional dense hybrid mode
+- Corpus-backed API with health, search, preview, and ask endpoints
+- Rights-aware corpus handling and attribution notes
 
-## Setup
+## Tech Stack
+
+- Python 3
+- FastAPI + Uvicorn
+- SQLite
+- Optional Ollama for dense query embeddings
+
+## Setup and Run
 
 ### macOS / Linux
 
@@ -43,14 +34,6 @@ pip install -r requirements.txt
 uvicorn --app-dir src gita.api.app:app --reload
 ```
 
-Open <http://127.0.0.1:8000>. **No ingest step needed** — the corpus
-(`data/gita.sqlite3`, 701 verses) is committed, so a fresh clone has the full
-text immediately with no network access required.
-
-The virtualenv is deliberately *not* committed: it holds platform-specific
-binaries and Windows-layout paths (`.venv/Scripts/` rather than `.venv/bin/`),
-so a committed one would be broken on macOS rather than helpful.
-
 ### Windows
 
 ```powershell
@@ -59,601 +42,47 @@ python -m venv .venv
 .venv\Scripts\uvicorn --app-dir src gita.api.app:app --reload
 ```
 
-On Windows the Anthropic SDK ships filenames long enough to hit the 260-char
-path limit under the Microsoft Store Python's `site-packages`. A project-local
-venv keeps paths short; installing globally there fails mid-write and leaves a
-broken package.
+Open <http://127.0.0.1:8000> after startup.
 
-### Rebuilding the corpus (optional)
-
-Ingestion, retrieval and the citation validator are **stdlib-only** and need
-nothing installed. To rebuild the database from the upstream API instead of
-using the committed copy:
-
-```bash
-python -m gita.ingest.run       # re-fetches all 701 verses, a few minutes
-python scripts/verify_store.py  # 13 integrity checks
-```
-
-## Corpus
-
-701 verses (Gita Press recension — chapter 13 has **35** verses, not 34).
-Sanskrit and IAST transliteration, two complete English translations
-(Purohit Swami, Sivananda), Sivananda's English commentary on all 701, 14
-ancient Sanskrit commentaries, and Hindi + Gujarati translations for all 701
-(machine-derived — see "Hindi and Gujarati" below). 12,618 texts.
-
-```bash
-python -m gita.ingest.run          # full corpus; cached, so re-runs are free
-python scripts/verify_store.py     # independent integrity check
-```
-
-`verify_store.py` re-derives every assertion from the database rather than
-importing the ingester's own reporting, so a bug in the ingester cannot vouch
-for itself.
-
-### Rights
-
-The upstream repo is MIT licensed, but that covers its *code*, not the
-copyright in each translation it bundles. `sources.py` enforces a **per-field**
-policy: for Śaṅkara and Rāmānuja the ancient Sanskrit commentary is ingested
-while the uncredited modern English rendering beside it is dropped.
-
-Excluded entirely: Prabhupāda (BBT, in copyright until 2038), Tejomayananda,
-Chinmayananda, Ramsukhdas, Gambirananda, Adidevananda, Sankaranarayan. The raw
-HTTP cache keeps the *unfiltered* payloads so exclusions can be re-audited
-without re-crawling; only the SQLite store is filtered, which is what makes it
-redistributable.
-
-These are India life+60 determinations and a defensible reading, not legal
-advice. Have counsel confirm before shipping commercially. Full attribution
-and the per-source basis: [NOTICE.md](NOTICE.md).
-
-## Retrieval
+## Usage
 
 ```bash
 python scripts/search.py "why am I always angry"
-python scripts/search.py --health
-python scripts/search.py --eval                      # recall@k, retrieval only, free
-python scripts/search.py --eval --hybrid --real       # recall@k as the product actually behaves, costs ~$0.55
-python scripts/search.py --explain BG.3.37 "desire becomes anger"
-```
-
-`--eval` alone measures retrieval on the raw question text — useful for fast,
-free iteration, but not what `/ask` actually does. `--real` routes each
-question through the same query-understanding call the real pipeline uses
-before retrieving. The difference is large, and on the identical index: 17/106
-full recall on raw question text against **55/106** through real query
-understanding at the shipping defaults (k=20, fusion pool 30). Don't quote the
-free number as the product's recall. `understand()` is a real,
-non-deterministic call, so treat any single `--real` run as a measurement with
-variance, not a constant.
-
-Transliteration normalisation is load-bearing. The corpus writes "Kṛṣṇa"; users
-type "Krishna". Plain Unicode folding gives `krsna` and matches nothing, so
-`normalize.py` maps IAST to the common English romanisation first
-(`kṛṣṇa`→`krishna`, `dhṛtarāṣṭra`→`dhritarashtra`).
-
-## The enrichment layer
-
-**This is the component that decides whether the product works.** Retrieval
-does not search verse text — it searches an English description of the human
-situations each verse speaks to. A question about resenting a stranger online
-shares no vocabulary with a verse about *dvandva-moha*.
-
-Measured baseline without it, over 106 questions: recall@8 of 5 full, 25
-partial, 76 complete misses.
-
-**Status: generated.** All 692 non-demo verses were enriched with Haiku 4.5 via
-the Batch API (9 verses keep hand-written demo notes). Actual measured cost —
-not the estimate — was **$1.10** for the full batch. With enrichment alone,
-recall@8 moves to **7 full, 41 partial, 58 miss**; with enrichment plus dense
-retrieval, **17/106 full** on raw question text — and **55/106 full, 38
-partial, 13 miss** at the shipping defaults through the same query-
-understanding step the real product actually uses. See "Dense retrieval" and "Retrieval" above for the
-full before/after and why the raw-text number understates what ships.
-
-```bash
-python -m gita.enrich.run --dry-run     # renders prompts, estimates cost, free
-python scripts/cost_audit.py            # low/expected/high bounds
-python scripts/demo_enrichment.py       # hand-written notes for 9 verses, $0
-python -m gita.enrich.run --submit --limit 20 --model claude-haiku-4-5 --yes
-python -m gita.enrich.run --status
-python -m gita.enrich.run --collect
-sqlite3 data/gita.sqlite3 "SELECT model, COUNT(*) FROM enrichment GROUP BY model;"
-```
-
-`demo_enrichment.py` writes notes by hand for nine verses and re-measures: on
-those questions retrieval goes from 1 of 11 expected verses to 7 of 11, with no
-API calls. It demonstrates the mechanism; it is not a measurement, since the
-verses were chosen because the eval expects them.
-
-Runs on the Message Batches API: 701 requests, no latency requirement, 50% off,
-and the system prompt caches across every request. Cost depends entirely on
-model tier, because output — mostly thinking tokens — is the whole bill. The
-table below is the pre-flight *estimate*, which assumes 1200 thinking
-tokens/verse; the real Haiku run used almost none (~255 output tokens/verse
-measured), so the estimate overstates Haiku's actual cost by roughly 3-4x —
-run the 20-verse calibration and read `usage.output_tokens` rather than
-trusting the table for anything but ballpark ordering:
-
-| Model | Config | Estimated | Actually measured |
-|---|---|---|---|
-| Haiku 4.5 | no thinking (its default) | ~$3.70 | **$1.10** |
-| Sonnet 5 | effort=low | ~$7.35 | not run |
-| Opus 5 | default | ~$19.26 | not run |
-| Opus 5 | effort=high | ~$35.04 | not run |
-
-Three commands, not one, deliberately: a batch can take up to 24 hours, and a
-blocking script that died mid-wait would orphan a paid job. The batch id is
-written to SQLite before anything else happens.
-
-## Dense retrieval (hybrid)
-
-**Optional. Measured cost of skipping it: about one question in a hundred.**
-
-| retrieval | full | partial | miss |
-|---|---|---|---|
-| BM25 + dense (Ollama running) | 55/106 | 38 | 13 |
-| BM25 alone (no Ollama) | 54/106 | 37 | 15 |
-
-Measured through `Pipeline.retrieve` on the 106-question eval. The app is
-fully usable without Ollama: retrieval falls back to BM25 automatically, in
-about 5ms, with no error and no hang — verified by pointing the client at a
-dead port. Nothing else in the product depends on it. Install it if you want
-the extra question or two; skip it and nothing breaks.
-
-(The embeddings for the 701 verses ship inside the committed database. Ollama
-is only needed to embed *your question* at query time, which is why the app
-still works without it.)
-
-BM25 is lexical: it needs shared vocabulary between the question and the
-enrichment text. `reciprocal_rank_fusion` in `retrieval/bm25.py` fuses it with
-a dense (embedding-similarity) ranking. Anthropic has no embeddings endpoint,
-and paying a hosted embeddings API per query is hard to justify for 701 short
-documents, so this runs entirely locally against [Ollama](https://ollama.com):
-
-```bash
-brew install --cask ollama            # or download from ollama.com
-open -a Ollama
-ollama pull nomic-embed-text
-python scripts/build_embeddings.py    # embeds all 701 verses, free, ~1 minute
-```
-
-Then opt in with `--hybrid`:
-
-```bash
-python scripts/search.py --eval --hybrid
-python scripts/ask.py --hybrid "why do I resent people I've never met"
-```
-
-Or leave it on by default for the API server — `src/gita/api/app.py` already
-constructs the pipeline with `use_dense=True`. If Ollama isn't running or no
-embeddings are cached, retrieval degrades silently to BM25 alone rather than
-failing the request; `GET /health` reports `dense_index.active` so you can
-tell which mode is actually in effect.
-
-The text embedded for dense retrieval is deliberately narrower than what BM25
-indexes (`corpus.dense_text` vs. `corpus.searchable_text`): a single pooled
-embedding vector over a long, heterogeneous document — enrichment prose plus
-literal translations plus word-by-word Sanskrit glosses — dilutes the
-semantic signal. BM25 doesn't have this problem, since each term scores
-independently.
-
-`nomic-embed-text` (768-dim) outperformed the larger `mxbai-embed-large`
-(1024-dim) in testing here — the latter needs an instruction-prefix convention
-this codebase doesn't apply, and untuned it scored worse (4/106 full vs.
-17/106). Don't switch models without re-running `--eval --hybrid` to confirm
-the swap actually helps.
-
-## Hindi and Gujarati
-
-**Status: generated.** All 701 verses have Hindi and Gujarati translations
-under `src/gita/sources.py`'s `derived` policy — machine-translated from the
-Sanskrit original plus the two already-permitted English translations
-(Purohit Swami, Sivananda), not adapted from any existing Hindi or Gujarati
-edition. Neither Gita Press (Goyandka) nor Gandhi's *Anasaktiyoga* were usable
-sources — both are two-column/scanned-page OCR with verse markers that don't
-align to actual verse order; see CONTINUE.md §6 for what was tried.
-
-```bash
-python -m gita.translate.run --dry-run                                  # free
-python -m gita.translate.run --submit --limit 20 --model claude-haiku-4-5 --yes
-python -m gita.translate.run --status
-python -m gita.translate.run --collect
-python -m gita.translate.run --submit --model claude-haiku-4-5 --yes    # full run
-```
-
-Same shape as enrichment deliberately: both languages come out of a single
-request per verse (not two), and the cost estimator carries the same warning
-enrichment's did after being measured wrong — the pre-flight estimate for the
-full 701-verse batch was $1.24; actual measured cost (from real
-`usage.output_tokens`, not the estimator) was **$0.65**.
-
-## Asking
-
-```bash
-python scripts/ask.py --preview "why do I resent people I've never met"  # free
+python scripts/ask.py --preview "why do I resent people I've never met"
 python scripts/ask.py "why do I resent people I've never met"
-python scripts/ask.py --health
+python scripts/verify_store.py
 ```
 
-`--preview` runs retrieval and context assembly with **no model calls**. It is
-the fastest way to tell a retrieval problem from a generation problem.
+API routes:
 
-## The citation guarantee
+- `GET /health`
+- `GET /search?q=`
+- `POST /preview`
+- `GET /verse/{id}`
+- `POST /ask`
+- `POST /ask/stream`
 
-Every answer is validated before return. Two distinct failures:
+## Project Structure
 
-- `nonexistent` — the verse isn't in the corpus (`[BG 2.99]`). Always a bug.
-- `out_of_context` — the verse exists but was never retrieved for this
-  question, so the model is citing from memory rather than from evidence.
-
-On rejection the model is re-prompted with the offending citations named
-explicitly (a generic "follow the rules" retry reproduces the same error), up to
-two retries. If it still fails, the pipeline **returns a failure and withholds
-the text** rather than serving unverified output.
-
-### What streaming changes, and what it doesn't
-
-Citations can only be checked against a *finished* answer — a half-written
-sentence has nothing to verify. So `/ask/stream` (what the UI uses) necessarily
-shows text before it has been validated, which `/ask` never does. That is a
-real difference, and it is why they are separate endpoints rather than one
-endpoint with a flag: `/ask` keeps the strict all-or-nothing contract for any
-caller that wants it.
-
-What the streaming path preserves:
-
-- Streamed text is rendered as visibly **unverified** — dimmed, behind a dashed
-  rule, under a live "checking citations…" note — and citation markers stay
-  plain text instead of becoming clickable pills.
-- If a draft fails validation, a `reset` event fires and the client **discards
-  everything shown so far** before the retry begins. A rejected draft is never
-  left standing.
-- Nothing is presented as a checked answer until `done` arrives. Only then is
-  the text re-rendered as a finished article with citation pills.
-- If every attempt fails, `failed` arrives and the text is withheld, exactly as
-  in `/ask`.
-
-Both properties — retracting a rejected draft, and withholding text that never
-validates — are asserted in `scripts/test_pipeline.py` (cases 11 and 12) against
-a stub client, since neither runs on the happy path.
-
-## HTTP API
-
-```bash
-uvicorn --app-dir src gita.api.app:app --reload      # .venv\Scripts\uvicorn on Windows
+```text
+src/gita/
+  api/            FastAPI app and routes
+  answer/         answer generation and citation validation
+  enrich/         enrichment pipeline
+  ingest/         corpus ingestion
+  retrieval/      search and ranking components
+scripts/          utility scripts and test suites
+data/             SQLite data store
+eval/             evaluation dataset
+frontend/         web UI
 ```
 
-| Route | Needs a key | Purpose |
-|---|---|---|
-| `GET /health` | no | corpus and index coverage |
-| `GET /search?q=` | no | raw lexical search with matched terms |
-| `POST /preview` | no | retrieval + grounding context, free |
-| `GET /verse/{id}` | no | one verse with translations and enrichment |
-| `POST /counterpoint` | no | verses whose stance points the other way, free |
-| `POST /dilemma` | no | both sides of a choice, plus the shared ground, free |
-| `POST /ask` | yes | the full pipeline, all-or-nothing |
-| `POST /ask/stream` | yes | same pipeline as server-sent events (see above) |
+## Contributing
 
-`/ask` returns HTTP 200 with `ok: false` and a machine-readable `status`
-(`no_credentials`, `off_topic`, `no_verses`, `citation_validation_failed`,
-`refused`) rather than a 500.
+Contributions are welcome. Please open an issue for substantial changes and submit focused pull requests with clear descriptions.
 
-## Tests
+## License / Contact
 
-```bash
-python scripts/verify_store.py    # 16 corpus integrity checks
-python scripts/check_contrast.py  # WCAG AA over all 51 text/surface pairs
-python scripts/validate_eval.py   # eval-set sanity (verses exist, no over-used verse)
-python scripts/test_prefixes.py   # OCR repair + clamp-not-discard
-python scripts/test_validator.py  # 15 citation-validator cases
-python scripts/test_pipeline.py   # 22 end-to-end checks against a stub client
-python scripts/test_api.py        # 21 HTTP contract checks
-python scripts/test_api_ui.py     # confirms the desktop UI's app.js calls the routes it needs
-python scripts/test_rerank.py     # 32 reranker/counterpoint checks against a stub client
-python scripts/test_speakers.py   # speaker attribution, incl. the sandhi trap
-python scripts/check_reader_art.py # art/, map.json and NOTICE.md agree
-python scripts/eval_answers.py     # answer-shape regressions (costs ~25c, real API calls)
-```
-
-Run all eleven in sequence:
-
-```bash
-for s in verify_store check_contrast test_validator test_pipeline test_api \
-         test_api_ui test_prefixes test_rerank test_speakers check_reader_art \
-         validate_eval; do
-  python scripts/$s.py; done
-```
-
-`test_pipeline.py` stubs the Anthropic client, so the reject-and-regenerate
-loop — the most safety-critical path, and the one that never runs during happy-
-path use — is driven deterministically with no credential and no spend.
-`test_rerank.py` does the same for the reranker, and note what it does and does
-not establish: it proves the reranker is *safe* (a malformed or hallucinated
-ordering never loses a verse, and every failure falls back to the original
-ranking), not that it is *useful*. Only `eval_sweep.py --rerank` can show that.
-
-## Show me the opposite
-
-An answer is grounded in verses that matched the question as it was asked,
-which is what makes it useful and also what makes it one-sided — ask something
-shaped like self-justification and retrieval will return the verses that agree
-with you. The button under each answer surfaces the counterweight.
-
-It costs nothing, and does not call a model. The `stance` enrichment was
-generated in an explicit contrast form — *"a warning to someone corrupted by
-power, **not** comfort for the powerless"* — and 1,420 of 2,312 stance lines
-(61.4%), covering 605 of 700 stanced verses (86.4%), carry that pivot. So the
-right-hand clause is a ready-made description of the reader this verse is *not*
-for, which is to say a description of the verse someone else needs. Take those
-clauses, use them as a query, run ordinary free retrieval.
-
-This deliberately sidesteps rather than re-fights the negation problem below:
-the "not" is resolved by string surgery on a known sentence shape, and only the
-positive remainder is ever handed to a ranker.
-
-## The Mahabharata in the interface
-
-The design constraint first: people use this to ask why they feel worthless or
-why they cannot stop being angry. Swords, blood-red and arrow rain would land
-badly against that. The Gita's own move is that Kurukshetra **is** the inner
-battlefield — so the interface takes the epic's geometry, formations, banners,
-light and time, and none of its gore.
-
-**One theme.** Dark, always. A light mode existed — four time-of-day palettes
-following the clock — and was removed: this palette is the product's identity,
-and a parchment variant of it was a different, weaker app. There is no toggle,
-no stored preference, and no `prefers-color-scheme` branch, so the app looks
-the same on a machine set to light mode. `scripts/check_contrast.py` verifies
-all 51 text/surface pairs; worst case is 5.31:1 against a 4.5:1 floor.
-
-**Chakravyuha.** The preloader is the spiral formation Abhimanyu could enter
-and not leave: concentric broken rings, adjacent ones counter-rotating at
-mutually non-dividing periods so the gaps never settle into a pattern. The
-Sudarshana chakra still presides over the app; the vyuha is what you pass
-through to get in.
-
-**Tāḍapatra.** The epic was incised on palm leaf. Verse cards get the ruled
-lines, the lengthwise grain, and the cord hole punched at the binding edge —
-drawn in light strokes over the dark card.
-
-**The field.** The dilemma's two options face each other across a gold seam —
-*dharmakṣetre kurukṣetre* — and the "whichever you choose" panel straddles it,
-because that counsel belongs to neither side.
-
-**Sanjaya's hand.** The whole Gita is Sanjaya reporting what he sees to a blind
-king. The unverified streaming draft carries his attribution (सञ्जय उवाच) and a
-dashed rule; when the citations check out it resolves to a solid gold rule.
-That gold is a claim, so it is set statically and never animated.
-
-**Dhvaja.** Each chapter flies a standard drawn from its own subject — the
-dropped bow (1.47), the fire of knowledge (4.37), the lotus unwetted (5.10),
-beads on a thread (7.7), the inverted aśvattha (15.1), the parted fetter. Not
-warrior banners: mapping eighteen chapters onto eighteen warriors would be
-invention.
-
-**Viśvarūpa.** Opening a chapter-11 verse briefly widens and brightens the
-watermark — the one place the text stops explaining and shows. Once per
-session, no flash, and it degrades to a plain brightening under
-`prefers-reduced-motion`.
-
-## The reader
-
-The book icon opens a full takeover: the app dissolves and what is left is the
-text. One verse per screen, scroll-snapped, Devanagari leading, IAST beneath
-it, translation under that, with a translator toggle. Chapter title cards carry
-the dhvaja at a size worth drawing. Position is tracked across all 701 verses
-rather than within a chapter, and the reader reopens where it closed.
-
-`GET /read/{chapter}` serves a whole chapter in one call — the reader moves
-continuously, and 701 round trips would make paging feel like loading.
-Commentary is excluded (it is the largest field and the reader does not show
-it); "commentary & translations" hands off to the ordinary verse panel, which
-already has all fourteen.
-
-This surfaces the **IAST transliteration**, which has been in the corpus for
-all 701 verses since the first ingest with nowhere to appear. It is what lets
-someone sound a verse out without reading Devanagari.
-
-Click the position label ("3.1") in the top bar, or press Cmd/Ctrl+K, to open
-the search palette on top of the reader and jump anywhere in the book —
-without it, getting from partway through chapter 3 back to 1.2 meant
-scrolling backward one verse at a time.
-
-### Illustration
-
-Every scene carries an art slot. Two images cover all 18 chapters: one is
-chapter 11's alone (the Vishvarupa cosmic form), the other is the default
-background for every chapter that has no more specific plate -- i.e.
-everything else.
-
-```bash
-python scripts/build_reader_art.py   # resize the source images, write map.json + NOTICE.md
-python scripts/check_reader_art.py   # art/, map.json and NOTICE.md agree
-```
-
-Both are AI-generated illustrations supplied directly by the project owner,
-not museum scans -- documented as such in [NOTICE.md](NOTICE.md), with no
-public-domain or attribution claim made for them, because none would be true.
-An earlier pass used five museum-sourced public-domain paintings across
-chapters 1, 2 and 11; retired outright on direct user feedback (some read as
-unrelated or confusing rather than devotional) rather than kept as documented
-`unused` entries -- their sourcing and licence verification live in git
-history, not as permanent NOTICE.md archaeology for art the app no longer
-ships.
-
-Each verse still gets its own deterministic crop of whichever plate it lands
-on (`versePosition()` in app.js, seeded on `verse_id`), so a long run of
-consecutive verses under the same image doesn't sit behind a frozen,
-pixel-identical frame. The crop window is narrower than it was for the
-museum paintings (32-68% per axis, was 20-80%) -- those were busy multi-figure
-panels where an off-centre crop still landed on something worth seeing; the
-current art is a single centred composition, and the wider range pushed
-Krishna and Arjuna half out of frame.
-
-`frontend/web/art/*.webp` (under 500KB total, two files) is committed; the
-original PNGs are not.
-
-## Who is speaking
-
-The Gita is a dialogue inside a dialogue, and the pipeline used to treat all
-701 verses as one undifferentiated body of counsel. That is wrong in a way that
-matters for a *citing* app: **BG 1.29** — *"my limbs fail me and my throat is
-parched, my body trembles"* — is not advice. It is a man having a panic attack,
-and the remaining seventeen chapters are the reply to it.
-
-Attribution is derived from the Sanskrit at load time, never stored:
-
-| speaker | verses | |
-|---|---|---|
-| **Krishna** | 574 | the teaching |
-| Arjuna | 85 | the question, doubt and distress |
-| Sanjaya | 41 | narration |
-| Dhritarashtra | 1 | the opening question |
-
-These match the counts the traditional Gita Mahatmya quotes.
-
-Two things make it non-trivial:
-
-**The sandhi trap.** `bhagavān` + `uvāca` fuses into `bhagavānuvāca`, turning
-the independent vowel **उ** (U+0909) into the dependent sign **ु** (U+0941). A
-substring search for `उवाच` therefore matches Arjuna, Sanjaya and Dhritarashtra
-and silently misses **all 574 of Krishna's verses** — it does not error, it
-just attributes his entire teaching to whoever spoke last. `test_speakers.py`
-asserts against exactly this.
-
-**One unmarked transition.** BG 1.28 is half narration, half speech — *"…
-sorrowing, he said this"* — and Arjuna then speaks through 1.46 with no
-`arjuna uvāca` of his own. Marker-following alone gives Arjuna 67 / Sanjaya 59;
-moving exactly 1.29–1.46 gives 85 / 41, the traditional counts. Two independent
-things agreeing on the same 18 verses is the evidence for hard-coding them.
-
-The speaker is shown in the UI (only for the three who are *not* Krishna — his
-82% would make the tag meaningless), and the answer prompt is told what each
-speaker's words are evidence of, so despair is never quoted back as counsel.
-It is deliberately **not** indexed: "krishna" on 82% of the corpus is noise for
-BM25 and pulls every embedding toward one point.
-
-## Dharma-sankata — holding both sides
-
-The Mahabharata's subject is not war, it is choices with no clean answer:
-Yudhishthira's half-truth that kills Drona, Bhishma's vow binding him to the
-wrong side, Arjuna asked to kill his own teachers. The app could only *answer*.
-"Weighing two options?" makes it hold a tension instead — two options in,
-verses for each, and the verses that apply **whichever you choose**.
-
-The middle panel is the claim. Krishna never tells Arjuna which way to go; he
-changes what the choice means and then says *"do as you will"* (18.63).
-
-Free — two local retrievals, no model call.
-
-Two measurements make it honest rather than decorative:
-
-- **The sides genuinely separate.** Over five realistic dilemmas at k=10 the
-  Jaccard overlap was 0.00–0.05. A split screen is showing different counsel on
-  each side, not the same list twice. Each result discloses its own overlap,
-  and says so when it is high.
-- **Shared ground is scarce and must be dug for.** The sides shared 0–1 verses
-  in the top 10, but 3 at k=20, 5 at k=30, 13 at k=50. So both sides retrieve
-  to a pool of 50 and the intersection is mined from that — intersecting the
-  handful of displayed verses would nearly always be empty and would make the
-  best panel look broken.
-
-## Reranking (off by default, unmeasured)
-
-`MADHAV_RERANK=1` puts a Haiku call between retrieval and answering: fetch a
-deeper pool, let a cheap model pick the best *k* by reading each verse's
-`stance`. That is the one thing an index provably cannot do — see the negation
-note in `retrieval/corpus.py`.
-
-**Its benefit has not been measured.** It needs API credit to run at all, and
-there was none when it was written. Two earlier changes in this project looked
-equally sound on paper and turned out to be worth nothing, so treat this as a
-hypothesis. What *is* measured, for free, is the ceiling — reranking can only
-win a question whose expected verses sit inside the pool but outside *k*:
-
-| configuration | questions winnable (of 106) |
-|---|---|
-| pool 30 → k=12 | 20 |
-| pool 30 → k=20 | 10 |
-| pool 60 → k=20 | 29 |
-
-Real headroom, but an upper bound assuming perfect judgement. Settle it with:
-
-```bash
-python scripts/eval_sweep.py --rerank --limit 25    # ~15c, try a slice first
-```
-
-## Credentials
-
-Set `ANTHROPIC_API_KEY`, or run `ant auth login`. Only enrichment and `/ask`
-need one; ingestion, retrieval, `--preview`, and all four test suites do not.
-
-## State
-
-Done: corpus, rights policy, retrieval (BM25 + dense hybrid via local Ollama),
-enrichment pipeline (generated, all 692 non-demo verses), Hindi and Gujarati
-translations (all 701 verses, machine-translated from the Sanskrit + English
-already in the corpus — not from Gita Press or Gandhi's *Anasaktiyoga*, see
-CONTINUE.md §6 for why those don't work mechanically), answer generation,
-citation validation, HTTP API, seven test suites, eval harness, code licence
-([MIT](LICENSE) — covers the code only; the corpus text has its own per-source
-basis in [NOTICE.md](NOTICE.md)).
-
-Not done: nothing left from the original scope. Recall is now measured
-correctly (see Known issues) at 55/106 full (k=20) — the remaining 20 misses
-are the main open lever, mostly abstract/existential questions with little
-concrete vocabulary for retrieval to grab onto.
-
-## Known issues
-
-- The Sivananda commentary carries OCR damage from the source scans: commas
-  rendered as question marks, occasional broken words. Translations are clean;
-  this affects only the commentary field.
-- Cost estimates use character-class heuristics for token counts, and assume a
-  thinking-token volume high enough to be misleading for Haiku specifically —
-  see the enrichment section above. Calibrate against a real batch before
-  trusting them for any given model.
-- **`scripts/search.py --eval` without `--real` measures a different, easier
-  question than "what does the product actually retrieve."** It runs
-  retrieval on the raw question text; `Pipeline.ask()` never does that — it
-  always rewrites the question toward corpus vocabulary via
-  `answer.generate.understand()` first. On the identical index, raw-text
-  recall is 17/106 full; through real query understanding it's **55/106
-  (52%)** at the shipping defaults (k=20, fusion pool 30). Use
-  plain `--eval --hybrid` for free, fast iteration on retrieval itself; use
-  `--eval --hybrid --real` (costs ~$0.55, calls the understanding LLM per
-  question) for the number that actually describes the product.
-- `Pipeline`'s `max_verses` default is 20, not 8 — widening it recovered a
-  meaningful chunk of recall (many misses were verses ranked 8-12, displaced
-  by a thematically adjacent but differently-specific verse) for about 50%
-  more context tokens per answer. A real but small cost increase; the
-  citation validator still only allows citing what the model was shown.
-- **`k` is now 20 and the browser no longer overrides it.** The frontend sent
-  `k: 8` on every request, which silently overrode the server default -- so
-  the earlier 8 -> 12 tuning never reached the UI at all. Removing it, and
-  raising the default to 20, takes the shipped app from ~35 to **55/106 full**
-  (11 misses). Measured on `Pipeline.retrieve` itself, not a reimplementation.
-- Fusion now draws from a pool of 30 candidates per ranker rather than exactly
-  `k`. At `pool == k`, RRF could only reorder verses both rankers already
-  agreed on; a verse ranked 15th by BM25 and 3rd by dense was invisible.
-  Depth here costs local sorting and no tokens, since only the top `k` are
-  sent to the model.
-- 13 nominal misses remain at k=20. Mostly abstract/existential questions
-  ("am I my thoughts or something underneath them") where the phrasing itself
-  carries little concrete vocabulary, unlike the concrete-situation questions
-  dense retrieval handles well. Some are also a confirmed artifact of the
-  eval set labelling only 2 expected verses per question when the Gita
-  legitimately supports more — e.g. "I keep getting attached to outcomes I
-  cannot control" retrieves the famous *nishkama karma* cluster (BG.5.12,
-  BG.3.19, BG.2.51...) ahead of the more specific verse the eval expects
-  (BG.2.62), which is a defensible ranking choice, not a failure. Not yet
-  audited question-by-question to find out how much of the 20 this explains.
-- Dense retrieval adds an **optional** runtime dependency on a local Ollama
-  server. When it's absent the app falls back to BM25 in ~5ms with no error,
-  and the measured difference is one question in 106 (see "Dense retrieval").
-  `GET /health` reports `dense_index.ollama_reachable` if you want to know
-  which mode is in effect; nothing is surfaced at query time because at that
-  magnitude it would be noise.
+- Code license: [MIT](LICENSE)
+- Corpus rights and attribution: [NOTICE.md](NOTICE.md)
+- Contact: open an issue in this repository
