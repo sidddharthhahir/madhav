@@ -1,5 +1,7 @@
 # Madhav
 
+[![tests](https://github.com/sidddharthhahir/madhav/actions/workflows/tests.yml/badge.svg)](https://github.com/sidddharthhahir/madhav/actions/workflows/tests.yml)
+
 Cited Bhagavad Gita retrieval and answering with strict citation validation.
 
 ## Overview
@@ -73,13 +75,28 @@ Optional environment variables:
 
 Core retrieval routes (`/search`, `/preview`, `/counterpoint`, `/dilemma`, `/read`) work without API credentials.
 
+## Evaluation
+
+Numbers below are reproduced by running the scripts in [Verification](#verification) against the committed corpus and eval set — nothing here is asserted without a script that checks it.
+
+| | |
+|---|---|
+| Corpus | 701 verses, full text in English, Sanskrit, Hindi, and Gujarati, all embedded |
+| Eval set | 106 questions across 18/18 chapters and 30 themes, validated against the corpus (`validate_eval.py`) |
+| Citation validator | 9/9 adversarial cases correctly accepted or rejected — hallucinated verse numbers, hallucinated chapters, and valid-but-out-of-context citations are all caught (`test_validator.py`) |
+| Reject-and-regenerate pipeline | 12/12 scenarios pass end-to-end against a stubbed model, including a first-attempt hallucination that gets corrected on retry, and the case where no draft ever validates and the answer is withheld rather than shipped (`test_pipeline.py`) |
+
+The `/ask` and `/ask/stream` endpoints only return an answer once its citations have been checked against the corpus; if none validate, the API withholds the answer rather than returning an unverified one.
+
 ## Verification
 
-Run the repository checks:
+Run the repository checks (all offline, no API credential required):
 
 ```bash
-for s in verify_store test_validator test_pipeline test_api test_api_ui test_prefixes validate_eval; do python scripts/$s.py; done
+for s in verify_store test_validator test_pipeline test_api test_api_ui test_prefixes test_speakers test_rerank validate_eval; do python scripts/$s.py; done
 ```
+
+CI runs the same checks on every push and pull request — see [`.github/workflows/tests.yml`](.github/workflows/tests.yml).
 
 ## Project Structure
 

@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate eval set against the corpus
+        run: python scripts/validate_eval.py
+
+      - name: Citation validator (adversarial cases + corpus sanity)
+        run: python scripts/test_validator.py
+
+      - name: Enrichment pre-flight checks
+        run: python scripts/test_prefixes.py
+
+      - name: End-to-end pipeline (stub client)
+        run: python scripts/test_pipeline.py
+
+      - name: Corpus store integrity
+        run: python scripts/verify_store.py
+
+      - name: HTTP API (in-process)
+        run: python scripts/test_api.py
+
+      - name: Speaker attribution
+        run: python scripts/test_speakers.py
+
+      - name: API/UI integration
+        run: python scripts/test_api_ui.py
+
+      - name: Reranker + counterpoint logic
+        run: python scripts/test_rerank.py
