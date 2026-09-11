@@ -46,6 +46,27 @@ python -m venv .venv
 
 Open <http://127.0.0.1:8000> after startup.
 
+## Deploying a public demo
+
+[`render.yaml`](render.yaml) is a ready-to-go Blueprint — Render reads it
+and provisions the service, build command, and public-demo env vars
+automatically. Free tier, no credit card:
+
+1. [render.com](https://render.com) → sign up (GitHub login is fastest)
+2. **New** → **Blueprint** → select this repo → Render finds `render.yaml`
+3. It'll prompt for two secrets it deliberately doesn't default:
+   - `ANTHROPIC_API_KEY` — your key, only spent when someone uses `/ask`
+   - `MADHAV_TOKEN` — make one up (e.g. a long random string); this is what
+     keeps `/ask` private to you even though the rest of the demo is public
+4. **Apply** — first deploy takes a few minutes (installs deps, no GPU/build
+   step needed)
+
+That's it — `MADHAV_PUBLIC_DEMO=1` is already set in the blueprint, so
+`/search`, `/preview`, `/counterpoint`, `/dilemma`, `/read`, and `/chapters`
+are live and usable by anyone immediately; `/ask` stays gated behind the
+token you set. See [Public demo mode](#public-demo-mode) below for exactly
+what that flag changes.
+
 ## Usage
 
 ```bash
@@ -74,6 +95,24 @@ Optional environment variables:
 - `MADHAV_RERANK=1` to enable model-based reranking
 
 Core retrieval routes (`/search`, `/preview`, `/counterpoint`, `/dilemma`, `/read`) work without API credentials.
+
+### Public demo mode
+
+Set `MADHAV_PUBLIC_DEMO=1` when deploying this somewhere reachable by anyone,
+not just running it locally. It closes two gaps that don't matter for a
+single-user desktop app but do matter on the public internet:
+
+- **History and saved verses are shared, unisolated state** (one SQLite
+  table, no per-visitor separation) — `/history` and `/saved` (all methods)
+  respond `404` instead of exposing or letting strangers edit that state.
+- **The free retrieval endpoints had no rate limit at all** — `/search`,
+  `/preview`, `/counterpoint`, `/dilemma`, `/verse`, `/chapters`, `/read` are
+  capped per-IP at `MADHAV_FREE_PER_MIN` (default `30`) once this is on.
+
+`MADHAV_TOKEN` becomes **mandatory** in this mode — the app refuses to start
+without it, since an unguarded `/ask` on a public URL means anyone who finds
+it can spend your Anthropic API key. Local/self-hosted use is unaffected;
+none of this activates unless `MADHAV_PUBLIC_DEMO` is set.
 
 ## Evaluation
 

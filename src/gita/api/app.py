@@ -14,7 +14,7 @@ from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,6 +26,23 @@ WEB_ROOT = Path(__file__).resolve().parents[3] / "frontend" / "web"
 
 # Read at import, not per request: this decides how the pipeline is built.
 RERANK_ENABLED = os.environ.get("MADHAV_RERANK", "").strip() in ("1", "true", "yes")
+
+# Public-demo mode closes two gaps that don't matter for a single-user
+# desktop app but do matter the moment this listens on the public internet:
+#   1. History and saved verses are one shared SQLite table with no
+#      per-visitor isolation -- fine for one person on localhost, a privacy
+#      and integrity problem for a public demo where any visitor could read
+#      or delete another visitor's (or your own) saved notes.
+#   2. The free retrieval endpoints (/search, /preview, /counterpoint,
+#      /dilemma, /read, /chapters, /verse) have no rate limit at all --
+#      harmless locally, an open door for a scraper or a broken client to
+#      peg the process once this is reachable by anyone.
+# Off by default: setting nothing changes how the app behaves for you
+# locally. MADHAV_TOKEN becomes mandatory the moment this is on -- see the
+# check right after ASK_TOKEN is read, below -- because a public demo with
+# an unguarded /ask means anyone who finds the URL can spend your API key.
+PUBLIC_DEMO = os.environ.get("MADHAV_PUBLIC_DEMO", "").strip() in ("1", "true", "yes")
+FREE_RATE_LIMIT = int(os.environ.get("MADHAV_FREE_PER_MIN", "30"))
 
 _state: dict = {}
 
@@ -118,9 +135,60 @@ def health():
 # how long the rejection takes.
 ASK_TOKEN = os.environ.get("MADHAV_TOKEN", "").strip()
 
+if PUBLIC_DEMO and not ASK_TOKEN:
+    raise RuntimeError(
+        "MADHAV_PUBLIC_DEMO is set but MADHAV_TOKEN is not -- refusing to "
+        "start. Public demo mode requires /ask to be gated behind a token "
+        "only you hold, or anyone who finds this URL can spend your "
+        "Anthropic API key."
+    )
+
 ASK_RATE_LIMIT = int(os.environ.get("MADHAV_ASK_PER_HOUR", "60"))
 _ask_calls: dict[str, deque] = {}
 _ask_lock = threading.Lock()
+
+_free_calls: dict[str, deque] = {}
+_free_lock = threading.Lock()
+
+
+def _rate_limit_free(request: Request) -> None:
+    """Per-IP rate limit for the free retrieval endpoints.
+
+    Only active in public-demo mode (see PUBLIC_DEMO above) -- local and
+    self-hosted use stays intentionally unlimited, same as it always was.
+    """
+    if not PUBLIC_DEMO or FREE_RATE_LIMIT <= 0:
+        return
+    who = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    with _free_lock:
+        for addr in [a for a, d in _free_calls.items()
+                     if a != who and (not d or now - d[-1] > 60)]:
+            del _free_calls[addr]
+        seen = _free_calls.setdefault(who, deque())
+        while seen and now - seen[0] > 60:
+            seen.popleft()
+        if len(seen) >= FREE_RATE_LIMIT:
+            retry = int(60 - (now - seen[0])) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=("Rate limit reached: %d requests per minute on this "
+                        "public demo." % FREE_RATE_LIMIT),
+                headers={"Retry-After": str(retry)},
+            )
+        seen.append(now)
+
+
+def _block_in_public_demo() -> None:
+    """History and saved verses are shared, unisolated state -- see
+    PUBLIC_DEMO above for why that's not safe to expose to visitors."""
+    if PUBLIC_DEMO:
+        raise HTTPException(
+            status_code=404,
+            detail=("History and saved verses are disabled on this public "
+                     "demo (shared state, no per-visitor isolation). Run "
+                     "Madhav locally for personal use."),
+        )
 
 
 def _require_token(request: Request) -> None:
@@ -225,7 +293,7 @@ def ask_stream(req: AskRequest, request: Request):
     )
 
 
-@app.post("/preview")
+@app.post("/preview", dependencies=[Depends(_rate_limit_free)])
 def preview(req: AskRequest):
     """Retrieval + grounding context with no model calls. Costs nothing."""
     return get_pipeline().preview(req.question, k=req.k)
@@ -237,13 +305,15 @@ class CounterpointRequest(BaseModel):
     k: int = Field(5, ge=1, le=12)
 
 
-@app.post("/counterpoint")
+@app.post("/counterpoint", dependencies=[Depends(_rate_limit_free)])
 def counterpoint(req: CounterpointRequest):
     """The verses that face the other way from a given set.
 
-    Deliberately NOT behind the rate limiter or the spend guard: this makes no
-    model call at all. It is one more local retrieval against a query built
-    from the corpus's own stance text -- see retrieval/counterpoint.py.
+    No model call, so it's outside the /ask spend guard -- but it does sit
+    behind the free-endpoint rate limiter in public-demo mode, same as the
+    other retrieval-only routes. It is one more local retrieval against a
+    query built from the corpus's own stance text -- see
+    retrieval/counterpoint.py.
     """
     return get_pipeline().counterpoint(req.verse_ids, k=req.k)
 
@@ -256,17 +326,18 @@ class DilemmaRequest(BaseModel):
     k: int = Field(5, ge=1, le=10)
 
 
-@app.post("/dilemma")
+@app.post("/dilemma", dependencies=[Depends(_rate_limit_free)])
 def dilemma(req: DilemmaRequest):
     """Dharma-sankata: verses for each side of a choice, and for both.
 
     Free, like /counterpoint and /preview -- two local retrievals, no model
-    call, so it sits outside the spend guard and the rate limiter.
+    call, so it sits outside the /ask spend guard (the free-endpoint rate
+    limiter still applies in public-demo mode).
     """
     return get_pipeline().dilemma(req.option_a, req.option_b, k=req.k)
 
 
-@app.get("/verse/{verse_id}")
+@app.get("/verse/{verse_id}", dependencies=[Depends(_rate_limit_free)])
 def verse(verse_id: str):
     record = get_pipeline().verse(verse_id)
     if record is None:
@@ -274,7 +345,7 @@ def verse(verse_id: str):
     return record
 
 
-@app.get("/search")
+@app.get("/search", dependencies=[Depends(_rate_limit_free)])
 def search(q: str, k: int = 8):
     """Raw lexical search. Diagnostic surface, no model calls."""
     pipeline = get_pipeline()
@@ -291,19 +362,19 @@ def search(q: str, k: int = 8):
 
 # -- sidebar state ---------------------------------------------------------
 
-@app.get("/chapters")
+@app.get("/chapters", dependencies=[Depends(_rate_limit_free)])
 def chapters():
     return get_pipeline().chapters()
 
 
-@app.get("/chapters/{chapter}")
+@app.get("/chapters/{chapter}", dependencies=[Depends(_rate_limit_free)])
 def chapter_verses(chapter: int):
     if not 1 <= chapter <= 18:
         raise HTTPException(status_code=404, detail="chapters run 1-18")
     return get_pipeline().chapter_verses(chapter)
 
 
-@app.get("/read/{chapter}")
+@app.get("/read/{chapter}", dependencies=[Depends(_rate_limit_free)])
 def read_chapter(chapter: int):
     """One chapter with everything the immersive reader needs. Free."""
     if not 1 <= chapter <= 18:
@@ -311,24 +382,24 @@ def read_chapter(chapter: int):
     return get_pipeline().read_chapter(chapter)
 
 
-@app.get("/history")
+@app.get("/history", dependencies=[Depends(_block_in_public_demo)])
 def history(limit: int = 30):
     return get_pipeline().history(limit)
 
 
-@app.delete("/history/{entry_id}")
+@app.delete("/history/{entry_id}", dependencies=[Depends(_block_in_public_demo)])
 def delete_history(entry_id: int):
     if not get_pipeline().delete_history(entry_id):
         raise HTTPException(status_code=404, detail="no such history entry")
     return {"deleted": entry_id}
 
 
-@app.delete("/history")
+@app.delete("/history", dependencies=[Depends(_block_in_public_demo)])
 def clear_history():
     return {"cleared": get_pipeline().clear_history()}
 
 
-@app.get("/saved")
+@app.get("/saved", dependencies=[Depends(_block_in_public_demo)])
 def saved():
     return get_pipeline().saved()
 
@@ -338,14 +409,14 @@ class SaveRequest(BaseModel):
     note: str | None = None
 
 
-@app.post("/saved")
+@app.post("/saved", dependencies=[Depends(_block_in_public_demo)])
 def save_verse(req: SaveRequest):
     if not get_pipeline().save_verse(req.verse_id, req.note):
         raise HTTPException(status_code=404, detail="no such verse: %s" % req.verse_id)
     return {"saved": req.verse_id}
 
 
-@app.delete("/saved/{verse_id}")
+@app.delete("/saved/{verse_id}", dependencies=[Depends(_block_in_public_demo)])
 def unsave_verse(verse_id: str):
     get_pipeline().unsave_verse(verse_id)
     return {"removed": verse_id}

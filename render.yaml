@@ -1,0 +1,30 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# One-click deploy: connect this repo on Render, it reads this file and
+# provisions the service below. The corpus (data/gita.sqlite3, ~28MB) is
+# committed to the repo, so a fresh clone on every deploy already has it —
+# no persistent disk needed, which is only safe because MADHAV_PUBLIC_DEMO=1
+# disables the two endpoints (/history, /saved) that would otherwise want
+# writable, persistent storage. Free tier: sleeps after 15 min idle, ~30-60s
+# cold start on the next request. Fine for a portfolio demo, not for anything
+# latency-sensitive.
+services:
+  - type: web
+    name: madhav-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn --app-dir src gita.api.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MADHAV_PUBLIC_DEMO
+        value: "1"
+      - key: MADHAV_FREE_PER_MIN
+        value: "30"
+      - key: MADHAV_ASK_PER_HOUR
+        value: "20"
+      # Secrets — Render prompts for these at first deploy rather than
+      # storing a default; set MADHAV_TOKEN to something only you know.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: MADHAV_TOKEN
+        sync: false
