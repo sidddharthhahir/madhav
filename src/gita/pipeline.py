@@ -353,7 +353,10 @@ class Pipeline:
 
     # -- full pipeline -----------------------------------------------------
 
-    def ask(self, question: str, *, k: int | None = None) -> AnswerResult:
+    def ask(self, question: str, *, k: int | None = None, client=None) -> AnswerResult:
+        """`client`, if given, funds this call instead of self.client --
+        the bring-your-own-key path. See understand_cached for why this is
+        safe to use from concurrent requests."""
         question = (question or "").strip()
         timings: list[Stage] = []
 
@@ -364,7 +367,7 @@ class Pipeline:
 
         t0 = time.perf_counter()
         try:
-            plan, _cached = self.understand_cached(question)
+            plan, _cached = self.understand_cached(question, client=client)
         except G.MissingCredentialsError as exc:
             return AnswerResult(question, "", "en", [], ok=False,
                                 status="no_credentials", detail=str(exc))
@@ -396,7 +399,7 @@ class Pipeline:
         try:
             generated = G.answer(
                 question, ctx, language=plan.language, valid_ids=self.valid_ids,
-                client=self.client, model=self.model,
+                client=client or self.client, model=self.model,
             )
         except G.MissingCredentialsError as exc:
             return AnswerResult(question, "", plan.language, [], ok=False,
@@ -511,19 +514,27 @@ class Pipeline:
                  dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")))
             self.local.commit()
 
-    def understand_cached(self, question: str):
-        """understand(), served from cache when the same question repeats."""
+    def understand_cached(self, question: str, *, client=None):
+        """understand(), served from cache when the same question repeats.
+
+        `client` overrides self.client for this call only (bring-your-own-key
+        callers) -- it never mutates pipeline state, so concurrent requests
+        with different keys don't interfere with each other.
+        """
         hit = self.cached_plan(question)
         if hit is not None:
             return hit, True
-        plan = G.understand(question, client=self.client, model=self.model)
+        plan = G.understand(question, client=client or self.client, model=self.model)
         self.store_plan(question, plan)
         return plan, False
 
     # -- streaming ---------------------------------------------------------
 
-    def ask_stream(self, question: str, *, k: int | None = None):
+    def ask_stream(self, question: str, *, k: int | None = None, client=None):
         """ask() as a sequence of events, so the UI can show work in progress.
+
+        `client`, if given, funds this call instead of self.client -- the
+        bring-your-own-key path (see understand_cached).
 
         Emits (event_name, payload) pairs:
             stage      {"name": ...}          which phase is running
@@ -549,7 +560,7 @@ class Pipeline:
         yield ("stage", {"name": "understanding"})
         t0 = time.perf_counter()
         try:
-            plan, _cached = self.understand_cached(question)
+            plan, _cached = self.understand_cached(question, client=client)
         except G.MissingCredentialsError as exc:
             yield ("failed", AnswerResult(question, "", "en", [], ok=False,
                                           status="no_credentials", detail=str(exc)))
@@ -594,7 +605,7 @@ class Pipeline:
         try:
             for kind, payload in G.answer_stream(
                 question, ctx, language=plan.language, valid_ids=self.valid_ids,
-                client=self.client, model=self.model,
+                client=client or self.client, model=self.model,
             ):
                 if kind == "delta":
                     yield ("delta", {"text": payload})

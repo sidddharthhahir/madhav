@@ -55,17 +55,23 @@ automatically. Free tier, no credit card:
 1. [render.com](https://render.com) → sign up (GitHub login is fastest)
 2. **New** → **Blueprint** → select this repo → Render finds `render.yaml`
 3. It'll prompt for two secrets it deliberately doesn't default:
-   - `ANTHROPIC_API_KEY` — your key, only spent when someone uses `/ask`
-   - `MADHAV_TOKEN` — make one up (e.g. a long random string); this is what
-     keeps `/ask` private to you even though the rest of the demo is public
+   - `ANTHROPIC_API_KEY` — **leave this blank.** With no server key, `/ask`
+     runs entirely on bring-your-own-key (see below) — visitors pay for
+     their own answers, you pay nothing, ever. Only set this if you
+     specifically want to fund answers yourself.
+   - `MADHAV_TOKEN` — make one up anyway (e.g. a long random string). It's
+     what would keep `/ask` private to you *if* you ever did add a server
+     key later — required to start regardless, so it's there before you
+     need it.
 4. **Apply** — first deploy takes a few minutes (installs deps, no GPU/build
    step needed)
 
 That's it — `MADHAV_PUBLIC_DEMO=1` is already set in the blueprint, so
 `/search`, `/preview`, `/counterpoint`, `/dilemma`, `/read`, and `/chapters`
-are live and usable by anyone immediately; `/ask` stays gated behind the
-token you set. See [Public demo mode](#public-demo-mode) below for exactly
-what that flag changes.
+are live and usable by anyone immediately; `/ask` prompts each visitor for
+their own key (see [Bring your own key](#public-demo-mode)) and never
+touches yours. See [Public demo mode](#public-demo-mode) below for exactly
+what `MADHAV_PUBLIC_DEMO` changes.
 
 ## Usage
 
@@ -113,6 +119,19 @@ single-user desktop app but do matter on the public internet:
 without it, since an unguarded `/ask` on a public URL means anyone who finds
 it can spend your Anthropic API key. Local/self-hosted use is unaffected;
 none of this activates unless `MADHAV_PUBLIC_DEMO` is set.
+
+**Bring your own key.** A visitor can send their own Anthropic key as the
+`X-Anthropic-Key` header — it funds their own question, is never logged or
+persisted server-side, and bypasses the `X-Madhav-Token` requirement
+entirely (there's nothing of yours left to protect once they're paying).
+The web UI does this automatically: when `/ask` comes back
+`no_credentials` — which it always will on a deploy with no server-side
+`ANTHROPIC_API_KEY` — it shows an inline field for a visitor's own key,
+saved to their browser's `localStorage` and reused from then on. This is
+the intended way to run a fully public demo that costs you nothing: leave
+`ANTHROPIC_API_KEY` unset entirely, set only `MADHAV_TOKEN` (kept private,
+for your own use) and `MADHAV_PUBLIC_DEMO=1`, and every visitor who wants
+answers brings their own key.
 
 ## Evaluation
 

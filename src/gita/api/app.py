@@ -191,8 +191,27 @@ def _block_in_public_demo() -> None:
         )
 
 
-def _require_token(request: Request) -> None:
-    if not ASK_TOKEN:
+def _byok_client(request: Request):
+    """Build a per-request Anthropic client from a visitor-supplied key.
+
+    Bring-your-own-key: a visitor's own key funds their own question,
+    never touches ANTHROPIC_API_KEY, and is never logged or persisted --
+    read once off the request, handed to the SDK, discarded when the
+    request ends. Returns None (fall back to the server key, if any) when
+    no key was supplied.
+    """
+    key = request.headers.get("x-anthropic-key", "").strip()
+    if not key:
+        return None
+    import anthropic
+    return anthropic.Anthropic(api_key=key)
+
+
+def _require_token(request: Request, *, byok: bool = False) -> None:
+    if not ASK_TOKEN or byok:
+        # MADHAV_TOKEN protects the server's own spend. A visitor who
+        # brought their own key has nothing of yours at risk, so there's
+        # nothing here for the token to protect.
         return
     sent = request.headers.get("x-madhav-token", "")
     if not hmac.compare_digest(sent, ASK_TOKEN):
@@ -230,20 +249,23 @@ def _rate_limit_ask(request: Request) -> None:
 
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest, request: Request):
-    _require_token(request)
+    user_client = _byok_client(request)
+    _require_token(request, byok=user_client is not None)
     _rate_limit_ask(request)
     pipeline = get_pipeline()
 
     # A repeat of the same question under the same model, prompt and k cannot
     # produce a differently-validated answer, so serve the stored one rather
-    # than paying twice. Cache-served answers are not re-logged to history --
-    # the original ask is already there.
+    # than paying twice -- true regardless of whose key funded the original
+    # answer, so this cache is shared across server-funded and BYOK callers.
+    # Cache-served answers are not re-logged to history -- the original ask
+    # is already there.
     hit = pipeline.cached_answer(req.question, req.k or pipeline.max_verses)
     if hit is not None:
         hit["cached"] = True
         return hit
 
-    result = pipeline.ask(req.question, k=req.k)
+    result = pipeline.ask(req.question, k=req.k, client=user_client)
     pipeline.store_answer(req.question, req.k or pipeline.max_verses, result)
     # Recorded regardless of ok/failed -- the frontend's history row already
     # renders a status dot for both cases, so both were always meant to be
@@ -267,13 +289,14 @@ def ask_stream(req: AskRequest, request: Request):
     payload of `done` as a checked answer. /ask remains for callers that want
     the simple all-or-nothing contract.
     """
-    _require_token(request)
+    user_client = _byok_client(request)
+    _require_token(request, byok=user_client is not None)
     _rate_limit_ask(request)
     pipeline = get_pipeline()
 
     def frames():
         try:
-            for kind, payload in pipeline.ask_stream(req.question, k=req.k):
+            for kind, payload in pipeline.ask_stream(req.question, k=req.k, client=user_client):
                 if kind in ("done", "failed"):
                     body = payload.to_dict()
                     body.pop("plan", None)

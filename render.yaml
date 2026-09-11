@@ -23,8 +23,14 @@ services:
       - key: MADHAV_ASK_PER_HOUR
         value: "20"
       # Secrets — Render prompts for these at first deploy rather than
-      # storing a default; set MADHAV_TOKEN to something only you know.
+      # storing a default.
+      # ANTHROPIC_API_KEY: leave blank. With no server key, /ask runs on
+      # bring-your-own-key (README "Public demo mode") — visitors pay for
+      # their own answers, this deployment never spends anything.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # MADHAV_TOKEN: set this to something only you know, regardless —
+      # the app refuses to start in public-demo mode without it (see
+      # api/app.py), even with no server key to protect yet.
       - key: MADHAV_TOKEN
         sync: false

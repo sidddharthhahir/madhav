@@ -1373,3 +1373,36 @@ body.reading #app { visibility: hidden; }
 
 /* The reader is screen-only; printing from it should print the page beneath. */
 @media print { .reader { display: none !important; } }
+
+/* -------------------------------------------------- bring-your-own-key ---
+   Shown inline in the no_credentials failure message (renderFailure in
+   app.js) on public-demo deployments that run with no server-side
+   ANTHROPIC_API_KEY. Reuses the app's existing tokens so it reads as part
+   of the shell, not a bolted-on widget. */
+.byok-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  max-width: 420px;
+}
+.byok-input {
+  flex: 1;
+  background: var(--gw-input);
+  border: 1px solid var(--gw-border);
+  border-radius: 8px;
+  color: var(--gw-text);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.byok-input:focus {
+  outline: none;
+  border-color: var(--gw-accent);
+}
+.byok-note {
+  margin-top: 10px;
+  color: var(--gw-text-4);
+  font-size: 12px;
+  max-width: 420px;
+}
+.byok-note a { color: var(--gw-teal); }

@@ -33,9 +33,35 @@ const state = {
   vishvarupaShown: false,
 };
 
+// -------------------------------------------------------- bring-your-own-key
+// Public-demo deployments run with no server-side ANTHROPIC_API_KEY (see
+// README "Public demo mode") -- /ask then answers with status:no_credentials
+// (see FAILURE_COPY below) until a visitor supplies their own. The key lives
+// in this browser's localStorage only: attached as the X-Anthropic-Key
+// header on /ask and /ask/stream, never logged or persisted server-side
+// (see _byok_client in api/app.py), removable any time.
+const BYOK_STORAGE_KEY = "madhav_byok_anthropic_key";
+
+function getByokKey() {
+  try { return localStorage.getItem(BYOK_STORAGE_KEY) || ""; }
+  catch (e) { return ""; }
+}
+
+function setByokKey(key) {
+  try {
+    if (key) localStorage.setItem(BYOK_STORAGE_KEY, key);
+    else localStorage.removeItem(BYOK_STORAGE_KEY);
+  } catch (e) { /* private browsing / storage disabled -- key just won't persist */ }
+}
+
+function byokHeaders() {
+  const key = getByokKey();
+  return key ? { "x-anthropic-key": key } : {};
+}
+
 async function api(path, opts) {
   const res = await fetch(path, {
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...byokHeaders() },
     ...opts,
   });
   if (!res.ok && res.status !== 422) {
@@ -356,7 +382,7 @@ async function ask({ retrieveOnly }) {
 async function askStreaming(question) {
   const res = await fetch("/ask/stream", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...byokHeaders() },
     body: JSON.stringify({ question }),
   });
 
@@ -469,10 +495,31 @@ const FAILURE_COPY = {
 function renderFailure(out) {
   $("answer").classList.remove("settled");
   const [head, body] = FAILURE_COPY[out.status] || [out.status, out.detail || ""];
+  const byok = out.status === "no_credentials" ? `
+    <form id="byokForm" class="byok-form">
+      <input id="byokInput" class="byok-input" type="password" autocomplete="off"
+             spellcheck="false" placeholder="sk-ant-..."
+             value="${escapeHtml(getByokKey())}" />
+      <button class="btn primary" type="submit">Use this key</button>
+    </form>
+    <p class="byok-note">Stays in your browser only — sent as a header on
+      your own requests, never logged or stored server-side. Get one at
+      <a href="https://console.anthropic.com/settings/keys" target="_blank"
+         rel="noopener noreferrer">console.anthropic.com</a>.</p>` : "";
   $("answer").innerHTML = `
     <p style="color:var(--gw-text);font-size:16px;margin-bottom:8px">${escapeHtml(head)}</p>
     <p style="color:var(--gw-muted);font-size:14px">${escapeHtml(body)}</p>
-    ${out.detail ? `<p class="kbd" style="margin-top:14px">${escapeHtml(out.detail)}</p>` : ""}`;
+    ${out.detail ? `<p class="kbd" style="margin-top:14px">${escapeHtml(out.detail)}</p>` : ""}
+    ${byok}`;
+
+  const form = $("byokForm");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      setByokKey($("byokInput").value.trim());
+      ask({ retrieveOnly: false });
+    });
+  }
 }
 
 // Turn [BG 3.37] into a clickable pill. This is the signature interaction:
